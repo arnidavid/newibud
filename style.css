@@ -1,0 +1,195 @@
+/* ============================================================
+   style.css — ibud v2
+   ============================================================ */
+
+:root {
+  --bg: #f6f3ed;
+  --bg-warm: #efe9df;
+  --bg-card: #fff;
+  --bg-alt: #faf8f4;
+  --bdr: rgba(0,0,0,.07);
+  --bdr2: rgba(0,0,0,.12);
+  --tx: #1a1a18;
+  --tx2: #5c5a54;
+  --tx3: #9c9a94;
+  --acc: #2d6a4f;
+  --acc-l: #d8f3dc;
+  --acc-bg: rgba(45,106,79,.06);
+  --wrn: #b86e00;
+  --wrn-l: #fff1d6;
+  --wrn-bg: rgba(184,110,0,.06);
+  --dng: #c1121f;
+  --dng-l: #ffe0e3;
+  --dng-bg: rgba(193,18,31,.05);
+  --sh: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.03);
+  --sh2: 0 4px 20px rgba(0,0,0,.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.topo {
+  position: fixed; inset: 0; z-index: 0; opacity: .03;
+  background-image: url("data:image/svg+xml,%3Csvg width='600' height='600' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M300 50c-80 0-150 40-190 100s-60 140-30 210 90 130 170 150 170-10 220-80 70-160 40-240S380 50 300 50z' fill='none' stroke='%23000' stroke-width='.8'/%3E%3Cpath d='M300 100c-60 0-110 30-140 75s-45 105-22 158 68 97 128 112 128-8 165-60 52-120 30-180-75-105-161-105z' fill='none' stroke='%23000' stroke-width='.6'/%3E%3Cpath d='M300 150c-40 0-75 20-95 50s-30 70-15 105 45 65 85 75 85-5 110-40 35-80 20-120-50-70-105-70z' fill='none' stroke='%23000' stroke-width='.5'/%3E%3C/svg%3E");
+  background-size: 600px;
+  pointer-events: none;
+}
+
+/* ---- Header ---- */
+header { position: relative; z-index: 1; padding: 3.5rem 2rem 2rem; max-width: 1200px; margin: 0 auto; }
+.htop { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+h1 { font-family: 'Instrument Serif', serif; font-size: 3.2rem; font-weight: 400; line-height: 1; letter-spacing: -.03em; }
+.badge { display: inline-flex; align-items: center; gap: 6px; background: var(--acc-l); color: var(--acc); font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; padding: 6px 14px; border-radius: 100px; animation: pulse 3s ease-in-out infinite; }
+.badge::before { content: ''; width: 6px; height: 6px; background: var(--acc); border-radius: 50%; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+.sub { font-size: 1rem; color: var(--tx2); margin-top: .6rem; font-weight: 300; }
+.upd { font-size: .75rem; color: var(--tx3); margin-top: .3rem; }
+
+/* ---- Main ---- */
+main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 2rem 5rem; }
+
+/* ---- Metrics bar ---- */
+.mets { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; margin-bottom: 3rem; border: 1px solid var(--bdr); border-radius: 16px; overflow: hidden; background: var(--bg-card); box-shadow: var(--sh); }
+.met { padding: 1.5rem 1.75rem; border-right: 1px solid var(--bdr); transition: background .25s; }
+.met:last-child { border-right: none; }
+.met:hover { background: var(--bg-alt); }
+.ml { font-size: .68rem; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .1em; }
+.mv { font-family: 'Instrument Serif', serif; font-size: 2.4rem; font-weight: 400; margin-top: .2rem; line-height: 1.1; }
+.ms { font-size: .75rem; color: var(--tx3); margin-top: .15rem; }
+
+/* ---- Section headers ---- */
+.sh { display: flex; align-items: baseline; gap: 1rem; margin: 3rem 0 1.25rem; }
+.st { font-family: 'Instrument Serif', serif; font-size: 1.6rem; font-weight: 400; }
+.sl { flex: 1; height: 1px; background: linear-gradient(90deg, var(--bdr2), transparent); }
+
+/* ---- Chart grid ---- */
+.cgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1rem; }
+.cbox { background: var(--bg-card); border: 1px solid var(--bdr); border-radius: 16px; padding: 1.5rem; box-shadow: var(--sh); }
+.cbt { font-size: .72rem; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+.cw { position: relative; height: 300px; }
+.cleg { display: flex; gap: 1.25rem; margin-top: .75rem; font-size: .75rem; color: var(--tx3); }
+.cleg span { display: flex; align-items: center; gap: 5px; }
+.ld { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+
+/* ---- Nýjustu sölur ---- */
+.ns-desc { font-size: .82rem; color: var(--tx2); margin-bottom: 1.5rem; line-height: 1.5; }
+.ns-grid { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
+.ns-card { background: var(--bg-card); border: 1px solid var(--bdr); border-radius: 16px; overflow: hidden; box-shadow: var(--sh); animation: ci .5s ease both; }
+.ns-card:hover { box-shadow: var(--sh2); transform: translateY(-2px); transition: all .3s; }
+.ns-top { display: flex; align-items: stretch; }
+.ns-stripe { width: 6px; flex-shrink: 0; }
+.ns-stripe.ns-discount { background: var(--acc); }
+.ns-stripe.ns-premium { background: var(--wrn); }
+.ns-stripe.ns-nomatch { background: var(--bdr2); }
+.ns-body { flex: 1; padding: 1.5rem; }
+.ns-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.ns-addr { font-family: 'Instrument Serif', serif; font-size: 1.3rem; font-weight: 400; }
+.ns-date { font-size: .72rem; color: var(--tx3); }
+.ns-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.ns-stat { }
+.ns-stat-label { font-size: .65rem; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .08em; }
+.ns-stat-val { font-size: 1.05rem; font-weight: 500; margin-top: 1px; }
+.ns-stat-val.ns-green { color: var(--acc); }
+.ns-stat-val.ns-orange { color: var(--wrn); }
+.ns-stat-val.ns-red { color: var(--dng); }
+.ns-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; margin-top: .75rem; padding: .75rem 1rem; background: var(--bg-alt); border-radius: 10px; border: 1px solid var(--bdr); align-items: center; }
+.ns-col { }
+.ns-col-label { font-size: .6rem; font-weight: 700; color: var(--tx3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .35rem; }
+.ns-col-price { font-family: 'Instrument Serif', serif; font-size: 1.4rem; }
+.ns-col-fm { font-size: .78rem; color: var(--tx2); margin-top: .15rem; }
+.ns-arrow { font-size: 1.5rem; color: var(--tx3); padding: 0 1rem; text-align: center; }
+.ns-diff { text-align: center; }
+.ns-diff-val { font-family: 'Instrument Serif', serif; font-size: 1.6rem; font-weight: 400; }
+.ns-diff-label { font-size: .65rem; color: var(--tx3); text-transform: uppercase; letter-spacing: .08em; }
+.ns-nomatch-msg { font-size: .8rem; color: var(--tx3); font-style: italic; margin-top: .5rem; padding: .5rem .75rem; background: var(--bg-alt); border-radius: 8px; }
+.ns-empty { text-align: center; padding: 2rem; color: var(--tx3); font-size: .88rem; border: 1px dashed var(--bdr2); border-radius: 16px; }
+
+/* ---- Filter buttons ---- */
+.frow { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.fb { background: 0; border: 1px solid var(--bdr); color: var(--tx2); padding: .45rem 1rem; border-radius: 100px; cursor: pointer; font-size: .78rem; font-family: 'Outfit', sans-serif; font-weight: 500; transition: all .2s; }
+.fb:hover { border-color: var(--tx2); color: var(--tx); }
+.fb.on { background: var(--tx); border-color: var(--tx); color: var(--bg); font-weight: 600; }
+
+/* ---- Listing cards ---- */
+.lcs { display: flex; flex-direction: column; gap: 1rem; }
+.lc { background: var(--bg-card); border: 1px solid var(--bdr); border-radius: 16px; overflow: hidden; box-shadow: var(--sh); transition: box-shadow .3s, transform .3s; animation: ci .5s ease both; }
+.lc:hover { box-shadow: var(--sh2); transform: translateY(-2px); }
+@keyframes ci { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.lc-t { display: flex; align-items: stretch; }
+.lc-s { width: 6px; flex-shrink: 0; }
+.lc-s.sg { background: var(--acc); }
+.lc-s.so { background: var(--wrn); }
+.lc-s.sh { background: var(--dng); }
+.lc-b { flex: 1; padding: 1.5rem; }
+.lc-h { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.lc-n { font-family: 'Instrument Serif', serif; font-size: 1.35rem; font-weight: 400; }
+.tg { font-size: .65rem; font-weight: 700; padding: 4px 10px; border-radius: 100px; text-transform: uppercase; letter-spacing: .08em; }
+.tg-g { background: var(--acc-l); color: var(--acc); }
+.tg-o { background: var(--wrn-l); color: var(--wrn); }
+.tg-h { background: var(--dng-l); color: var(--dng); }
+.lc-sts { display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.sl2 { font-size: .65rem; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .08em; }
+.sv2 { font-size: 1.05rem; font-weight: 500; margin-top: 1px; }
+.lc-hi { border-top: 1px solid var(--bdr); padding-top: .75rem; margin-top: .25rem; }
+.ht { font-size: .65rem; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+.hr { display: flex; justify-content: space-between; font-size: .8rem; padding: 3px 0; color: var(--tx2); }
+.hr span:last-child { font-weight: 500; color: var(--tx); }
+.lc-v { margin-top: .75rem; font-size: .82rem; color: var(--tx2); line-height: 1.55; padding: .75rem 1rem; border-radius: 10px; border-left: 3px solid var(--bdr); }
+.lc-v.vg { border-left-color: var(--acc); background: var(--acc-bg); }
+.lc-v.vo { border-left-color: var(--wrn); background: var(--wrn-bg); }
+.lc-v.vh { border-left-color: var(--dng); background: var(--dng-bg); }
+.lc-a { display: flex; justify-content: flex-end; padding: 0 1.5rem 1.25rem; }
+.vb { display: inline-flex; align-items: center; gap: 6px; color: var(--acc); text-decoration: none; font-size: .78rem; font-weight: 600; padding: 8px 16px; border: 1.5px solid var(--acc); border-radius: 100px; transition: all .25s; letter-spacing: .02em; }
+.vb:hover { background: var(--acc); color: #fff; }
+.vb svg { width: 14px; height: 14px; }
+
+/* ---- Loading & states ---- */
+.ldw { display: flex; flex-direction: column; align-items: center; padding: 4rem 0; color: var(--tx3); }
+.ldr { width: 32px; height: 32px; border: 2px solid var(--bdr); border-top-color: var(--acc); border-radius: 50%; animation: sp .7s linear infinite; margin-bottom: 1rem; }
+@keyframes sp { to { transform: rotate(360deg); } }
+.emp { text-align: center; padding: 3rem; border: 1px dashed var(--bdr2); border-radius: 16px; color: var(--tx3); font-size: .9rem; }
+.err { background: var(--dng-l); color: var(--dng); padding: 1rem 1.25rem; border-radius: 12px; font-size: .85rem; margin-bottom: 1rem; }
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .cgrid { grid-template-columns: 1fr; }
+  .mets { grid-template-columns: repeat(2,1fr); }
+  .met:nth-child(2) { border-right: none; }
+  .met:nth-child(3), .met:nth-child(4) { border-top: 1px solid var(--bdr); }
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 2.2rem; }
+  main, header { padding-left: 1rem; padding-right: 1rem; }
+  .mets { grid-template-columns: 1fr; }
+  .met { border-right: none; border-bottom: 1px solid var(--bdr); }
+  .met:last-child { border-bottom: none; }
+  .cw { height: 240px; }
+  .lc-b { padding: 1rem; }
+  .lc-sts { gap: 1rem; }
+  .hr { flex-direction: column; gap: 1px; padding: 5px 0; border-bottom: 1px solid var(--bdr); }
+  .hr:last-child { border-bottom: none; }
+  .hr span:first-child { font-size: .72rem; color: var(--tx3); }
+  .lc-h { gap: .5rem; }
+  .lc-n { font-size: 1.15rem; }
+  .tg { font-size: .6rem; }
+  .sv2 { font-size: .95rem; }
+  .lc-v { font-size: .78rem; padding: .6rem .75rem; }
+  .lc-a { padding: 0 1rem 1rem; }
+  .vb { font-size: .72rem; padding: 6px 12px; }
+  .badge { font-size: .65rem; padding: 5px 10px; }
+  .htop { flex-direction: column; align-items: flex-start; }
+  .cleg { flex-wrap: wrap; gap: .75rem; }
+  .fb { padding: .4rem .75rem; font-size: .72rem; }
+  .ns-compare { grid-template-columns: 1fr; gap: .75rem; text-align: center; }
+  .ns-arrow { transform: rotate(90deg); padding: .25rem 0; }
+  .ns-col-price { font-size: 1.2rem; }
+  .ns-addr { font-size: 1.1rem; }
+}

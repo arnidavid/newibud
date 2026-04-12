@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sumarhúsavaktin — Skorradalssvæðið</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topo"></div>
+<header>
+  <div class="htop">
+    <div><h1>Sumarhúsavaktin</h1><p class="sub">Skorradalssvæðið — kauptækifæri í rauntíma</p><p class="upd" id="upd"></p></div>
+    <div class="badge">Lifandi gögn</div>
+  </div>
+</header>
+<main>
+  <div class="mets">
+    <div class="met"><div class="ml">Á markaði</div><div class="mv" id="m1">—</div><div class="ms">póstnúmer 311</div></div>
+    <div class="met"><div class="ml">Meðal fm.verð</div><div class="mv" id="m2">—</div><div class="ms">þinglýstar sölur 2023–26</div></div>
+    <div class="met"><div class="ml">Sölur 2025</div><div class="mv" id="m3">—</div><div class="ms">sumarhús á 311</div></div>
+    <div class="met"><div class="ml">Verðbreyting</div><div class="mv" id="m4">—</div><div class="ms">2024 → 2025</div></div>
+  </div>
+  <div class="sh"><div class="st">Verðþróun</div><div class="sl"></div></div>
+  <div class="cgrid">
+    <div class="cbox"><div class="cbt">Meðal fermetraverð (þ.kr/m²)</div><div class="cw"><canvas id="c1"></canvas></div>
+      <div class="cleg"><span><span class="ld" style="background:#6b4c9a"></span>Dagverðarnes</span><span><span class="ld" style="background:#2d6a4f"></span>Fitjahlíð</span><span><span class="ld" style="background:#3a7ca5"></span>Vatnsendahlíð</span></div>
+    </div>
+    <div class="cbox"><div class="cbt">Fjöldi sölufærslna</div><div class="cw"><canvas id="c2"></canvas></div>
+      <div class="cleg"><span><span class="ld" style="background:rgba(107,76,154,.6)"></span>Dagverðarnes</span><span><span class="ld" style="background:rgba(45,106,79,.6)"></span>Fitjahlíð</span><span><span class="ld" style="background:rgba(58,124,165,.6)"></span>Vatnsendahlíð</span></div>
+    </div>
+  </div>
+  <div class="sh"><div class="st">Eignir til sölu</div><div class="sl"></div></div>
+
+  <div class="chart-full" style="margin-bottom:2rem">
+    <div class="cbox"><div class="cbt">Raunverðsþróun — verðbólguleiðrétt (VNV grunnur 2024)</div><div class="cw"><canvas id="c3"></canvas></div>
+      <div class="cleg"><span><span class="ld" style="background:#6b4c9a"></span>Dagverðarnes (raunverð)</span><span><span class="ld" style="background:#2d6a4f"></span>Fitjahlíð (raunverð)</span><span><span class="ld" style="background:#3a7ca5"></span>Vatnsendahlíð (raunverð)</span></div>
+    </div>
+  </div>
+
+  <div class="chart-full" style="margin-bottom:2rem">
+    <div class="cbox"><div class="cbt">Kaupverð vs fasteignamat — hlutfall (%)</div><div class="cw" style="height:260px"><canvas id="c4"></canvas></div>
+      <div class="cleg"><span><span class="ld" style="background:#6b4c9a"></span>Dagverðarnes</span><span><span class="ld" style="background:#2d6a4f"></span>Fitjahlíð</span><span><span class="ld" style="background:#3a7ca5"></span>Vatnsendahlíð</span><span><span class="ld" style="background:rgba(0,0,0,.15)"></span>100% = mat</span></div>
+    </div>
+  </div>
+
+  <div class="sh"><div class="st">Nýjustu sölur — auglýst vs selt</div><div class="sl"></div></div>
+  <div class="ns-desc">Samanburður á auglýstu verði á fastinn.is og raunverulegu söluverði úr kaupskrá. Gögn úr fastinn.is safnast sjálfkrafa í gegnum n8n.</div>
+  <div id="recentSalesWrap"><div class="ldw"><div class="ldr"></div>Sæki nýjustu sölur og tengd auglýsingagögn…</div></div>
+
+  <div class="sh"><div class="st">Árstíðagreining</div><div class="sl"></div></div>
+  <div id="seasonWrap">
+    <div class="cgrid" style="margin-bottom:1.25rem">
+      <div class="cbox" style="display:flex;flex-direction:column;justify-content:center;padding:1.75rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;text-align:center" id="seasonMetrics">
+          <div><div class="ml">Hagstæðast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem" id="sBest">—</div><div class="ms" id="sBestSub"></div></div>
+          <div><div class="ml">Dýrast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--dng)" id="sWorst">—</div><div class="ms" id="sWorstSub"></div></div>
+          <div><div class="ml">Munur</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--acc)" id="sDiff">—</div><div class="ms">sparnaður</div></div>
+        </div>
+        <div style="margin-top:1.25rem;font-size:.82rem;color:var(--tx2);line-height:1.6;padding:.75rem 1rem;background:var(--bg-alt);border-radius:10px;border-left:3px solid var(--acc)" id="seasonAdvice"></div>
+      </div>
+      <div class="cbox">
+        <div class="cbt">Meðal fm.verð og sölumagn eftir mánuði (2020–26)</div>
+        <div class="cw"><canvas id="c5"></canvas></div>
+        <div class="cleg"><span><span class="ld" style="background:#2d6a4f"></span>Fm.verð (þ.kr/m²)</span><span><span class="ld" style="background:rgba(58,124,165,.5)"></span>Fjöldi sölna</span></div>
+      </div>
+    </div>
+    <div class="cbox" style="margin-bottom:2rem">
+      <div class="cbt">Hitakort — fm.verð eftir mánuði og ári</div>
+      <div class="cw" style="height:260px"><canvas id="c6"></canvas></div>
+      <div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Dekkri litur = hærra fermetraverð · Hover til að sjá nákvæmt verð</div>
+    </div>
+  </div>
+
+  <div class="sh"><div class="st">Eignir á markaði</div><div class="sl"></div></div>
+  <div class="frow" id="fil"><button class="fb on" data-f="all">Allar</button><button class="fb" data-f="good">Gott tækifæri</button><button class="fb" data-f="ok">Sanngjarnt</button><button class="fb" data-f="high">Hátt verð</button></div>
+  <div id="lw"><div class="ldw"><div class="ldr"></div>Sæki gögn úr kaupskrá og fastinn.is…</div></div>
+</main>
+<script src="api.js?v=3"></script>
+<script src="app.js"></script>
+</body>
+</html>
