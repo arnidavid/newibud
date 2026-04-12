@@ -157,6 +157,65 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .emp { text-align: center; padding: 3rem; border: 1px dashed var(--bdr2); border-radius: 16px; color: var(--tx3); font-size: .9rem; }
 .err { background: var(--dng-l); color: var(--dng); padding: 1rem 1.25rem; border-radius: 12px; font-size: .85rem; margin-bottom: 1rem; }
 
+/* ---- Tab navigation ---- */
+.tab-wrap {
+  position: relative; z-index: 1;
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 2rem;
+  border-bottom: 1px solid var(--bdr);
+  margin-bottom: 0;
+}
+.tabs { display: flex; gap: 0; }
+.tab-btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  background: none; border: none;
+  padding: .85rem 1.4rem;
+  font-family: 'Outfit', sans-serif; font-size: .85rem; font-weight: 500;
+  color: var(--tx3); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .2s, border-color .2s;
+}
+.tab-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.tab-btn:hover { color: var(--tx2); }
+.tab-btn.active { color: var(--tx); border-bottom-color: var(--acc); font-weight: 600; }
+.tab-btn:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; border-radius: 4px; }
+
+/* ---- View visibility ---- */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ---- Postnr selector ---- */
+.postnr-sel {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: 2rem; flex-wrap: wrap;
+}
+.pnr-label {
+  font-size: .68rem; font-weight: 700; color: var(--tx3);
+  text-transform: uppercase; letter-spacing: .1em;
+}
+.pnr-wrap { position: relative; display: inline-flex; align-items: center; }
+.pnr-select {
+  appearance: none;
+  background: var(--bg-card);
+  border: 1px solid var(--bdr2);
+  border-radius: 10px;
+  padding: .5rem 2.5rem .5rem 1rem;
+  font-family: 'Outfit', sans-serif; font-size: .88rem; font-weight: 500;
+  color: var(--tx); cursor: pointer;
+  box-shadow: var(--sh);
+  transition: border-color .2s, box-shadow .2s;
+}
+.pnr-select:hover { border-color: var(--tx2); }
+.pnr-select:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-bg); }
+.pnr-arrow {
+  position: absolute; right: .65rem; pointer-events: none;
+  width: 14px; height: 14px; color: var(--tx3);
+}
+
+/* ---- chart-full (full-width chart wrapper) ---- */
+.chart-full { }
+
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
   .cgrid { grid-template-columns: 1fr; }
@@ -165,9 +224,18 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   .met:nth-child(3), .met:nth-child(4) { border-top: 1px solid var(--bdr); }
 }
 
+@media (max-width: 900px) {
+  .tab-wrap { padding: 0 1rem; }
+  .tab-btn { padding: .75rem 1rem; font-size: .8rem; }
+}
+
 @media (max-width: 600px) {
   h1 { font-size: 2.2rem; }
   main, header { padding-left: 1rem; padding-right: 1rem; }
+  .tab-wrap { padding: 0 1rem; }
+  .tab-btn { padding: .7rem .75rem; font-size: .75rem; gap: .3rem; }
+  .tab-btn svg { width: 13px; height: 13px; }
+  .postnr-sel { margin-bottom: 1.25rem; }
   .mets { grid-template-columns: 1fr; }
   .met { border-right: none; border-bottom: 1px solid var(--bdr); }
   .met:last-child { border-bottom: none; }

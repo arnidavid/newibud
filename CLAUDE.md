@@ -7,11 +7,18 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 - **Frontend:** Vanilla HTML/CSS/JS — no build step, loaded directly in browser
 - **Gögn:** Supabase Cloud (`nzuwplawwnlnjnbdpmei`, eu-central-1)
 - **CDN/Proxy:** Cloudflare (`sumar.silfran.com`)
-- **Hosting:** Hetzner VPS — `/home/arnisk/web/newibud/` (VS Code SSH Remote — við erum nú þegar á VPS)
+- **Hosting:** Hetzner VPS — `/home/arnisk/web/newibud/`
+
+## Development Workflow
+
+- Vinnur á Mac í `~/newibud/`
+- Claude Code keyrir á Mac
+- Git: `git push` → GitHub (`github.com/arnidavid/newibud`) → `git pull` á VPS
+- Deploy á VPS: `bash deploy.sh`
 
 ## Architecture
 
-- `index.html` — layout and Chart.js canvases, script tags with `?v=N` cache-busters
+- `index.html` — layout and Chart.js canvases, script tags með `?v=N` cache-busters
 - `api.js` — Supabase/PostgREST API module (IIFE pattern, exposed as `API`), Algolia, VNV
 - `app.js` — all chart rendering, data processing, UI logic
 - `style.css` — styles
@@ -33,6 +40,8 @@ const SUPABASE_URL = 'https://nzuwplawwnlnjnbdpmei.supabase.co/rest/v1';
 ## Deploy
 
 ```bash
+# Á VPS:
+git pull origin master
 bash deploy.sh
 ```
 
@@ -44,7 +53,7 @@ Eftir breytingar á JS/CSS: bæta `?v=N` við script/link tags í `index.html` t
 
 - `POSTNR = 311` — Skorradalssvæðið postal code
 - `HVERFI` — list of neighbourhoods within the area (Fitjahlíð, Dagverðarnes, Vatnsendahlíð, etc.)
-- `VNV` — Icelandic CPI (consumer price index) values by year, used for real price calculations
+- `VNV` — Icelandic CPI values by year, used for real price calculations
 - Fermetraverð (fm.verð) = price per square meter in thousands of ISK (þ.kr/m²)
 - `onothaefur_samningur` — invalid/non-arm's-length contracts, filtered out
 - `kaupverd` er í þúsundum ISK (þ.kr) — fastinn.is Algolia skilar fullu ISK → deila með 1000
