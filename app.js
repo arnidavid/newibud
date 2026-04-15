@@ -281,73 +281,6 @@ function renderListingsSumar(ls, rows) {
   w.innerHTML = '<div class="lcs">' + ls.map((l, i) => renderListingCard(l, i, hist(rows, l.heimilisfang, l.staerd), getMatInfo(rows, l.heimilisfang, l.staerd), true)).join('') + '</div>';
 }
 
-async function renderRecentSalesSumar(postnr) {
-  const wrap = document.getElementById('recentSalesWrap');
-  try {
-    const [salesResult, sheetsResult] = await Promise.all([API.getNyjustuSolur(postnr, 10), API.getSheetListings(postnr)]);
-    const sales = salesResult.data;
-    const sheetRows = sheetsResult.data || [];
-    if (!sales || !sales.length) { wrap.innerHTML = '<div class="ns-empty">Engar nýlegar sölur fundust í kaupskrá á póstnúmeri ' + postnr + '.</div>'; return; }
-    const validSales = sales.filter(r => r.einflm > 10 && r.kaupverd > 500 && r.kaupverd / r.einflm >= 10 && r.kaupverd / r.einflm <= 2000).slice(0, 5);
-    if (!validSales.length) { wrap.innerHTML = '<div class="ns-empty">Engar gildar sölur eftir síun.</div>'; return; }
-    const sheetLookup = {};
-    for (const sr of sheetRows) { const key = addrKey(sr.titill); if (key && !sheetLookup[key]) sheetLookup[key] = sr; }
-    wrap.innerHTML = '<div class="ns-grid">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup)).join('') + '</div>';
-  } catch (err) {
-    console.error('Recent sales (sumar) error:', err);
-    wrap.innerHTML = `<div class="err">Villa við að sækja nýjustu sölur: ${err.message}</div>`;
-  }
-}
-
-function _recentSaleCard(sale, idx, sheetLookup) {
-  const saleAddr  = sale.heimilisfang || '';
-  const saleDate  = new Date(sale.thinglystdags).toLocaleDateString('is-IS');
-  const salePrice = sale.kaupverd * 1000;
-  const saleSqm   = sale.einflm;
-  const saleFm    = Math.round(sale.kaupverd / sale.einflm);
-  const matched   = sheetLookup[addrKey(saleAddr)];
-  const adPrice   = matched ? parseSheetPrice(matched.verd) : 0;
-  const adSqm     = matched ? parseSheetSize(matched.staerd) : 0;
-  const adFm      = adSqm > 0 && adPrice > 0 ? Math.round(adPrice / adSqm / 1000) : 0;
-  const adDate    = matched ? (matched.skrad || '') : '';
-
-  let diffPct = 0, diffClass = 'ns-nomatch', diffLabel = '';
-  if (adPrice > 0 && salePrice > 0) {
-    diffPct = Math.round((1 - salePrice / adPrice) * 100);
-    if (diffPct > 0)      { diffClass = 'ns-discount'; diffLabel = 'afsláttur'; }
-    else if (diffPct < 0) { diffClass = 'ns-premium';  diffLabel = 'yfirverð'; diffPct = Math.abs(diffPct); }
-    else                  { diffClass = 'ns-nomatch';   diffLabel = 'jafnt'; }
-  }
-
-  let compareH = '';
-  if (matched && adPrice > 0) {
-    const dvC = diffLabel === 'afsláttur' ? 'ns-green' : diffLabel === 'yfirverð' ? 'ns-orange' : '';
-    compareH = `<div class="ns-compare">
-      <div class="ns-col"><div class="ns-col-label">Auglýst verð</div><div class="ns-col-price">${(adPrice / 1000000).toFixed(1)}M</div><div class="ns-col-fm">${adFm > 0 ? adFm + ' þ.kr/m²' : '–'}</div></div>
-      <div class="ns-arrow">→</div>
-      <div class="ns-col"><div class="ns-col-label">Söluverð</div><div class="ns-col-price">${(salePrice / 1000000).toFixed(1)}M</div><div class="ns-col-fm">${saleFm} þ.kr/m²</div></div>
-      <div class="ns-diff"><div class="ns-diff-val ${dvC}">${diffPct > 0 ? '-' : '+'}${diffPct}%</div><div class="ns-diff-label">${diffLabel}</div></div>
-    </div>${adDate ? `<div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Auglýst á fastinn.is: ${adDate}</div>` : ''}`;
-  } else {
-    compareH = `<div class="ns-nomatch-msg">Auglýsing ekki fundin á fastinn.is — eign gæti hafa selst utan markaðar eða áður en vöktun hófst.</div>`;
-  }
-
-  return `<div class="ns-card" style="animation-delay:${idx * 80}ms">
-    <div class="ns-top">
-      <div class="ns-stripe ${diffClass}"></div>
-      <div class="ns-body">
-        <div class="ns-header"><span class="ns-addr">${saleAddr}</span><span class="ns-date">Þinglýst ${saleDate}</span></div>
-        <div class="ns-stats">
-          <div class="ns-stat"><div class="ns-stat-label">Söluverð</div><div class="ns-stat-val">${fISK(salePrice)}</div></div>
-          <div class="ns-stat"><div class="ns-stat-label">Stærð</div><div class="ns-stat-val">${saleSqm} m²</div></div>
-          <div class="ns-stat"><div class="ns-stat-label">Selt fm.verð</div><div class="ns-stat-val">${saleFm} þ.kr/m²</div></div>
-          ${sale.fasteignamat > 0 ? `<div class="ns-stat"><div class="ns-stat-label">Fasteignamat</div><div class="ns-stat-val">${fISK(sale.fasteignamat * 1000)}</div></div>` : ''}
-        </div>
-        ${compareH}
-      </div>
-    </div>
-  </div>`;
-}
 
 // ============================================================
 // ====  HÖFUÐBORGARSVÆÐI  ====================================
@@ -368,18 +301,30 @@ function destroyHofudCharts() {
 const H_FM_MIN = 50;
 const H_FM_MAX = 5000;
 
-async function fetchFastinnHofud(postnr) {
+const HOFUD_POSTNRS = [101,103,104,105,107,108,109,110,111,112,113,116,200,201,202,203,210,212,220,221,225];
+
+const TEGUND_MAP = {
+  all:   { algolia: '(type:fjolb OR type:einb OR type:raðpar OR type:hæðir)', kaupskra: null },
+  fjolb: { algolia: 'type:fjolb',  kaupskra: 'Fjölbýli' },
+  einb:  { algolia: '(type:einb OR type:einbýlishús)', kaupskra: 'Einbýli' },
+  raðpar:{ algolia: 'type:raðpar', kaupskra: 'Sérbýli' },
+};
+
+async function fetchFastinnHofud(postnr, tegund = 'all') {
   try {
+    const typeFilter = TEGUND_MAP[tegund]?.algolia || TEGUND_MAP.all.algolia;
+    const zipFilter  = postnr === 0 ? 'zip:100 TO 230' : `zip:${postnr}`;
+    const filters = `(${typeFilter}) AND ${zipFilter}`;
     const r = await fetch('https://chmqzsxu3l-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=CHMQZSXU3L&x-algolia-api-key=9bfe0ddf26fdff0dd90dcdfc0e955eb7', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters: 'type:fjolb', hitsPerPage: 200, page: 0 }] })
+      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters, hitsPerPage: 500, page: 0 }] })
     });
     const d = await r.json();
     const hits = d.results?.[0]?.hits || [];
     const seen = new Set();
     return hits
-      .filter(h => h.removed === false && Number(h.zip) === postnr)
+      .filter(h => h.removed === false)
       .filter(h => { const k = h.address || h.street_name; if (seen.has(k)) return false; seen.add(k); return true; })
       .map(h => {
         const sqm = h.sqm || h.size || 0, price = h.price || 0;
@@ -466,8 +411,8 @@ function seasonalAnalysisHofud(rows) {
 
 function updateMetricsHofud(rows, ls, postnr) {
   document.getElementById('h-m1').textContent = ls.length;
-  document.getElementById('h-m1s').textContent = `fjölbýli á póstnr. ${postnr}`;
-  document.getElementById('h-m3s').textContent = `fjölbýli á ${postnr}`;
+  document.getElementById('h-m1s').textContent = `íbúðarhúsnæði á póstnr. ${postnr}`;
+  document.getElementById('h-m3s').textContent = `íbúðarhúsnæði á ${postnr}`;
 
   const f = r => r.einflm > 0 && r.kaupverd / r.einflm < H_FM_MAX && r.kaupverd / r.einflm > H_FM_MIN;
   const rc = rows.filter(r => { const y = new Date(r.thinglystdags).getFullYear(); return y >= 2023 && f(r); });
@@ -513,6 +458,56 @@ function renderListingsHofud(ls, rows) {
   });
 
   w.innerHTML = '<div class="lcs">' + ls.map((l, i) => renderListingCard(l, i, hist(rows, l.heimilisfang, l.staerd), getMatInfo(rows, l.heimilisfang, l.staerd), true)).join('') + '</div>';
+}
+
+function _recentSaleCard(sale, idx, sheetLookup) {
+  const saleAddr  = sale.heimilisfang || '';
+  const saleDate  = new Date(sale.thinglystdags).toLocaleDateString('is-IS');
+  const salePrice = sale.kaupverd * 1000;
+  const saleSqm   = sale.einflm;
+  const saleFm    = Math.round(sale.kaupverd / sale.einflm);
+  const matched   = sheetLookup[addrKey(saleAddr)];
+  const adPrice   = matched ? parseSheetPrice(matched.verd) : 0;
+  const adSqm     = matched ? parseSheetSize(matched.staerd) : 0;
+  const adFm      = adSqm > 0 && adPrice > 0 ? Math.round(adPrice / adSqm / 1000) : 0;
+  const adDate    = matched ? (matched.skrad || '') : '';
+
+  let diffPct = 0, diffClass = 'ns-nomatch', diffLabel = '';
+  if (adPrice > 0 && salePrice > 0) {
+    diffPct = Math.round((1 - salePrice / adPrice) * 100);
+    if (diffPct > 0)      { diffClass = 'ns-discount'; diffLabel = 'afsláttur'; }
+    else if (diffPct < 0) { diffClass = 'ns-premium';  diffLabel = 'yfirverð'; diffPct = Math.abs(diffPct); }
+    else                  { diffClass = 'ns-nomatch';   diffLabel = 'jafnt'; }
+  }
+
+  let compareH = '';
+  if (matched && adPrice > 0) {
+    const dvC = diffLabel === 'afsláttur' ? 'ns-green' : diffLabel === 'yfirverð' ? 'ns-orange' : '';
+    compareH = `<div class="ns-compare">
+      <div class="ns-col"><div class="ns-col-label">Auglýst verð</div><div class="ns-col-price">${(adPrice / 1000000).toFixed(1)}M</div><div class="ns-col-fm">${adFm > 0 ? adFm + ' þ.kr/m²' : '–'}</div></div>
+      <div class="ns-arrow">→</div>
+      <div class="ns-col"><div class="ns-col-label">Söluverð</div><div class="ns-col-price">${(salePrice / 1000000).toFixed(1)}M</div><div class="ns-col-fm">${saleFm} þ.kr/m²</div></div>
+      <div class="ns-diff"><div class="ns-diff-val ${dvC}">${diffPct > 0 ? '-' : '+'}${diffPct}%</div><div class="ns-diff-label">${diffLabel}</div></div>
+    </div>${adDate ? `<div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Auglýst á fastinn.is: ${adDate}</div>` : ''}`;
+  } else {
+    compareH = `<div class="ns-nomatch-msg">Auglýsing ekki fundin á fastinn.is</div>`;
+  }
+
+  return `<div class="ns-card" style="animation-delay:${idx * 80}ms">
+    <div class="ns-top">
+      <div class="ns-stripe ${diffClass}"></div>
+      <div class="ns-body">
+        <div class="ns-header"><span class="ns-addr">${saleAddr}</span><span class="ns-date">Þinglýst ${saleDate}</span></div>
+        <div class="ns-stats">
+          <div class="ns-stat"><div class="ns-stat-label">Söluverð</div><div class="ns-stat-val">${fISK(salePrice)}</div></div>
+          <div class="ns-stat"><div class="ns-stat-label">Stærð</div><div class="ns-stat-val">${saleSqm} m²</div></div>
+          <div class="ns-stat"><div class="ns-stat-label">Selt fm.verð</div><div class="ns-stat-val">${saleFm} þ.kr/m²</div></div>
+          ${sale.fasteignamat > 0 ? `<div class="ns-stat"><div class="ns-stat-label">Fasteignamat</div><div class="ns-stat-val">${fISK(sale.fasteignamat * 1000)}</div></div>` : ''}
+        </div>
+        ${compareH}
+      </div>
+    </div>
+  </div>`;
 }
 
 async function renderRecentSalesHofud(postnr) {
@@ -642,6 +637,226 @@ function _seasonalAnalysis(rows, fmMax, ids, yearRange) {
 }
 
 // ============================================================
+// ====  AUGLÝST VS. SELT  ====================================
+// ============================================================
+
+/**
+ * Normaliserar heimilisfang fyrir match:
+ *   "Indriðastaðir 51 skorradal" → "indriðastaðir 51"
+ *   "Melabraut 4A"               → "melabraut 4a"
+ *   "Fitjahlíð 66"               → "fitjahlíð 66"
+ */
+function normAddr(addr) {
+  if (!addr) return '';
+  let s = addr.toLowerCase().trim();
+  // Strip þekkt staðarviðbætur sem koma í fastinn en ekki kaupskrá
+  s = s.replace(/\s+(borgarbygg[ðd]?|skorradal|svæðið|svaedid|hreppur|dalsvegur|reykjavik|kópavogi?r?)\b.*/i, '');
+  // Dregur út "gata númer[bókstafur]" hlutann
+  const m = s.match(/^(.+?\s+\d+[a-záðéíóúýþæö]?)\b/);
+  return m ? m[1].trim() : s.trim();
+}
+
+/**
+ * Passar fastinn_listings við kaupskra sölur á JS-hlið.
+ * Skilar array af { listing, sale, auglystThkr, seltThkr, munurPct, dagar }.
+ */
+function matchListingsToKaupskra(listings, kaupRows) {
+  // Búa til lookup-dict á normalisert heimilisfang
+  const kaupIdx = {};
+  for (const r of kaupRows) {
+    // Outlier filter
+    if (!r.einflm || r.einflm <= 10) continue;
+    const fm = r.kaupverd / r.einflm;
+    if (fm < 10 || fm > 2000) continue;
+    const key = normAddr(r.heimilisfang);
+    if (!key) continue;
+    if (!kaupIdx[key]) kaupIdx[key] = [];
+    kaupIdx[key].push(r);
+  }
+
+  const matched = [];
+  const seen = new Set(); // forðast duplicate matches
+
+  for (const listing of listings) {
+    const key = normAddr(listing.heimilisfang);
+    if (!key || seen.has(listing.id)) continue;
+    const sales = kaupIdx[key];
+    if (!sales || !sales.length) continue;
+
+    // Nýjasta sala á þessu heimilisfangi
+    const sale = sales.slice().sort(
+      (a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags)
+    )[0];
+
+    // Verðmunur: fastinn_listings.verd er full ISK → deila með 1000
+    const auglystThkr = Math.round(listing.verd / 1000);
+    const seltThkr    = Math.round(sale.kaupverd);      // þegar þúsundir ISK
+    if (!auglystThkr || !seltThkr) continue;
+
+    const munurPct = Math.round((seltThkr / auglystThkr - 1) * 100);
+
+    // Dagar á markaði: einungis þegar first_seen er á undan söludegi
+    const firstSeen = new Date(listing.first_seen);
+    const saleDate  = new Date(sale.thinglystdags);
+    const dagar = firstSeen < saleDate
+      ? Math.round((saleDate - firstSeen) / 86_400_000)
+      : null;
+
+    seen.add(listing.id);
+    matched.push({ listing, sale, auglystThkr, seltThkr, munurPct, dagar });
+  }
+
+  // Nýjasta sala fyrst
+  return matched.sort(
+    (a, b) => new Date(b.sale.thinglystdags) - new Date(a.sale.thinglystdags)
+  );
+}
+
+/** Reiknar aggregate tölfræði úr pörum (síðustu 12 mánuðir) */
+function calcAvsStats(matched) {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 12);
+  const recent = matched.filter(m => new Date(m.sale.thinglystdags) >= cutoff);
+  if (!recent.length) return null;
+
+  const avgMunur = Math.round(
+    recent.reduce((s, m) => s + m.munurPct, 0) / recent.length
+  );
+  const validDagar = recent.filter(m => m.dagar !== null);
+  const avgDagar = validDagar.length
+    ? Math.round(validDagar.reduce((s, m) => s + m.dagar, 0) / validDagar.length)
+    : null;
+  const pctUndir = Math.round(
+    recent.filter(m => m.munurPct < 0).length / recent.length * 100
+  );
+  return { avgMunur, avgDagar, pctUndir, count: recent.length };
+}
+
+/** Renderar aggregate stats bar */
+function renderAvsAgg(stats) {
+  const agg = document.getElementById('avs-agg');
+  if (!agg) return;
+  if (!stats) {
+    agg.innerHTML = '';
+    return;
+  }
+  const munurCls = stats.avgMunur < 0 ? 'avs-good' : stats.avgMunur > 0 ? 'avs-bad' : 'avs-zero';
+  const munurStr = (stats.avgMunur >= 0 ? '+' : '') + stats.avgMunur + '%';
+
+  agg.innerHTML = `
+    <div class="avs-stat">
+      <div class="avs-stat-label">Meðal munur (12 mán)</div>
+      <div class="avs-stat-val ${munurCls}">${munurStr}</div>
+      <div class="avs-stat-sub">${stats.count} sölu${stats.count === 1 ? '' : 'r'} með match</div>
+    </div>
+    <div class="avs-stat">
+      <div class="avs-stat-label">Meðal dagar á markaði</div>
+      <div class="avs-stat-val">${stats.avgDagar !== null ? stats.avgDagar : '—'}</div>
+      <div class="avs-stat-sub">${stats.avgDagar !== null ? 'frá skráningu á fastinn' : 'gögn safnast enn'}</div>
+    </div>
+    <div class="avs-stat">
+      <div class="avs-stat-label">Selt undir auglýstu verði</div>
+      <div class="avs-stat-val${stats.pctUndir >= 50 ? ' avs-good' : ''}">${stats.pctUndir}%</div>
+      <div class="avs-stat-sub">eigna í úrtakinu</div>
+    </div>`;
+}
+
+/** Renderar Auglýst vs. selt töflu */
+function renderAvsTable(matched) {
+  const wrap = document.getElementById('avs-wrap');
+  if (!wrap) return;
+
+  if (!matched.length) {
+    wrap.innerHTML = `<div class="emp">
+      Engar auglýsingar í fastinn_listings passaðar við kaupsamning í kaupskrá.<br>
+      <span style="font-size:.8rem;margin-top:.4rem;display:block;color:var(--tx3)">
+        Þetta svæði fyllast þegar n8n vöktur hefur verið í gangi og <code>removed=true</code> gögn safnast.
+      </span>
+    </div>`;
+    return;
+  }
+
+  const rows = matched.map((m, i) => {
+    const aM   = (m.auglystThkr / 1000).toFixed(1);
+    const sM   = (m.seltThkr    / 1000).toFixed(1);
+    const munCls = m.munurPct < 0 ? 'avs-under' : m.munurPct > 0 ? 'avs-over' : 'avs-zero';
+    const munStr = (m.munurPct >= 0 ? '+' : '') + m.munurPct + '%';
+    const dagarStr = m.dagar !== null ? m.dagar + ' d' : '—';
+    const thinglyst = new Date(m.sale.thinglystdags).toLocaleDateString('is-IS');
+    const lastSeen  = new Date(m.listing.last_seen).toLocaleDateString('is-IS');
+    const fmStr     = m.sale.einflm > 0
+      ? Math.round(m.seltThkr / m.sale.einflm) + ' þ.kr/m²' : '—';
+
+    return `<tr style="animation-delay:${i * 40}ms">
+      <td class="avs-addr">${m.listing.heimilisfang}</td>
+      <td class="avs-num">${aM}M</td>
+      <td class="avs-num">${sM}M<br><span style="font-size:.7rem;color:var(--tx3)">${fmStr}</span></td>
+      <td class="avs-num ${munCls}">${munStr}</td>
+      <td class="avs-num">${dagarStr}</td>
+      <td class="avs-date">${thinglyst}</td>
+      <td class="avs-date">${lastSeen}</td>
+      <td style="padding-right:1rem">
+        <a class="vb" href="${m.listing.linkur}" target="_blank" rel="noopener"
+           style="padding:5px 12px;font-size:.72rem;gap:4px">
+          Sjá
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 3h7v7"/><path d="M13 3L6 10"/>
+          </svg>
+        </a>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="avs-table-wrap">
+    <table class="avs-table">
+      <thead>
+        <tr>
+          <th>Heimilisfang</th>
+          <th style="text-align:right">Auglýst</th>
+          <th style="text-align:right">Selt</th>
+          <th style="text-align:right">Munur</th>
+          <th style="text-align:right">Dagar</th>
+          <th>Þinglýst</th>
+          <th>Síðast styrkt</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+/** Aðalaðgerð: sækir fastinn_listings + matchar við kaupRows */
+async function renderAuglystVsSelt(kaupRows, postnr) {
+  const wrap = document.getElementById('avs-wrap');
+  const agg  = document.getElementById('avs-agg');
+  if (!wrap) return;
+
+  try {
+    const { data: listings, error } = await API.getListingsDb(postnr, 'sumarhus');
+
+    if (error || !listings) {
+      wrap.innerHTML = `<div class="err">Villa við að sækja fastinn_listings: ${error || 'tóm niðurstaða'}</div>`;
+      return;
+    }
+
+    const matched = matchListingsToKaupskra(listings, kaupRows);
+    const stats   = calcAvsStats(matched);
+
+    renderAvsAgg(stats);
+    renderAvsTable(matched);
+
+    // Debug info í console
+    console.log(`[AVS] ${listings.length} auglýsingar, ${matched.length} pör fundin`);
+
+  } catch (err) {
+    console.error('[AVS] Villa:', err);
+    wrap.innerHTML = `<div class="err">Villa: ${err.message}</div>`;
+  }
+}
+
+// ============================================================
 // ====  FILTER BUTTONS  ======================================
 // ============================================================
 
@@ -674,10 +889,11 @@ document.getElementById('h-fil').addEventListener('click', e => {
 let sumarReady   = false;
 let hofudReady   = false;
 let hofudPostnr  = null;
+let hofudTegund  = 'all';
 
 const SUB_TEXTS = {
   sumar: 'Sumarhúsasvæðið — kauptækifæri í rauntíma',
-  hofud: 'Höfuðborgarsvæðið — markaðsgreining fjölbýlishúsa'
+  hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis'
 };
 
 async function initSumar() {
@@ -709,7 +925,7 @@ async function initSumar() {
     seasonalAnalysisSumar(rows);
     updateMetricsSumar(rows, ls);
     renderListingsSumar(ls, rows);
-    renderRecentSalesSumar(POSTNR);
+    renderAuglystVsSelt(rows, POSTNR);
     document.getElementById('upd').textContent = 'Uppfært: ' + new Date().toLocaleString('is-IS');
   } catch (e) {
     console.error('initSumar error:', e);
@@ -717,9 +933,10 @@ async function initSumar() {
   }
 }
 
-async function initHofud(postnr) {
-  if (hofudReady && hofudPostnr === postnr) return;
+async function initHofud(postnr, tegund = hofudTegund) {
+  if (hofudReady && hofudPostnr === postnr && hofudTegund === tegund) return;
   hofudPostnr = postnr;
+  hofudTegund = tegund;
   hofudReady  = false;
 
   // Show loading state in all containers
@@ -735,13 +952,21 @@ async function initHofud(postnr) {
   });
 
   try {
+    const kParams = {
+      select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi',
+      kaupverd: 'gt.1000', onothaefur_samningur: 'neq.1', order: 'thinglystdags.asc'
+    };
+    if (postnr === 0) {
+      kParams['and'] = '(postnr.gte.100,postnr.lte.230)';
+    } else {
+      kParams['postnr'] = `eq.${postnr}`;
+    }
+    const kaupTegund = TEGUND_MAP[tegund]?.kaupskra;
+    if (kaupTegund) kParams['tegund'] = `eq.${kaupTegund}`;
+
     const [kaupskraResult, ls] = await Promise.all([
-      API.getKaupskra({
-        select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi',
-        postnr: `eq.${postnr}`, tegund: 'eq.Fjölbýli', kaupverd: 'gt.1000',
-        onothaefur_samningur: 'neq.1', order: 'thinglystdags.asc'
-      }),
-      fetchFastinnHofud(postnr)
+      API.getKaupskra(kParams),
+      fetchFastinnHofud(postnr, tegund)
     ]);
 
     const rows = kaupskraResult.data;
@@ -779,15 +1004,23 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (view === 'sumar') initSumar();
     else if (view === 'hofud') {
       const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
-      initHofud(postnr);
+      const tegund = document.getElementById('hofud-tegund').value;
+      initHofud(postnr, tegund);
     }
   });
 });
 
 // ---- Postnr dropdown ----
 document.getElementById('hofud-postnr').addEventListener('change', e => {
-  hofudReady = false;  // force re-init with new postnr
-  initHofud(parseInt(e.target.value, 10));
+  hofudReady = false;
+  initHofud(parseInt(e.target.value, 10), hofudTegund);
+});
+
+// ---- Höfuð tegund filter ----
+document.getElementById('hofud-tegund').addEventListener('change', e => {
+  hofudReady = false;
+  const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
+  initHofud(postnr, e.target.value);
 });
 
 // ---- Startup: init sumar view ----

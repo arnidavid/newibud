@@ -157,6 +157,75 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .emp { text-align: center; padding: 3rem; border: 1px dashed var(--bdr2); border-radius: 16px; color: var(--tx3); font-size: .9rem; }
 .err { background: var(--dng-l); color: var(--dng); padding: 1rem 1.25rem; border-radius: 12px; font-size: .85rem; margin-bottom: 1rem; }
 
+/* ---- Auglýst vs. selt — aggregate stats bar ---- */
+.avs-agg {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 0; margin-bottom: 1.5rem;
+  border: 1px solid var(--bdr); border-radius: 16px; overflow: hidden;
+  background: var(--bg-card); box-shadow: var(--sh);
+}
+.avs-stat {
+  padding: 1.25rem 1.5rem; border-right: 1px solid var(--bdr);
+  transition: background .2s;
+}
+.avs-stat:last-child { border-right: none; }
+.avs-stat:hover { background: var(--bg-alt); }
+.avs-stat-label { font-size: .65rem; font-weight: 700; color: var(--tx3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .2rem; }
+.avs-stat-val { font-family: 'Instrument Serif', serif; font-size: 2rem; line-height: 1.1; font-weight: 400; }
+.avs-stat-sub { font-size: .72rem; color: var(--tx3); margin-top: .15rem; }
+.avs-stat-val.avs-good { color: var(--acc); }
+.avs-stat-val.avs-bad  { color: var(--dng); }
+
+/* ---- Auglýst vs. selt — table ---- */
+.avs-table-wrap {
+  overflow-x: auto; margin-bottom: 2rem;
+  border: 1px solid var(--bdr); border-radius: 16px;
+  background: var(--bg-card); box-shadow: var(--sh);
+}
+.avs-table {
+  width: 100%; border-collapse: collapse; font-size: .82rem;
+}
+.avs-table thead th {
+  font-size: .62rem; font-weight: 700; color: var(--tx3);
+  text-transform: uppercase; letter-spacing: .09em;
+  padding: .85rem 1.1rem; text-align: left;
+  background: var(--bg-alt); border-bottom: 1px solid var(--bdr);
+  white-space: nowrap;
+}
+.avs-table thead th:first-child { border-radius: 16px 0 0 0; }
+.avs-table thead th:last-child  { border-radius: 0 16px 0 0; }
+.avs-table tbody tr {
+  border-bottom: 1px solid var(--bdr);
+  transition: background .15s;
+}
+.avs-table tbody tr:last-child { border-bottom: none; }
+.avs-table tbody tr:hover { background: var(--bg-alt); }
+.avs-table td {
+  padding: .85rem 1.1rem; color: var(--tx); vertical-align: middle;
+}
+.avs-addr { font-family: 'Instrument Serif', serif; font-size: .95rem; white-space: nowrap; }
+.avs-num  { font-weight: 500; white-space: nowrap; text-align: right; }
+.avs-date { color: var(--tx2); white-space: nowrap; font-size: .75rem; }
+.avs-under { color: var(--acc); font-weight: 700; }   /* selt undir auglýstu = gott */
+.avs-over  { color: var(--dng); font-weight: 700; }   /* selt yfir auglýstu = dýrt */
+.avs-zero  { color: var(--tx3); }
+.avs-table td:last-child { padding-right: 1rem; }
+
+/* ---- Auglýst vs. selt — responsive ---- */
+@media (max-width: 900px) {
+  .avs-agg { grid-template-columns: 1fr 1fr; }
+  .avs-stat:nth-child(2) { border-right: none; }
+  .avs-stat:nth-child(3) { border-top: 1px solid var(--bdr); grid-column: span 2; }
+}
+@media (max-width: 600px) {
+  .avs-agg { grid-template-columns: 1fr; }
+  .avs-stat { border-right: none; border-bottom: 1px solid var(--bdr); }
+  .avs-stat:last-child { border-bottom: none; }
+  .avs-stat:nth-child(3) { grid-column: auto; border-top: none; }
+  .avs-table { font-size: .75rem; }
+  .avs-table thead th, .avs-table td { padding: .65rem .75rem; }
+}
+
 /* ---- Tab navigation ---- */
 .tab-wrap {
   position: relative; z-index: 1;
@@ -212,6 +281,7 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   position: absolute; right: .65rem; pointer-events: none;
   width: 14px; height: 14px; color: var(--tx3);
 }
+
 
 /* ---- chart-full (full-width chart wrapper) ---- */
 .chart-full { }

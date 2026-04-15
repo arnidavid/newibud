@@ -181,6 +181,14 @@ const API = (() => {
     }, { paginate: false });
   }
 
+  /** Sækir fastinn_listings úr Supabase (n8n scraper) */
+  function getListingsDb(postnr, tegund) {
+    const params = { postnr: `eq.${postnr}` };
+    if (tegund) params.tegund = `eq.${tegund}`;
+    // Fetcha bæði active og removed=true (til að geta matchað við kaupskra)
+    return fetchAll('fastinn_listings', params, { order: 'last_seen.desc' });
+  }
+
   /** Sækir fastinn.is listings úr Google Sheets (gviz API) */
   async function getSheetListings(postnr) {
     const SHEET_ID = '1ZHwaiL6InsBq4mCmraHPvTU27A1pvb4G9T93uOsfBv4';
@@ -223,6 +231,8 @@ const API = (() => {
     getHreyfanlegtMedaltal,
     getSumarhusStats,
     getVerdthounAr,
+    // fastinn_listings DB
+    getListingsDb,
     // Nýjustu sölur
     getNyjustuSolur,
     getSheetListings,

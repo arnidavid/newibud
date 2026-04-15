@@ -78,9 +78,10 @@
       </div>
     </div>
 
-    <div class="sh"><div class="st">Nýjustu sölur — auglýst vs selt</div><div class="sl"></div></div>
-    <div class="ns-desc">Samanburður á auglýstu verði á fastinn.is og raunverulegu söluverði úr kaupskrá. Gögn úr fastinn.is safnast sjálfkrafa í gegnum n8n.</div>
-    <div id="recentSalesWrap"><div class="ldw"><div class="ldr"></div>Sæki nýjustu sölur og tengd auglýsingagögn…</div></div>
+    <div class="sh"><div class="st">Auglýst vs. selt</div><div class="sl"></div></div>
+    <div class="ns-desc">Auglýsingagögn úr <strong>fastinn_listings</strong> tengd við þinglýstar sölur í kaupskrá með heimilisfang-match. Gögn frá n8n vöktur — fjölgar með tímanum.</div>
+    <div id="avs-agg"></div>
+    <div id="avs-wrap"><div class="ldw"><div class="ldr"></div>Sæki auglýsingar og tengja við kaupskrá…</div></div>
 
     <div class="sh"><div class="st">Árstíðagreining</div><div class="sl"></div></div>
     <div id="seasonWrap">
@@ -125,6 +126,7 @@
       <span class="pnr-label">Svæði</span>
       <div class="pnr-wrap">
         <select id="hofud-postnr" class="pnr-select" aria-label="Veldu póstnúmer">
+          <option value="0">— Öll svæðið —</option>
           <optgroup label="Reykjavík">
             <option value="101">101 — Miðborg</option>
             <option value="103">103 — Hlíðar</option>
@@ -157,12 +159,22 @@
         </select>
         <svg class="pnr-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
       </div>
+      <span class="pnr-label">Tegund</span>
+      <div class="pnr-wrap">
+        <select id="hofud-tegund" class="pnr-select" aria-label="Veldu tegund">
+          <option value="all">— Allar tegundir —</option>
+          <option value="fjolb">Fjölbýlishús</option>
+          <option value="einb">Einbýlishús</option>
+          <option value="raðpar">Sérbýli / Raðhús</option>
+        </select>
+        <svg class="pnr-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
     </div>
 
     <div class="mets">
-      <div class="met"><div class="ml">Á markaði</div><div class="mv" id="h-m1">—</div><div class="ms" id="h-m1s">fjölbýli á svæðinu</div></div>
+      <div class="met"><div class="ml">Á markaði</div><div class="mv" id="h-m1">—</div><div class="ms" id="h-m1s">íbúðarhúsnæði á svæðinu</div></div>
       <div class="met"><div class="ml">Meðal fm.verð</div><div class="mv" id="h-m2">—</div><div class="ms">þinglýstar sölur 2023–26</div></div>
-      <div class="met"><div class="ml">Sölur 2025</div><div class="mv" id="h-m3">—</div><div class="ms" id="h-m3s">fjölbýli á svæðinu</div></div>
+      <div class="met"><div class="ml">Sölur 2025</div><div class="mv" id="h-m3">—</div><div class="ms" id="h-m3s">íbúðarhúsnæði á svæðinu</div></div>
       <div class="met"><div class="ml">Verðbreyting</div><div class="mv" id="h-m4">—</div><div class="ms">2024 → 2025</div></div>
     </div>
 
@@ -236,7 +248,7 @@
 
 </main>
 
-<script src="api.js?v=3"></script>
-<script src="app.js?v=4"></script>
+<script src="api.js?v=4"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
