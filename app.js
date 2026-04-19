@@ -80,10 +80,6 @@ function getMatInfo(rows, addr, sqm) {
 
 // Shared listing card HTML renderer
 function renderListingCard(l, i, hist, mi, matRatioEnabled) {
-  const sc = l._s;
-  const tC = sc.s === 'good' ? 'tg-g' : sc.s === 'high' ? 'tg-h' : 'tg-o';
-  const sC = 's' + sc.s[0], vC = 'v' + sc.s[0];
-
   const dagsInfo = [];
   if (l.dags) dagsInfo.push(`Skráð á fastinn.is: ${l.dags}`);
   if (l._lastSale) dagsInfo.push(`Síðasta sala á götu: ${l._lastSale.toLocaleDateString('is-IS')}`);
