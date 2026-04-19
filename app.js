@@ -460,17 +460,18 @@ function renderListingsHofud(ls, rows) {
   w.innerHTML = '<div class="lcs">' + ls.map((l, i) => renderListingCard(l, i, hist(rows, l.heimilisfang, l.staerd), getMatInfo(rows, l.heimilisfang, l.staerd), true)).join('') + '</div>';
 }
 
-function _recentSaleCard(sale, idx, sheetLookup) {
+function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
   const saleAddr  = sale.heimilisfang || '';
   const saleDate  = new Date(sale.thinglystdags).toLocaleDateString('is-IS');
   const salePrice = sale.kaupverd * 1000;
   const saleSqm   = sale.einflm;
   const saleFm    = Math.round(sale.kaupverd / sale.einflm);
-  const matched   = sheetLookup[addrKey(saleAddr)];
+  const dbMatch   = dbLookup[normAddr(saleAddr)];
+  const matched   = dbMatch || sheetLookup[addrKey(saleAddr)];
   const adPrice   = matched ? parseSheetPrice(matched.verd) : 0;
   const adSqm     = matched ? parseSheetSize(matched.staerd) : 0;
   const adFm      = adSqm > 0 && adPrice > 0 ? Math.round(adPrice / adSqm / 1000) : 0;
-  const adDate    = matched ? (matched.skrad || '') : '';
+  const adDate    = matched ? (matched.skrad || (matched.first_seen ? new Date(matched.first_seen).toLocaleDateString('is-IS') : '')) : '';
 
   let diffPct = 0, diffClass = 'ns-nomatch', diffLabel = '';
   if (adPrice > 0 && salePrice > 0) {
@@ -534,15 +535,23 @@ async function renderRecentSalesHofud(postnr) {
 
     if (!validSales.length) { wrap.innerHTML = '<div class="ns-empty">Engar gildar sölur eftir síun.</div>'; return; }
 
-    // Try sheet lookup (may be empty for non-311 areas)
-    const sheetsResult = await API.getSheetListings(postnr);
+    // Fetch both Postgres listings (primary) and Sheets (fallback)
+    const [sheetsResult, dbListingsResult] = await Promise.all([
+      API.getSheetListings(postnr),
+      API.getListingsDb(postnr)
+    ]);
     const sheetLookup = {};
     for (const sr of (sheetsResult.data || [])) {
       const key = addrKey(sr.titill);
       if (key && !sheetLookup[key]) sheetLookup[key] = sr;
     }
+    const dbLookup = {};
+    for (const l of (dbListingsResult.data || [])) {
+      const key = normAddr(l.heimilisfang);
+      if (key && !dbLookup[key]) dbLookup[key] = l;
+    }
 
-    wrap.innerHTML = '<div class="ns-grid">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup)).join('') + '</div>';
+    wrap.innerHTML = '<div class="ns-grid">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup, dbLookup)).join('') + '</div>';
   } catch (err) {
     console.error('Recent sales (hofud) error:', err);
     wrap.innerHTML = `<div class="err">Villa við að sækja nýjustu sölur: ${err.message}</div>`;
