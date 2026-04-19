@@ -518,27 +518,33 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
   </div>`;
 }
 
-async function renderRecentSalesHofud(postnr) {
+async function renderRecentSalesHofud(postnr, tegund = 'all') {
   const wrap = document.getElementById('h-recentSalesWrap');
   try {
-    const salesResult = await API.query('kaupskra', {
-      postnr: `eq.${postnr}`,
-      tegund: 'eq.Fjölbýli',
+    const kaupTegund = TEGUND_MAP[tegund]?.kaupskra;
+    const qParams = {
       kaupverd: 'gt.5000',
       einflm: 'gt.20',
       onothaefur_samningur: 'neq.1',
       order: 'thinglystdags.desc',
-      limit: 10
-    }, { paginate: false });
+      limit: 30
+    };
+    if (postnr === 0) {
+      qParams['and'] = '(postnr.gte.100,postnr.lte.230)';
+    } else {
+      qParams['postnr'] = `eq.${postnr}`;
+    }
+    if (kaupTegund) qParams['tegund'] = `eq.${kaupTegund}`;
+    const salesResult = await API.query('kaupskra', qParams, { paginate: false });
 
     const sales = salesResult.data;
-    if (!sales || !sales.length) { wrap.innerHTML = `<div class="ns-empty">Engar nýlegar sölur fundust í kaupskrá á póstnúmeri ${postnr}.</div>`; return; }
+    if (!sales || !sales.length) { wrap.innerHTML = `<div class="ns-empty">Engar nýlegar sölur fundust í kaupskrá á þessu svæði.</div>`; return; }
 
     const validSales = sales.filter(r =>
       r.einflm > 20 && r.kaupverd > 5000 &&
       r.kaupverd / r.einflm >= H_FM_MIN &&
       r.kaupverd / r.einflm <= H_FM_MAX
-    ).slice(0, 5);
+    ).slice(0, 20);
 
     if (!validSales.length) { wrap.innerHTML = '<div class="ns-empty">Engar gildar sölur eftir síun.</div>'; return; }
 
@@ -967,7 +973,7 @@ async function initHofud(postnr, tegund = hofudTegund) {
     seasonalAnalysisHofud(rows);
     updateMetricsHofud(rows, ls, postnr);
     renderListingsHofud(ls, rows);
-    renderRecentSalesHofud(postnr);
+    renderRecentSalesHofud(postnr, tegund);
     hofudReady = true;
     document.getElementById('upd').textContent = 'Uppfært: ' + new Date().toLocaleString('is-IS');
   } catch (e) {
