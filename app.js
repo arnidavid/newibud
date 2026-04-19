@@ -251,15 +251,26 @@ function updateMetricsSumar(rows, ls) {
   document.getElementById('m1').textContent = ls.length;
   const rc = rows.filter(r => { const y = new Date(r.thinglystdags).getFullYear(); return y >= 2023 && r.einflm > 0 && r.kaupverd / r.einflm < 2000 && r.kaupverd / r.einflm > 10; });
   if (rc.length) document.getElementById('m2').textContent = Math.round(rc.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / rc.length) + ' þ.kr';
-  document.getElementById('m3').textContent = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025).length;
+  const n25 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025).length;
+  const n26 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2026).length;
+  document.getElementById('m3').textContent = `${n25} / ${n26}`;
   const f = r => r.einflm > 0 && r.kaupverd / r.einflm < 2000 && r.kaupverd / r.einflm > 10;
   const a4 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2024 && f(r));
   const a5 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025 && f(r));
+  const a6 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2026 && f(r));
   if (a4.length && a5.length) {
     const v4 = a4.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a4.length;
     const v5 = a5.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a5.length;
     const ch = ((v5 - v4) / v4) * 100;
     const e = document.getElementById('m4');
+    e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
+    e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
+  }
+  if (a5.length && a6.length) {
+    const v5 = a5.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a5.length;
+    const v6 = a6.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a6.length;
+    const ch = ((v6 - v5) / v5) * 100;
+    const e = document.getElementById('m5');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
     e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
   }
@@ -417,15 +428,26 @@ function updateMetricsHofud(rows, ls, postnr) {
   const f = r => r.einflm > 0 && r.kaupverd / r.einflm < H_FM_MAX && r.kaupverd / r.einflm > H_FM_MIN;
   const rc = rows.filter(r => { const y = new Date(r.thinglystdags).getFullYear(); return y >= 2023 && f(r); });
   if (rc.length) document.getElementById('h-m2').textContent = Math.round(rc.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / rc.length) + ' þ.kr';
-  document.getElementById('h-m3').textContent = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025).length;
+  const hn25 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025).length;
+  const hn26 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2026).length;
+  document.getElementById('h-m3').textContent = `${hn25} / ${hn26}`;
 
   const a4 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2024 && f(r));
   const a5 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025 && f(r));
+  const a6 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2026 && f(r));
   if (a4.length && a5.length) {
     const v4 = a4.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a4.length;
     const v5 = a5.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a5.length;
     const ch = ((v5 - v4) / v4) * 100;
     const e = document.getElementById('h-m4');
+    e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
+    e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
+  }
+  if (a5.length && a6.length) {
+    const v5 = a5.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a5.length;
+    const v6 = a6.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a6.length;
+    const ch = ((v6 - v5) / v5) * 100;
+    const e = document.getElementById('h-m5');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
     e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
   }
@@ -955,7 +977,7 @@ async function initHofud(postnr, tegund = hofudTegund) {
     if (el) el.innerHTML = loadingHtml;
   });
   // Reset metrics
-  ['h-m1','h-m2','h-m3','h-m4'].forEach(id => {
+  ['h-m1','h-m2','h-m3','h-m4','h-m5'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '—';
   });
