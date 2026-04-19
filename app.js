@@ -81,7 +81,7 @@ function getMatInfo(rows, addr, sqm) {
 // Shared listing card HTML renderer
 function renderListingCard(l, i, hist, mi, matRatioEnabled) {
   const dagsInfo = [];
-  if (l.dags) dagsInfo.push(`Skráð á fastinn.is: ${l.dags}`);
+  if (l.dags) dagsInfo.push(`Skráð: ${l.dags}`);
   if (l._lastSale) dagsInfo.push(`Síðasta sala á götu: ${l._lastSale.toLocaleDateString('is-IS')}`);
   const dagsH = dagsInfo.length
     ? `<div style="font-size:.72rem;color:var(--tx3);margin-bottom:.75rem;display:flex;gap:1.25rem;flex-wrap:wrap">${dagsInfo.map(d => `<span>${d}</span>`).join('')}</div>`
@@ -272,7 +272,7 @@ function updateMetricsSumar(rows, ls) {
 
 function renderListingsSumar(ls, rows) {
   const w = document.getElementById('lw');
-  if (!ls.length) { w.innerHTML = '<div class="emp">Engar sumarhúsaeignir á póstnúmeri 311 á fastinn.is núna.</div>'; return; }
+  if (!ls.length) { w.innerHTML = '<div class="emp">Engar sumarhúsaeignir á póstnúmeri 311 á markaði núna.</div>'; return; }
   for (const l of ls) l._lastSale = lastSaleOnStreet(rows, l.heimilisfang);
   ls.sort((a, b) => {
     const aD = a.dags_raw ? a.dags_raw.getTime() : 0;
@@ -446,7 +446,7 @@ function updateMetricsHofud(rows, ls, postnr) {
 function renderListingsHofud(ls, rows) {
   const w = document.getElementById('h-lw');
   if (!ls.length) {
-    w.innerHTML = '<div class="emp">Engar íbúðir fundust á fastinn.is á þessu svæði. Athugaðu að Algolia-sían fyrir íbúðir gæti þurft leiðréttingu.</div>';
+    w.innerHTML = '<div class="emp">Engar íbúðir á markaði á þessu svæði.</div>';
     return;
   }
   // Compute avg for scoring
@@ -496,9 +496,9 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
       <div class="ns-arrow">→</div>
       <div class="ns-col"><div class="ns-col-label">Söluverð</div><div class="ns-col-price">${(salePrice / 1000000).toFixed(1)}M</div><div class="ns-col-fm">${saleFm} þ.kr/m²</div></div>
       <div class="ns-diff"><div class="ns-diff-val ${dvC}">${diffPct > 0 ? '-' : '+'}${diffPct}%</div><div class="ns-diff-label">${diffLabel}</div></div>
-    </div>${adDate ? `<div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Auglýst á fastinn.is: ${adDate}</div>` : ''}`;
+    </div>${adDate ? `<div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Auglýst: ${adDate}</div>` : ''}`;
   } else {
-    compareH = `<div class="ns-nomatch-msg">Auglýsing ekki fundin á fastinn.is</div>`;
+    compareH = `<div class="ns-nomatch-msg">Auglýsing ekki fundin</div>`;
   }
 
   return `<div class="ns-card" style="animation-delay:${idx * 80}ms">
@@ -783,12 +783,7 @@ function renderAvsTable(matched) {
   if (!wrap) return;
 
   if (!matched.length) {
-    wrap.innerHTML = `<div class="emp">
-      Engar auglýsingar í fastinn_listings passaðar við kaupsamning í kaupskrá.<br>
-      <span style="font-size:.8rem;margin-top:.4rem;display:block;color:var(--tx3)">
-        Þetta svæði fyllast þegar n8n vöktur hefur verið í gangi og <code>removed=true</code> gögn safnast.
-      </span>
-    </div>`;
+    wrap.innerHTML = `<div class="emp">Engar auglýsingar fundust sem passa við kaupskrá á þessu svæði.</div>`;
     return;
   }
 
