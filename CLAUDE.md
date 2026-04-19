@@ -12,9 +12,9 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 ## Development Workflow
 
 - Vinnur á Mac í `~/newibud/`
-- Claude Code keyrir á Mac
-- Git: `git push` → GitHub (`github.com/arnidavid/newibud`) → `git pull` á VPS
-- Deploy á VPS: `bash deploy.sh`
+- Claude Code keyrir á Mac með VS Code SSH tunnel á VPS
+- Git: `git push` frá Mac → GitHub (`github.com/arnidavid/newibud`) → `git pull` á VPS → strax live
+- **Enginn Docker/scp lengur** — síðan keyrir beint á VPS úr git repo
 
 ## Architecture
 
@@ -40,12 +40,15 @@ const SUPABASE_URL = 'https://nzuwplawwnlnjnbdpmei.supabase.co/rest/v1';
 ## Deploy
 
 ```bash
-# Á VPS:
+# Á Mac:
+git push origin master
+
+# Á VPS (í VS Code terminal):
+cd /home/arnisk/web/newibud
 git pull origin master
-bash deploy.sh
 ```
 
-Deploys via `scp` to Docker host at `192.168.100.204`, into `/root/docker_volumes/ibud/html`. Live at `https://ibud.silfran.com`.
+Skrárnar eru þjónaðar beint af VPS úr `/home/arnisk/web/newibud/`. Live at `https://ibud.silfran.com`.
 
 Eftir breytingar á JS/CSS: bæta `?v=N` við script/link tags í `index.html` til cache-busting.
 
