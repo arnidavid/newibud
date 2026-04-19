@@ -56,8 +56,8 @@ h1 { font-family: 'Instrument Serif', serif; font-size: 3.2rem; font-weight: 400
 main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 2rem 5rem; }
 
 /* ---- Metrics bar ---- */
-.mets { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; margin-bottom: 3rem; border: 1px solid var(--bdr); border-radius: 16px; overflow: hidden; background: var(--bg-card); box-shadow: var(--sh); }
-.met { padding: 1.5rem 1.75rem; border-right: 1px solid var(--bdr); transition: background .25s; }
+.mets { display: grid; grid-template-columns: repeat(5,1fr); gap: 0; margin-bottom: 3rem; border: 1px solid var(--bdr); border-radius: 16px; overflow: hidden; background: var(--bg-card); box-shadow: var(--sh); }
+.met { padding: 1.25rem 1.4rem; border-right: 1px solid var(--bdr); transition: background .25s; }
 .met:last-child { border-right: none; }
 .met:hover { background: var(--bg-alt); }
 .ml { font-size: .68rem; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .1em; }
@@ -289,9 +289,10 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
   .cgrid { grid-template-columns: 1fr; }
-  .mets { grid-template-columns: repeat(2,1fr); }
-  .met:nth-child(2) { border-right: none; }
-  .met:nth-child(3), .met:nth-child(4) { border-top: 1px solid var(--bdr); }
+  .mets { grid-template-columns: repeat(3,1fr); }
+  .met:nth-child(3) { border-right: none; }
+  .met:nth-child(4), .met:nth-child(5) { border-top: 1px solid var(--bdr); }
+  .met:nth-child(5) { border-right: none; }
 }
 
 @media (max-width: 900px) {
@@ -306,9 +307,10 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   .tab-btn { padding: .7rem .75rem; font-size: .75rem; gap: .3rem; }
   .tab-btn svg { width: 13px; height: 13px; }
   .postnr-sel { margin-bottom: 1.25rem; }
-  .mets { grid-template-columns: 1fr; }
-  .met { border-right: none; border-bottom: 1px solid var(--bdr); }
-  .met:last-child { border-bottom: none; }
+  .mets { grid-template-columns: repeat(2,1fr); }
+  .met:nth-child(2n) { border-right: none; }
+  .met:nth-child(n+3) { border-top: 1px solid var(--bdr); }
+  .met:nth-child(5) { border-right: none; }
   .cw { height: 240px; }
   .lc-b { padding: 1rem; }
   .lc-sts { gap: 1rem; }

@@ -107,11 +107,10 @@ function renderListingCard(l, i, hist, mi, matRatioEnabled) {
     matH = `<div style="font-size:.75rem;color:var(--tx2);margin-top:.5rem;padding:.5rem .75rem;background:var(--bg-alt);border-radius:8px;display:flex;align-items:center;gap:6px">${arrow}${matTxt}</div>`;
   }
 
-  return `<div class="lc" data-sc="${sc.s}" style="animation-delay:${i * 60}ms">
+  return `<div class="lc" style="animation-delay:${i * 60}ms">
     <div class="lc-t">
-      <div class="lc-s ${sC}"></div>
       <div class="lc-b">
-        <div class="lc-h"><span class="lc-n">${l.heimilisfang}</span><span class="tg ${tC}">${sc.l}</span></div>
+        <div class="lc-h"><span class="lc-n">${l.heimilisfang}</span></div>
         ${dagsH}
         <div class="lc-sts">
           <div><div class="sl2">Verð</div><div class="sv2">${l.verd_kr > 0 ? fISK(l.verd_kr) : 'Tilboð'}</div></div>
@@ -119,7 +118,6 @@ function renderListingCard(l, i, hist, mi, matRatioEnabled) {
           <div><div class="sl2">Fm.verð</div><div class="sv2">${l.fm_thkr > 0 ? l.fm_thkr + ' þ.kr/m²' : '–'}</div></div>
         </div>
         ${hH}${matH}
-        <div class="lc-v ${vC}">${sc.t}</div>
       </div>
     </div>
     <div class="lc-a"><a class="vb" href="${l.linkur}" target="_blank" rel="noopener">Fastinn.is<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7v7"/><path d="M13 3L6 10"/></svg></a></div>
@@ -280,14 +278,10 @@ function renderListingsSumar(ls, rows) {
   const w = document.getElementById('lw');
   if (!ls.length) { w.innerHTML = '<div class="emp">Engar sumarhúsaeignir á póstnúmeri 311 á fastinn.is núna.</div>'; return; }
   for (const l of ls) l._lastSale = lastSaleOnStreet(rows, l.heimilisfang);
-  const o = { good: 0, ok: 1, high: 2 };
   ls.sort((a, b) => {
-    const sd = (o[a._s.s] ?? 1) - (o[b._s.s] ?? 1);
-    if (sd !== 0) return sd;
-    const aD = a._lastSale ? a._lastSale.getTime() : 0;
-    const bD = b._lastSale ? b._lastSale.getTime() : 0;
-    if (bD !== aD) return bD - aD;
-    return (a.fm_thkr || 999) - (b.fm_thkr || 999);
+    const aD = a.dags_raw ? a.dags_raw.getTime() : 0;
+    const bD = b.dags_raw ? b.dags_raw.getTime() : 0;
+    return bD - aD;
   });
   w.innerHTML = '<div class="lcs">' + ls.map((l, i) => renderListingCard(l, i, hist(rows, l.heimilisfang, l.staerd), getMatInfo(rows, l.heimilisfang, l.staerd), true)).join('') + '</div>';
 }
@@ -465,18 +459,13 @@ function renderListingsHofud(ls, rows) {
   const avgFm = recent.length ? Math.round(recent.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / recent.length) : 0;
 
   for (const l of ls) {
-    l._s = scoreListingVsAvg(l, avgFm);
     l._lastSale = lastSaleOnStreet(rows, l.heimilisfang);
   }
 
-  const o = { good: 0, ok: 1, high: 2 };
   ls.sort((a, b) => {
-    const sd = (o[a._s.s] ?? 1) - (o[b._s.s] ?? 1);
-    if (sd !== 0) return sd;
-    const aD = a._lastSale ? a._lastSale.getTime() : 0;
-    const bD = b._lastSale ? b._lastSale.getTime() : 0;
-    if (bD !== aD) return bD - aD;
-    return (a.fm_thkr || 9999) - (b.fm_thkr || 9999);
+    const aD = a.dags_raw ? a.dags_raw.getTime() : 0;
+    const bD = b.dags_raw ? b.dags_raw.getTime() : 0;
+    return bD - aD;
   });
 
   w.innerHTML = '<div class="lcs">' + ls.map((l, i) => renderListingCard(l, i, hist(rows, l.heimilisfang, l.staerd), getMatInfo(rows, l.heimilisfang, l.staerd), true)).join('') + '</div>';
@@ -872,7 +861,7 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
       return;
     }
 
-    const matched = matchListingsToKaupskra(listings, kaupRows);
+    const matched = matchListingsToKaupskra(listings, kaupRows).slice(0, 20);
     const stats   = calcAvsStats(matched);
 
     renderAvsAgg(stats);
@@ -888,30 +877,7 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
 }
 
 // ============================================================
-// ====  FILTER BUTTONS  ======================================
-// ============================================================
-
-document.getElementById('fil').addEventListener('click', e => {
-  const b = e.target.closest('.fb');
-  if (!b) return;
-  document.querySelectorAll('#fil .fb').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  const f = b.dataset.f;
-  document.querySelectorAll('#view-sumar .lc').forEach(c => {
-    c.style.display = (f === 'all' || c.dataset.sc === f) ? '' : 'none';
-  });
-});
-
-document.getElementById('h-fil').addEventListener('click', e => {
-  const b = e.target.closest('.fb');
-  if (!b) return;
-  document.querySelectorAll('#h-fil .fb').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  const f = b.dataset.f;
-  document.querySelectorAll('#view-hofud .lc').forEach(c => {
-    c.style.display = (f === 'all' || c.dataset.sc === f) ? '' : 'none';
-  });
-});
+// ====  VIEW MANAGEMENT  (filter buttons removed — listings sorted by date) ======
 
 // ============================================================
 // ====  VIEW MANAGEMENT  =====================================

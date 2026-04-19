@@ -8,7 +8,7 @@
 <script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <div class="topo"></div>
@@ -49,7 +49,15 @@
       <div class="met"><div class="ml">Verðbreyting</div><div class="mv" id="m5">—</div><div class="ms">2025 → 2026</div></div>
     </div>
 
-    <div class="sh"><div class="st">Verðþróun</div><div class="sl"></div></div>
+    <div class="sh"><div class="st">Eignir á markaði</div><div class="sl"></div></div>
+    <div id="lw"><div class="ldw"><div class="ldr"></div>Sæki gögn úr kaupskrá og fastinn.is…</div></div>
+
+    <div class="sh" style="margin-top:2.5rem"><div class="st">Auglýst vs. selt</div><div class="sl"></div></div>
+    <div class="ns-desc">Auglýsingagögn úr <strong>fastinn_listings</strong> tengd við þinglýstar sölur í kaupskrá með heimilisfang-match. Gögn frá n8n vöktur — fjölgar með tímanum.</div>
+    <div id="avs-agg"></div>
+    <div id="avs-wrap"><div class="ldw"><div class="ldr"></div>Sæki auglýsingar og tengja við kaupskrá…</div></div>
+
+    <div class="sh" style="margin-top:2.5rem"><div class="st">Verðþróun</div><div class="sl"></div></div>
     <div class="cgrid">
       <div class="cbox">
         <div class="cbt">Meðal fermetraverð (þ.kr/m²)</div>
@@ -79,11 +87,6 @@
       </div>
     </div>
 
-    <div class="sh"><div class="st">Auglýst vs. selt</div><div class="sl"></div></div>
-    <div class="ns-desc">Auglýsingagögn úr <strong>fastinn_listings</strong> tengd við þinglýstar sölur í kaupskrá með heimilisfang-match. Gögn frá n8n vöktur — fjölgar með tímanum.</div>
-    <div id="avs-agg"></div>
-    <div id="avs-wrap"><div class="ldw"><div class="ldr"></div>Sæki auglýsingar og tengja við kaupskrá…</div></div>
-
     <div class="sh"><div class="st">Árstíðagreining</div><div class="sl"></div></div>
     <div id="seasonWrap">
       <div class="cgrid" style="margin-bottom:1.25rem">
@@ -107,15 +110,6 @@
         <div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Dekkri litur = hærra fermetraverð · Hover til að sjá nákvæmt verð</div>
       </div>
     </div>
-
-    <div class="sh"><div class="st">Eignir á markaði</div><div class="sl"></div></div>
-    <div class="frow" id="fil">
-      <button class="fb on" data-f="all">Allar</button>
-      <button class="fb" data-f="good">Gott tækifæri</button>
-      <button class="fb" data-f="ok">Sanngjarnt</button>
-      <button class="fb" data-f="high">Hátt verð</button>
-    </div>
-    <div id="lw"><div class="ldw"><div class="ldr"></div>Sæki gögn úr kaupskrá og fastinn.is…</div></div>
   </div><!-- /view-sumar -->
 
 
@@ -180,7 +174,14 @@
       <div class="met"><div class="ml">Verðbreyting</div><div class="mv" id="h-m5">—</div><div class="ms">2025 → 2026</div></div>
     </div>
 
-    <div class="sh"><div class="st">Verðþróun</div><div class="sl"></div></div>
+    <div class="sh"><div class="st">Eignir á markaði</div><div class="sl"></div></div>
+    <div id="h-lw"><div class="ldw"><div class="ldr"></div>Sæki gögn úr kaupskrá og fastinn.is…</div></div>
+
+    <div class="sh" style="margin-top:2.5rem"><div class="st">Nýjustu sölur — auglýst vs selt</div><div class="sl"></div></div>
+    <div class="ns-desc">Samanburður á auglýstu verði á fastinn.is og raunverulegu söluverði úr kaupskrá. Gögn úr fastinn.is safnast sjálfkrafa í gegnum n8n.</div>
+    <div id="h-recentSalesWrap"><div class="ldw"><div class="ldr"></div>Sæki nýjustu sölur…</div></div>
+
+    <div class="sh" style="margin-top:2.5rem"><div class="st">Verðþróun</div><div class="sl"></div></div>
     <div class="cgrid">
       <div class="cbox">
         <div class="cbt">Meðal fermetraverð (þ.kr/m²)</div>
@@ -210,10 +211,6 @@
       </div>
     </div>
 
-    <div class="sh"><div class="st">Nýjustu sölur — auglýst vs selt</div><div class="sl"></div></div>
-    <div class="ns-desc">Samanburður á auglýstu verði á fastinn.is og raunverulegu söluverði úr kaupskrá. Gögn úr fastinn.is safnast sjálfkrafa í gegnum n8n.</div>
-    <div id="h-recentSalesWrap"><div class="ldw"><div class="ldr"></div>Sæki nýjustu sölur…</div></div>
-
     <div class="sh"><div class="st">Árstíðagreining</div><div class="sl"></div></div>
     <div id="h-seasonWrap">
       <div class="cgrid" style="margin-bottom:1.25rem">
@@ -237,20 +234,11 @@
         <div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Dekkri litur = hærra fermetraverð · Hover til að sjá nákvæmt verð</div>
       </div>
     </div>
-
-    <div class="sh"><div class="st">Eignir á markaði</div><div class="sl"></div></div>
-    <div class="frow" id="h-fil">
-      <button class="fb on" data-f="all">Allar</button>
-      <button class="fb" data-f="good">Gott tækifæri</button>
-      <button class="fb" data-f="ok">Sanngjarnt</button>
-      <button class="fb" data-f="high">Hátt verð</button>
-    </div>
-    <div id="h-lw"><div class="ldw"><div class="ldr"></div>Sæki gögn úr kaupskrá og fastinn.is…</div></div>
   </div><!-- /view-hofud -->
 
 </main>
 
 <script src="api.js?v=4"></script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>
