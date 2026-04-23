@@ -831,70 +831,66 @@ function renderAvsAgg(stats) {
     </div>`;
 }
 
-/** Renderar Auglýst vs. selt töflu */
-function renderAvsTable(matched) {
-  const wrap = document.getElementById('avs-wrap');
-  if (!wrap) return;
+/** Renderar eitt AVS kort — sýnir sölu alltaf, comparison aðeins ef matching listing finnst */
+function renderAvsCard(sale, listing, i) {
+  const saleAddr  = sale.heimilisfang || '';
+  const thinglyst = new Date(sale.thinglystdags).toLocaleDateString('is-IS');
+  const sM  = (sale.kaupverd / 1000).toFixed(1);
+  const sFm = Number(sale.einflm) > 0 ? Math.round(sale.kaupverd / Number(sale.einflm)) + ' þ.kr/m²' : '';
+  const sqmStr = Number(sale.einflm) > 0 ? Number(sale.einflm).toFixed(1) + ' m²' : '';
 
-  if (!matched.length) {
-    wrap.innerHTML = `<div class="emp">Engar auglýsingar fundust sem passa við kaupskrá á þessu svæði.</div>`;
-    return;
-  }
+  let compareH, footH = '<span></span>';
 
-  const cards = matched.map((m, i) => {
-    const aM     = (m.auglystThkr / 1000).toFixed(1);
-    const sM     = (m.seltThkr    / 1000).toFixed(1);
-    const munCls = m.munurPct < 0 ? 'avs-under' : m.munurPct > 0 ? 'avs-over' : 'avs-zero';
-    const munStr = (m.munurPct >= 0 ? '+' : '') + m.munurPct + '%';
-    const munLabel = m.munurPct < 0 ? 'afsláttur' : m.munurPct > 0 ? 'yfir verði' : 'jafnt';
-    const thinglyst = new Date(m.sale.thinglystdags).toLocaleDateString('is-IS');
-    const aFm = m.sale.einflm > 0 ? Math.round(m.auglystThkr / m.sale.einflm) + ' þ.kr/m²' : '';
-    const sFm = m.sale.einflm > 0 ? Math.round(m.seltThkr    / m.sale.einflm) + ' þ.kr/m²' : '';
-    const dagarStr = m.dagar !== null ? m.dagar + ' d á markaði' : null;
-
-    return `<div class="avs-card" style="animation-delay:${i * 30}ms">
-      <div class="avs-card-head">
-        <span class="avs-card-addr">${m.listing.heimilisfang}</span>
-        <span class="avs-card-date">Þinglýst ${thinglyst}</span>
+  if (listing) {
+    const auglystThkr = Math.round(listing.verd / 1000);
+    const aM  = (auglystThkr / 1000).toFixed(1);
+    const aFm = Number(sale.einflm) > 0 ? Math.round(auglystThkr / Number(sale.einflm)) + ' þ.kr/m²' : '';
+    const dp  = Math.round((sale.kaupverd / auglystThkr - 1) * 100);
+    const munStr   = (dp >= 0 ? '+' : '') + dp + '%';
+    const munLabel = dp < 0 ? 'afsláttur' : dp > 0 ? 'yfir verði' : 'jafnt';
+    const munCls   = dp < 0 ? 'avs-under' : dp > 0 ? 'avs-over' : 'avs-zero';
+    compareH = `<div class="avs-compare">
+      <div class="avs-side">
+        <div class="avs-side-label">Auglýst</div>
+        <div class="avs-side-amt">${aM}M</div>
+        ${aFm ? `<div class="avs-side-fm">${aFm}</div>` : ''}
       </div>
-      <div class="avs-compare">
-        <div class="avs-side">
-          <div class="avs-side-label">Auglýst</div>
-          <div class="avs-side-amt">${aM}M</div>
-          ${aFm ? `<div class="avs-side-fm">${aFm}</div>` : ''}
-        </div>
-        <div class="avs-arrow-wrap">
-          <svg viewBox="0 0 28 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="avs-arrow-svg"><path d="M0 6h26M21 1l5 5-5 5"/></svg>
-          <div class="avs-diff ${munCls}">${munStr}</div>
-          <div class="avs-diff-label">${munLabel}</div>
-        </div>
-        <div class="avs-side">
-          <div class="avs-side-label">Selt</div>
-          <div class="avs-side-amt">${sM}M</div>
-          ${sFm ? `<div class="avs-side-fm">${sFm}</div>` : ''}
-        </div>
+      <div class="avs-arrow-wrap">
+        <svg viewBox="0 0 28 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="avs-arrow-svg"><path d="M0 6h26M21 1l5 5-5 5"/></svg>
+        <div class="avs-diff ${munCls}">${munStr}</div>
+        <div class="avs-diff-label">${munLabel}</div>
       </div>
-      <div class="avs-card-foot">
-        ${dagarStr ? `<span class="avs-dagar-tag">${dagarStr}</span>` : '<span></span>'}
-        <a class="vb" href="${m.listing.linkur}" target="_blank" rel="noopener"
-           style="padding:5px 12px;font-size:.72rem">
-          Sjá
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 3h7v7"/><path d="M13 3L6 10"/>
-          </svg>
-        </a>
+      <div class="avs-side">
+        <div class="avs-side-label">Selt</div>
+        <div class="avs-side-amt">${sM}M</div>
+        ${sFm ? `<div class="avs-side-fm">${sFm}</div>` : ''}
       </div>
     </div>`;
-  }).join('');
+    if (listing.linkur) footH = `<a class="vb" href="${listing.linkur}" target="_blank" rel="noopener" style="padding:5px 12px;font-size:.72rem">Sjá <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7v7"/><path d="M13 3L6 10"/></svg></a>`;
+  } else {
+    compareH = `<div class="avs-compare avs-sale-only">
+      <div class="avs-side">
+        <div class="avs-side-label">Selt</div>
+        <div class="avs-side-amt">${sM}M</div>
+        ${sFm ? `<div class="avs-side-fm">${sFm}</div>` : ''}
+        ${sqmStr ? `<div class="avs-side-fm">${sqmStr}</div>` : ''}
+      </div>
+    </div>`;
+  }
 
-  wrap.innerHTML = `<div class="avs-cards">${cards}</div>`;
+  return `<div class="avs-card" style="animation-delay:${i * 30}ms">
+    <div class="avs-card-head">
+      <span class="avs-card-addr">${saleAddr}</span>
+      <span class="avs-card-date">Þinglýst ${thinglyst}</span>
+    </div>
+    ${compareH}
+    <div class="avs-card-foot">${footH}</div>
+  </div>`;
 }
 
-/** Aðalaðgerð: sækir fastinn_listings + matchar við kaupRows */
+/** Aðalaðgerð: sækir fastinn_listings + sýnir nýjustu sölur, matchar við listing ef til */
 async function renderAuglystVsSelt(kaupRows, postnr) {
   const wrap = document.getElementById('avs-wrap');
-  const agg  = document.getElementById('avs-agg');
   if (!wrap) return;
 
   try {
@@ -905,12 +901,46 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
       return;
     }
 
-    const matched = matchListingsToKaupskra(listings, kaupRows).slice(0, 20);
+    // Build listing lookup by normalized address (newest first, so first entry wins)
+    const listingIdx = {};
+    for (const l of listings) {
+      const key = normAddr(l.heimilisfang);
+      if (key && !listingIdx[key]) listingIdx[key] = l;
+    }
 
-    renderAvsTable(matched);
+    // Sort sales newest-first, filter outliers, take 20
+    const sales = [...kaupRows]
+      .filter(r => Number(r.einflm) > 0 && r.kaupverd / Number(r.einflm) >= 10 && r.kaupverd / Number(r.einflm) <= 2000)
+      .sort((a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags))
+      .slice(0, 20);
 
-    // Debug info í console
-    console.log(`[AVS] ${listings.length} auglýsingar, ${matched.length} pör fundin`);
+    const cards = sales.map((sale, i) => {
+      const key = normAddr(sale.heimilisfang);
+      return renderAvsCard(sale, key ? listingIdx[key] : null, i);
+    }).join('');
+
+    wrap.innerHTML = cards ? `<div class="avs-cards">${cards}</div>` :
+      '<div class="emp">Engar sölur fundust á þessu svæði.</div>';
+
+    // Aggregate stats — aðeins fyrir pör með listing match
+    const pairs = sales.map(sale => {
+      const key = normAddr(sale.heimilisfang);
+      const listing = key ? listingIdx[key] : null;
+      if (!listing || !listing.verd) return null;
+      const auglystThkr = Math.round(listing.verd / 1000);
+      if (!auglystThkr) return null;
+      const munurPct = Math.round((sale.kaupverd / auglystThkr - 1) * 100);
+      let dagar = null;
+      if (listing.first_seen) {
+        const d = Math.round((new Date(sale.thinglystdags) - new Date(listing.first_seen)) / 86400000);
+        if (d >= 0 && d < 1000) dagar = d;
+      }
+      return { sale, munurPct, dagar };
+    }).filter(Boolean);
+
+    renderAvsAgg(calcAvsStats(pairs));
+
+    console.log(`[AVS] ${listings.length} auglýsingar, ${sales.length} sölur, ${pairs.length} pör`);
 
   } catch (err) {
     console.error('[AVS] Villa:', err);
