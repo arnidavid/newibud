@@ -537,6 +537,8 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
     if (kaupTegund) qParams['tegund'] = `eq.${kaupTegund}`;
     const salesResult = await API.query('kaupskra', qParams, { paginate: false });
 
+    if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
+
     const sales = salesResult.data;
     if (!sales || !sales.length) { wrap.innerHTML = `<div class="ns-empty">Engar nýlegar sölur fundust í kaupskrá á þessu svæði.</div>`; return; }
 
@@ -553,6 +555,8 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
       API.getSheetListings(postnr),
       API.getListingsDb(postnr)
     ]);
+
+    if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
     const sheetLookup = {};
     for (const sr of (sheetsResult.data || [])) {
       const key = addrKey(sr.titill);
@@ -962,6 +966,8 @@ async function initHofud(postnr, tegund = hofudTegund) {
       API.getKaupskra(kParams),
       fetchFastinnHofud(postnr, tegund)
     ]);
+
+    if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
 
     const rows = kaupskraResult.data;
     if (!rows || !rows.length) {
