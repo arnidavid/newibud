@@ -861,9 +861,7 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
     }
 
     const matched = matchListingsToKaupskra(listings, kaupRows).slice(0, 20);
-    const stats   = calcAvsStats(matched);
 
-    renderAvsAgg(stats);
     renderAvsTable(matched);
 
     // Debug info í console
