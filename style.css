@@ -79,7 +79,9 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .ld { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
 
 /* ---- Nýjustu sölur ---- */
-.ns-desc { font-size: .82rem; color: var(--tx2); margin-bottom: 1.5rem; line-height: 1.5; }
+.ns-desc { font-size: .82rem; color: var(--tx2); margin-bottom: 1rem; line-height: 1.5; }
+#avs-filter { display:block; width:100%; max-width:320px; margin-bottom:1.25rem; padding:.45rem .75rem; font-size:.85rem; border:1px solid var(--bdr); border-radius:8px; background:var(--bg-alt); color:var(--tx); outline:none; }
+#avs-filter:focus { border-color:var(--acc); }
 .ns-grid { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
 .ns-card { background: var(--bg-card); border: 1px solid var(--bdr); border-radius: 16px; overflow: hidden; box-shadow: var(--sh); animation: ci .5s ease both; }
 .ns-card:hover { box-shadow: var(--sh2); transform: translateY(-2px); transition: all .3s; }

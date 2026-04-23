@@ -880,6 +880,18 @@ function renderAvsTable(matched) {
   }).join('');
 
   wrap.innerHTML = `<div class="avs-cards">${cards}</div>`;
+
+  const filterInput = document.getElementById('avs-filter');
+  if (filterInput) {
+    filterInput.value = '';
+    filterInput.oninput = () => {
+      const q = filterInput.value.toLowerCase().trim();
+      wrap.querySelectorAll('.avs-card').forEach(card => {
+        const addr = card.querySelector('.avs-card-addr')?.textContent.toLowerCase() || '';
+        card.style.display = !q || addr.includes(q) ? '' : 'none';
+      });
+    };
+  }
 }
 
 /** Aðalaðgerð: sækir fastinn_listings + matchar við kaupRows */
