@@ -170,60 +170,65 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 }
 .avs-stat:last-child { border-right: none; }
 .avs-stat:hover { background: var(--bg-alt); }
-.avs-stat-label { font-size: .65rem; font-weight: 700; color: var(--tx3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .2rem; }
-.avs-stat-val { font-family: 'Instrument Serif', serif; font-size: 2rem; line-height: 1.1; font-weight: 400; }
-.avs-stat-sub { font-size: .72rem; color: var(--tx3); margin-top: .15rem; }
+.avs-stat-label { font-size: .65rem; font-weight: 700; color: var(--tx3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .25rem; }
+.avs-stat-val { font-family: 'Instrument Serif', serif; font-size: 1.9rem; line-height: 1.1; font-weight: 400; }
+.avs-stat-sub { font-size: .72rem; color: var(--tx3); margin-top: .2rem; }
 .avs-stat-val.avs-good { color: var(--acc); }
 .avs-stat-val.avs-bad  { color: var(--dng); }
 
-/* ---- Auglýst vs. selt — table ---- */
-.avs-table-wrap {
-  overflow-x: auto; margin-bottom: 2rem;
-  border: 1px solid var(--bdr); border-radius: 16px;
-  background: var(--bg-card); box-shadow: var(--sh);
+/* ---- Auglýst vs. selt — cards ---- */
+.avs-cards {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 1rem; margin-bottom: 2rem;
 }
-.avs-table {
-  width: 100%; border-collapse: collapse; font-size: .82rem;
+.avs-card {
+  background: var(--bg-card); border: 1px solid var(--bdr);
+  border-radius: 16px; padding: 1.1rem 1.25rem;
+  box-shadow: var(--sh); animation: fadeUp .35s ease both;
+  transition: box-shadow .2s, border-color .2s;
 }
-.avs-table thead th {
-  font-size: .62rem; font-weight: 700; color: var(--tx3);
-  text-transform: uppercase; letter-spacing: .09em;
-  padding: .85rem 1.1rem; text-align: left;
-  background: var(--bg-alt); border-bottom: 1px solid var(--bdr);
-  white-space: nowrap;
+.avs-card:hover { box-shadow: var(--sh2); border-color: var(--bdr2); }
+.avs-card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: .5rem; margin-bottom: .9rem;
 }
-.avs-table thead th:first-child { border-radius: 16px 0 0 0; }
-.avs-table thead th:last-child  { border-radius: 0 16px 0 0; }
-.avs-table tbody tr {
-  border-bottom: 1px solid var(--bdr);
-  transition: background .15s;
+.avs-card-addr { font-family: 'Instrument Serif', serif; font-size: 1rem; color: var(--tx); }
+.avs-card-date { font-size: .7rem; color: var(--tx3); white-space: nowrap; flex-shrink: 0; }
+.avs-compare {
+  display: flex; align-items: center; gap: .6rem;
+  margin-bottom: .85rem;
 }
-.avs-table tbody tr:last-child { border-bottom: none; }
-.avs-table tbody tr:hover { background: var(--bg-alt); }
-.avs-table td {
-  padding: .85rem 1.1rem; color: var(--tx); vertical-align: middle;
+.avs-side { flex: 1; min-width: 0; }
+.avs-side-label {
+  font-size: .6rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--tx3); margin-bottom: .15rem;
 }
-.avs-addr { font-family: 'Instrument Serif', serif; font-size: .95rem; white-space: nowrap; }
-.avs-num  { font-weight: 500; white-space: nowrap; text-align: right; }
-.avs-date { color: var(--tx2); white-space: nowrap; font-size: .75rem; }
-.avs-under { color: var(--acc); font-weight: 700; }   /* selt undir auglýstu = gott */
-.avs-over  { color: var(--dng); font-weight: 700; }   /* selt yfir auglýstu = dýrt */
-.avs-zero  { color: var(--tx3); }
-.avs-table td:last-child { padding-right: 1rem; }
+.avs-side-amt { font-size: 1.2rem; font-weight: 600; color: var(--tx); line-height: 1.1; }
+.avs-side-fm { font-size: .7rem; color: var(--tx3); margin-top: .1rem; }
+.avs-arrow-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: .1rem; flex-shrink: 0; padding: 0 .25rem;
+}
+.avs-arrow-svg { width: 28px; opacity: .25; }
+.avs-diff { font-size: .9rem; font-weight: 700; line-height: 1; }
+.avs-diff-label { font-size: .6rem; color: var(--tx3); text-align: center; white-space: nowrap; }
+.avs-diff.avs-under { color: var(--acc); }
+.avs-diff.avs-over  { color: var(--dng); }
+.avs-diff.avs-zero  { color: var(--tx3); }
+.avs-card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: .75rem; border-top: 1px solid var(--bdr); gap: .5rem;
+}
+.avs-dagar-tag { font-size: .72rem; color: var(--tx3); }
 
 /* ---- Auglýst vs. selt — responsive ---- */
 @media (max-width: 900px) {
-  .avs-agg { grid-template-columns: 1fr 1fr; }
-  .avs-stat:nth-child(2) { border-right: none; }
-  .avs-stat:nth-child(3) { border-top: 1px solid var(--bdr); grid-column: span 2; }
+  .avs-cards { grid-template-columns: 1fr; }
 }
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .avs-agg { grid-template-columns: 1fr; }
   .avs-stat { border-right: none; border-bottom: 1px solid var(--bdr); }
   .avs-stat:last-child { border-bottom: none; }
-  .avs-stat:nth-child(3) { grid-column: auto; border-top: none; }
-  .avs-table { font-size: .75rem; }
-  .avs-table thead th, .avs-table td { padding: .65rem .75rem; }
 }
 
 /* ---- Tab navigation ---- */

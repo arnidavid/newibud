@@ -796,55 +796,54 @@ function renderAvsTable(matched) {
     return;
   }
 
-  const rows = matched.map((m, i) => {
-    const aM   = (m.auglystThkr / 1000).toFixed(1);
-    const sM   = (m.seltThkr    / 1000).toFixed(1);
+  const cards = matched.map((m, i) => {
+    const aM     = (m.auglystThkr / 1000).toFixed(1);
+    const sM     = (m.seltThkr    / 1000).toFixed(1);
     const munCls = m.munurPct < 0 ? 'avs-under' : m.munurPct > 0 ? 'avs-over' : 'avs-zero';
     const munStr = (m.munurPct >= 0 ? '+' : '') + m.munurPct + '%';
-    const dagarStr = m.dagar !== null ? m.dagar + ' d' : '—';
+    const munLabel = m.munurPct < 0 ? 'afsláttur' : m.munurPct > 0 ? 'yfir verði' : 'jafnt';
     const thinglyst = new Date(m.sale.thinglystdags).toLocaleDateString('is-IS');
-    const lastSeen  = new Date(m.listing.last_seen).toLocaleDateString('is-IS');
-    const fmStr     = m.sale.einflm > 0
-      ? Math.round(m.seltThkr / m.sale.einflm) + ' þ.kr/m²' : '—';
+    const aFm = m.sale.einflm > 0 ? Math.round(m.auglystThkr / m.sale.einflm) + ' þ.kr/m²' : '';
+    const sFm = m.sale.einflm > 0 ? Math.round(m.seltThkr    / m.sale.einflm) + ' þ.kr/m²' : '';
+    const dagarStr = m.dagar !== null ? m.dagar + ' d á markaði' : null;
 
-    return `<tr style="animation-delay:${i * 40}ms">
-      <td class="avs-addr">${m.listing.heimilisfang}</td>
-      <td class="avs-num">${aM}M</td>
-      <td class="avs-num">${sM}M<br><span style="font-size:.7rem;color:var(--tx3)">${fmStr}</span></td>
-      <td class="avs-num ${munCls}">${munStr}</td>
-      <td class="avs-num">${dagarStr}</td>
-      <td class="avs-date">${thinglyst}</td>
-      <td class="avs-date">${lastSeen}</td>
-      <td style="padding-right:1rem">
+    return `<div class="avs-card" style="animation-delay:${i * 30}ms">
+      <div class="avs-card-head">
+        <span class="avs-card-addr">${m.listing.heimilisfang}</span>
+        <span class="avs-card-date">Þinglýst ${thinglyst}</span>
+      </div>
+      <div class="avs-compare">
+        <div class="avs-side">
+          <div class="avs-side-label">Auglýst</div>
+          <div class="avs-side-amt">${aM}M</div>
+          ${aFm ? `<div class="avs-side-fm">${aFm}</div>` : ''}
+        </div>
+        <div class="avs-arrow-wrap">
+          <svg viewBox="0 0 28 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="avs-arrow-svg"><path d="M0 6h26M21 1l5 5-5 5"/></svg>
+          <div class="avs-diff ${munCls}">${munStr}</div>
+          <div class="avs-diff-label">${munLabel}</div>
+        </div>
+        <div class="avs-side">
+          <div class="avs-side-label">Selt</div>
+          <div class="avs-side-amt">${sM}M</div>
+          ${sFm ? `<div class="avs-side-fm">${sFm}</div>` : ''}
+        </div>
+      </div>
+      <div class="avs-card-foot">
+        ${dagarStr ? `<span class="avs-dagar-tag">${dagarStr}</span>` : '<span></span>'}
         <a class="vb" href="${m.listing.linkur}" target="_blank" rel="noopener"
-           style="padding:5px 12px;font-size:.72rem;gap:4px">
+           style="padding:5px 12px;font-size:.72rem">
           Sjá
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 3h7v7"/><path d="M13 3L6 10"/>
           </svg>
         </a>
-      </td>
-    </tr>`;
+      </div>
+    </div>`;
   }).join('');
 
-  wrap.innerHTML = `<div class="avs-table-wrap">
-    <table class="avs-table">
-      <thead>
-        <tr>
-          <th>Heimilisfang</th>
-          <th style="text-align:right">Auglýst</th>
-          <th style="text-align:right">Selt</th>
-          <th style="text-align:right">Munur</th>
-          <th style="text-align:right">Dagar</th>
-          <th>Þinglýst</th>
-          <th>Síðast styrkt</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
+  wrap.innerHTML = `<div class="avs-cards">${cards}</div>`;
 }
 
 /** Aðalaðgerð: sækir fastinn_listings + matchar við kaupRows */
