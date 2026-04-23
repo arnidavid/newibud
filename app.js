@@ -967,15 +967,6 @@ async function initSumar() {
     sumarKaupRows = rows;
     sumarListings = ls;
 
-    const filterInput = document.getElementById('avs-filter');
-    if (filterInput) {
-      filterInput.value = '';
-      filterInput.addEventListener('input', () => {
-        clearTimeout(_streetFilterTimer);
-        _streetFilterTimer = setTimeout(() => applyStreetFilter(filterInput.value.trim()), 300);
-      });
-    }
-
     const hs   = bldStats(rows);
     const avgs = recAvg(rows);
     for (const l of ls) {
@@ -1085,6 +1076,14 @@ document.getElementById('hofud-tegund').addEventListener('change', e => {
   hofudReady = false;
   const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
   initHofud(postnr, e.target.value);
+});
+
+// ---- Street filter (event delegation — works regardless of tab/init timing) ----
+document.addEventListener('input', e => {
+  if (e.target.id !== 'avs-filter') return;
+  if (!sumarKaupRows.length) return;
+  clearTimeout(_streetFilterTimer);
+  _streetFilterTimer = setTimeout(() => applyStreetFilter(e.target.value.trim()), 300);
 });
 
 // ---- Startup: init hofud view (default) ----
