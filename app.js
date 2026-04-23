@@ -890,7 +890,7 @@ let hofudPostnr  = null;
 let hofudTegund  = 'all';
 
 const SUB_TEXTS = {
-  sumar: 'Sumarhúsasvæðið — kauptækifæri í rauntíma',
+  sumar: 'Skorradalur — kauptækifæri í rauntíma',
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis'
 };
 
@@ -1023,5 +1023,5 @@ document.getElementById('hofud-tegund').addEventListener('change', e => {
   initHofud(postnr, e.target.value);
 });
 
-// ---- Startup: init sumar view ----
-initSumar();
+// ---- Startup: init hofud view (default) ----
+initHofud(parseInt(document.getElementById('hofud-postnr').value, 10));
