@@ -472,7 +472,11 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
   const salePrice = sale.kaupverd * 1000;
   const saleSqm   = sale.einflm;
   const saleFm    = Math.round(sale.kaupverd / sale.einflm);
-  const dbMatch   = dbLookup[normAddr(saleAddr)];
+  const dbCandidates = dbLookup[normAddr(saleAddr)] || [];
+  const dbMatch = dbCandidates.length === 0 ? null :
+    dbCandidates.reduce((best, l) =>
+      Math.abs(Number(l.staerd) - saleSqm) < Math.abs(Number(best.staerd) - saleSqm) ? l : best
+    );
   const matched   = dbMatch || sheetLookup[addrKey(saleAddr)];
   const adPrice   = matched ? parseSheetPrice(matched.verd) : 0;
   const adSqm     = matched ? parseSheetSize(matched.staerd) : 0;
@@ -585,7 +589,10 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
     const dbLookup = {};
     for (const l of (dbListingsResult.data || [])) {
       const key = normAddr(l.heimilisfang);
-      if (key && !dbLookup[key]) dbLookup[key] = l;
+      if (key) {
+        if (!dbLookup[key]) dbLookup[key] = [];
+        dbLookup[key].push(l);
+      }
     }
 
     wrap.innerHTML = '<div class="avs-cards">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup, dbLookup)).join('') + '</div>';
