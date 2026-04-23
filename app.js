@@ -200,25 +200,28 @@ async function fetchFastinnSumar(postnr) {
 }
 
 function buildChartsSumar(hs, rows) {
+  ['c1','c2','c3','c4'].forEach(k => {
+    if (SUMAR_CHARTS[k]) { SUMAR_CHARTS[k].destroy(); SUMAR_CHARTS[k] = null; }
+  });
   const yrs = [];
-  for (let y = 2008; y <= 2026; y++) yrs.push(y);
+  for (let y = 2016; y <= 2026; y++) yrs.push(y);
   const av = (h, y) => { const d = hs[h]?.[y]; return d ? Math.round(d.fs.reduce((a, b) => a + b, 0) / d.fs.length) : null; };
   const cn = (h, y) => hs[h]?.[y]?.c || 0;
 
-  new Chart(document.getElementById('c1'), {
+  SUMAR_CHARTS.c1 = new Chart(document.getElementById('c1'), {
     type: 'line',
     data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => av(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true })) },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + Math.round(c.parsed.y) + ' þ.kr/m²' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true } } }
   });
 
-  new Chart(document.getElementById('c2'), {
+  SUMAR_CHARTS.c2 = new Chart(document.getElementById('c2'), {
     type: 'bar',
     data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => cn(h, y) || null), backgroundColor: c.bar, borderRadius: 4, barPercentage: .7 })) },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: CHART_TT }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 5 }, beginAtZero: true } } }
   });
 
   const realAv = (h, y) => { const v = av(h, y); return v ? toReal(v, y) : null; };
-  new Chart(document.getElementById('c3'), {
+  SUMAR_CHARTS.c3 = new Chart(document.getElementById('c3'), {
     type: 'line',
     data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h + ' (raunverð)', data: yrs.map(y => realAv(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true, borderDash: [6, 3] })) },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + Math.round(c.parsed.y) + ' þ.kr/m² (raunverð 2024)' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true } } }
@@ -229,7 +232,7 @@ function buildChartsSumar(hs, rows) {
     if (!recs.length) return null;
     return Math.round(recs.reduce((s, r) => s + r.kaupverd / r.fasteignamat * 100, 0) / recs.length);
   };
-  new Chart(document.getElementById('c4'), {
+  SUMAR_CHARTS.c4 = new Chart(document.getElementById('c4'), {
     type: 'line',
     data: { labels: yrs.map(String), datasets: [ ...Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => matRatio(h, y)), borderColor: c.line, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true })), { label: 'Fasteignamat = 100%', data: yrs.map(() => 100), borderColor: 'rgba(0,0,0,.15)', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, spanGaps: true } ] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + Math.round(c.parsed.y) + '% af mati' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => v + '%' }, min: 0 } } }
@@ -290,6 +293,10 @@ const H_COLOR     = '#1a5a8a';
 const H_COLOR_BG  = 'rgba(26,90,138,.07)';
 const H_COLOR_BAR = 'rgba(26,90,138,.55)';
 const H_CHARTS    = {};  // track instances for destruction
+const SUMAR_CHARTS = {};
+let sumarKaupRows = [];
+let sumarListings = [];
+let _streetFilterTimer = null;
 
 function destroyHofudCharts() {
   ['c1','c2','c3','c4','c5','c6'].forEach(k => {
@@ -649,11 +656,13 @@ function _seasonalAnalysis(rows, fmMax, ids, yearRange) {
   const c5el = document.getElementById(ids.c5);
   const c6el = document.getElementById(ids.c6);
 
-  // Detect if this is hofud view (prefix h-)
   const isHofud = ids.c5.startsWith('h-');
   if (isHofud) {
     if (H_CHARTS.c5) { H_CHARTS.c5.destroy(); H_CHARTS.c5 = null; }
     if (H_CHARTS.c6) { H_CHARTS.c6.destroy(); H_CHARTS.c6 = null; }
+  } else {
+    if (SUMAR_CHARTS.c5) { SUMAR_CHARTS.c5.destroy(); SUMAR_CHARTS.c5 = null; }
+    if (SUMAR_CHARTS.c6) { SUMAR_CHARTS.c6.destroy(); SUMAR_CHARTS.c6 = null; }
   }
 
   const c5 = new Chart(c5el, {
@@ -664,7 +673,7 @@ function _seasonalAnalysis(rows, fmMax, ids, yearRange) {
     ]},
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label === 'Fm.verð' ? Math.round(c.parsed.y) + ' þ.kr/m²' : c.parsed.y + ' sölur' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 12 }, autoSkip: false } }, y: { position: 'left', grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true, title: { display: true, text: 'þ.kr/m²', color: CHART_TICK, font: { size: 11 } } }, y1: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(58,124,165,.6)', font: { size: 11 } }, beginAtZero: true, title: { display: true, text: 'fjöldi', color: 'rgba(58,124,165,.6)', font: { size: 11 } } } } }
   });
-  if (isHofud) H_CHARTS.c5 = c5;
+  if (isHofud) H_CHARTS.c5 = c5; else SUMAR_CHARTS.c5 = c5;
 
   // Heatmap
   const years = [];
@@ -686,7 +695,7 @@ function _seasonalAnalysis(rows, fmMax, ids, yearRange) {
     data: { datasets: [{ data: hmData.map(d => ({ x: d.x, y: d.y })), pointRadius: hmData.map(() => 18), pointStyle: 'rectRounded', pointHoverRadius: 22, backgroundColor: hmData.map(d => { const t = (d.v - minV) / (maxV - minV); const r = Math.round(230 - t * 190), g = Math.round(240 - t * 130), b = Math.round(225 - t * 150); return `rgb(${r},${g},${b})`; }) }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => { const d = hmData[c.dataIndex]; return `${MON[d.x]} ${years[d.y]}: ${d.v} þ.kr/m²`; } } } }, scales: { x: { type: 'linear', min: -.5, max: 11.5, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => MON[v] || '', autoSkip: false } }, y: { type: 'linear', min: -.5, max: years.length - .5, reverse: true, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => years[v] || '' } } } }
   });
-  if (isHofud) H_CHARTS.c6 = c6;
+  if (isHofud) H_CHARTS.c6 = c6; else SUMAR_CHARTS.c6 = c6;
 }
 
 // ============================================================
@@ -880,18 +889,6 @@ function renderAvsTable(matched) {
   }).join('');
 
   wrap.innerHTML = `<div class="avs-cards">${cards}</div>`;
-
-  const filterInput = document.getElementById('avs-filter');
-  if (filterInput) {
-    filterInput.value = '';
-    filterInput.oninput = () => {
-      const q = filterInput.value.toLowerCase().trim();
-      wrap.querySelectorAll('.avs-card').forEach(card => {
-        const addr = card.querySelector('.avs-card-addr')?.textContent.toLowerCase() || '';
-        card.style.display = !q || addr.includes(q) ? '' : 'none';
-      });
-    };
-  }
 }
 
 /** Aðalaðgerð: sækir fastinn_listings + matchar við kaupRows */
@@ -938,6 +935,17 @@ const SUB_TEXTS = {
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis'
 };
 
+function applyStreetFilter(q) {
+  const filtered = q.length >= 2
+    ? sumarKaupRows.filter(r => r.heimilisfang.toLowerCase().includes(q.toLowerCase()))
+    : sumarKaupRows;
+  const hs = bldStats(filtered);
+  buildChartsSumar(hs, filtered);
+  seasonalAnalysisSumar(filtered);
+  updateMetricsSumar(filtered, sumarListings);
+  renderAuglystVsSelt(filtered, POSTNR);
+}
+
 async function initSumar() {
   if (sumarReady) return;
   sumarReady = true;
@@ -954,6 +962,18 @@ async function initSumar() {
     if (!rows || !rows.length) {
       document.getElementById('lw').innerHTML = '<div class="err">Engin gögn úr Supabase. Athugaðu API tengingu.</div>';
       return;
+    }
+
+    sumarKaupRows = rows;
+    sumarListings = ls;
+
+    const filterInput = document.getElementById('avs-filter');
+    if (filterInput) {
+      filterInput.value = '';
+      filterInput.addEventListener('input', () => {
+        clearTimeout(_streetFilterTimer);
+        _streetFilterTimer = setTimeout(() => applyStreetFilter(filterInput.value.trim()), 300);
+      });
     }
 
     const hs   = bldStats(rows);
