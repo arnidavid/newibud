@@ -477,42 +477,63 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
   const adPrice   = matched ? parseSheetPrice(matched.verd) : 0;
   const adSqm     = matched ? parseSheetSize(matched.staerd) : 0;
   const adFm      = adSqm > 0 && adPrice > 0 ? Math.round(adPrice / adSqm / 1000) : 0;
-  const adDate    = matched ? (matched.skrad || (matched.first_seen ? new Date(matched.first_seen).toLocaleDateString('is-IS') : '')) : '';
+  const linkUrl   = dbMatch?.linkur || matched?.linkur || null;
 
-  let diffPct = 0, diffClass = 'ns-nomatch', diffLabel = '';
-  if (adPrice > 0 && salePrice > 0) {
-    diffPct = Math.round((1 - salePrice / adPrice) * 100);
-    if (diffPct > 0)      { diffClass = 'ns-discount'; diffLabel = 'afsláttur'; }
-    else if (diffPct < 0) { diffClass = 'ns-premium';  diffLabel = 'yfirverð'; diffPct = Math.abs(diffPct); }
-    else                  { diffClass = 'ns-nomatch';   diffLabel = 'jafnt'; }
+  const sM = (salePrice / 1000000).toFixed(1);
+  const aM = adPrice > 0 ? (adPrice / 1000000).toFixed(1) : null;
+
+  let munCls = 'avs-zero', munStr = '—', munLabel = '';
+  if (adPrice > 0) {
+    const dp = Math.round((salePrice / adPrice - 1) * 100);
+    munStr   = (dp >= 0 ? '+' : '') + dp + '%';
+    munLabel = dp < 0 ? 'afsláttur' : dp > 0 ? 'yfirverð' : 'jafnt';
+    munCls   = dp < 0 ? 'avs-under' : dp > 0 ? 'avs-over' : 'avs-zero';
   }
 
-  let compareH = '';
-  if (matched && adPrice > 0) {
-    const dvC = diffLabel === 'afsláttur' ? 'ns-green' : diffLabel === 'yfirverð' ? 'ns-orange' : '';
-    compareH = `<div class="ns-compare">
-      <div class="ns-col"><div class="ns-col-label">Auglýst verð</div><div class="ns-col-price">${(adPrice / 1000000).toFixed(1)}M</div><div class="ns-col-fm">${adFm > 0 ? adFm + ' þ.kr/m²' : '–'}</div></div>
-      <div class="ns-arrow">→</div>
-      <div class="ns-col"><div class="ns-col-label">Söluverð</div><div class="ns-col-price">${(salePrice / 1000000).toFixed(1)}M</div><div class="ns-col-fm">${saleFm} þ.kr/m²</div></div>
-      <div class="ns-diff"><div class="ns-diff-val ${dvC}">${diffPct > 0 ? '-' : '+'}${diffPct}%</div><div class="ns-diff-label">${diffLabel}</div></div>
-    </div>${adDate ? `<div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Auglýst: ${adDate}</div>` : ''}`;
-  } else {
-    compareH = `<div class="ns-nomatch-msg">Auglýsing ekki fundin</div>`;
-  }
-
-  return `<div class="ns-card" style="animation-delay:${idx * 80}ms">
-    <div class="ns-top">
-      <div class="ns-stripe ${diffClass}"></div>
-      <div class="ns-body">
-        <div class="ns-header"><span class="ns-addr">${saleAddr}</span><span class="ns-date">Þinglýst ${saleDate}</span></div>
-        <div class="ns-stats">
-          <div class="ns-stat"><div class="ns-stat-label">Söluverð</div><div class="ns-stat-val">${fISK(salePrice)}</div></div>
-          <div class="ns-stat"><div class="ns-stat-label">Stærð</div><div class="ns-stat-val">${saleSqm} m²</div></div>
-          <div class="ns-stat"><div class="ns-stat-label">Selt fm.verð</div><div class="ns-stat-val">${saleFm} þ.kr/m²</div></div>
-          ${sale.fasteignamat > 0 ? `<div class="ns-stat"><div class="ns-stat-label">Fasteignamat</div><div class="ns-stat-val">${fISK(sale.fasteignamat * 1000)}</div></div>` : ''}
+  const compareH = aM
+    ? `<div class="avs-compare">
+        <div class="avs-side">
+          <div class="avs-side-label">Auglýst</div>
+          <div class="avs-side-amt">${aM}M</div>
+          ${adFm > 0 ? `<div class="avs-side-fm">${adFm} þ.kr/m²</div>` : ''}
         </div>
-        ${compareH}
-      </div>
+        <div class="avs-arrow-wrap">
+          <svg viewBox="0 0 28 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="avs-arrow-svg"><path d="M0 6h26M21 1l5 5-5 5"/></svg>
+          <div class="avs-diff ${munCls}">${munStr}</div>
+          <div class="avs-diff-label">${munLabel}</div>
+        </div>
+        <div class="avs-side">
+          <div class="avs-side-label">Selt</div>
+          <div class="avs-side-amt">${sM}M</div>
+          <div class="avs-side-fm">${saleFm} þ.kr/m²</div>
+        </div>
+      </div>`
+    : `<div class="avs-compare">
+        <div class="avs-side">
+          <div class="avs-side-label">Söluverð</div>
+          <div class="avs-side-amt">${sM}M</div>
+          <div class="avs-side-fm">${saleFm} þ.kr/m²</div>
+        </div>
+        <div class="avs-arrow-wrap"></div>
+        <div class="avs-side">
+          <div class="avs-side-label">Stærð</div>
+          <div class="avs-side-amt">${saleSqm} m²</div>
+          <div class="avs-side-fm">ekki auglýst</div>
+        </div>
+      </div>`;
+
+  return `<div class="avs-card" style="animation-delay:${idx * 40}ms">
+    <div class="avs-card-head">
+      <span class="avs-card-addr">${saleAddr}</span>
+      <span class="avs-card-date">Þinglýst ${saleDate}</span>
+    </div>
+    ${compareH}
+    <div class="avs-card-foot">
+      <span class="avs-dagar-tag">${saleSqm} m²</span>
+      ${linkUrl ? `<a class="vb" href="${linkUrl}" target="_blank" rel="noopener" style="padding:5px 12px;font-size:.72rem">
+        Sjá
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7v7"/><path d="M13 3L6 10"/></svg>
+      </a>` : ''}
     </div>
   </div>`;
 }
@@ -567,7 +588,7 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
       if (key && !dbLookup[key]) dbLookup[key] = l;
     }
 
-    wrap.innerHTML = '<div class="ns-grid">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup, dbLookup)).join('') + '</div>';
+    wrap.innerHTML = '<div class="avs-cards">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup, dbLookup)).join('') + '</div>';
   } catch (err) {
     console.error('Recent sales (hofud) error:', err);
     wrap.innerHTML = `<div class="err">Villa við að sækja nýjustu sölur: ${err.message}</div>`;
