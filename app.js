@@ -729,8 +729,20 @@ function matchListingsToKaupskra(listings, kaupRows) {
     const sales = kaupIdx[key];
     if (!sales || !sales.length) continue;
 
-    // Nýjasta sala á þessu heimilisfangi
-    const sale = sales.slice().sort(
+    // Velja sölu: ef listing hefur þekkta stærð, sía burt sölur með >20% stærðarmun
+    // (forðast apples-to-oranges í fjölbýlishúsum með margar íbúðir á sama heimilisfangi)
+    const listingSize = Number(listing.staerd) || 0;
+    const firstSeenDate = listing.first_seen ? new Date(listing.first_seen) : null;
+    let saleCandidates = sales.filter(r =>
+      !firstSeenDate || new Date(r.thinglystdags) >= firstSeenDate
+    );
+    if (!saleCandidates.length) continue; // allar sölur eru eldri en auglýsingin
+    if (listingSize > 0) {
+      const close = saleCandidates.filter(r => Math.abs(Number(r.einflm) - listingSize) / listingSize <= 0.20);
+      if (!close.length) continue;
+      saleCandidates = close;
+    }
+    const sale = saleCandidates.slice().sort(
       (a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags)
     )[0];
 
