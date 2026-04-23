@@ -177,13 +177,12 @@ async function fetchFastinnSumar(postnr) {
     const r = await fetch('https://chmqzsxu3l-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=CHMQZSXU3L&x-algolia-api-key=9bfe0ddf26fdff0dd90dcdfc0e955eb7', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters: 'type:sumarhus', hitsPerPage: 200, page: 0 }] })
+      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters: `type:sumarhus AND removed:false AND zip:${postnr}`, hitsPerPage: 200, page: 0 }] })
     });
     const d = await r.json();
     const hits = d.results?.[0]?.hits || [];
     const seen = new Set();
     return hits
-      .filter(h => h.removed === false && Number(h.zip) === postnr)
       .filter(h => { const k = h.address || h.street_name; if (seen.has(k)) return false; seen.add(k); return true; })
       .map(h => {
         const sqm = h.sqm || h.size || 0, price = h.price || 0;
