@@ -732,7 +732,7 @@ function matchListingsToKaupskra(listings, kaupRows) {
 
   for (const listing of listings) {
     const key = normAddr(listing.heimilisfang);
-    if (!key || seen.has(listing.id)) continue;
+    if (!key || seen.has(key)) continue;
     const sales = kaupIdx[key];
     if (!sales || !sales.length) continue;
 
@@ -763,7 +763,7 @@ function matchListingsToKaupskra(listings, kaupRows) {
       ? Math.round((saleDate - firstSeen) / 86_400_000)
       : null;
 
-    seen.add(listing.id);
+    seen.add(key);
     matched.push({ listing, sale, auglystThkr, seltThkr, munurPct, dagar });
   }
 
