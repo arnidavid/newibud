@@ -5,16 +5,16 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 ## Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS — no build step, loaded directly in browser
-- **Gögn:** Supabase Cloud (`nzuwplawwnlnjnbdpmei`, eu-central-1)
+- **Gögn:** Supabase Cloud (`nzuwplawwnlnjnbdpmei`, eu-central-2)
 - **CDN/Proxy:** Cloudflare (`sumar.silfran.com`)
 - **Hosting:** Hetzner VPS — `/home/arnisk/web/newibud/`
 
 ## Development Workflow
 
-- Vinnur á Mac í `~/newibud/`
-- Claude Code keyrir á Mac með VS Code SSH tunnel á VPS
-- Git: `git push` frá Mac → GitHub (`github.com/arnidavid/newibud`) → `git pull` á VPS → strax live
-- **Enginn Docker/scp lengur** — síðan keyrir beint á VPS úr git repo
+- Unnið staðbundið á Mac í `~/Projects/newibud/`
+- Prófa staðbundið: `python3 -m http.server` → http://localhost:8000 (talar við **sömu** Supabase Cloud gögn og raunsíðan)
+- Git: `git push` frá Mac → GitHub (`github.com/arnidavid/newibud`, SSH) → `git pull` á VPS → strax live
+- **Enginn Docker/scp** — síðan keyrir beint á VPS úr git repo
 
 ## Architecture
 
@@ -28,6 +28,11 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 - **Supabase** (kaupskrá) — registered property sales, materialized views for price trends
 - **fastinn.is** (Algolia) — current market listings
 - **Google Sheets** (gviz API) — scraped fastinn.is listing data (via n8n automation)
+
+## Supabase breytingar
+
+- `migrations/` — SQL fyrir views/RPC föll sem búin eru til í Supabase. Vista nýjar breytingar hér svo saga sé í git.
+- Supabase Cloud er raunkerfi — sýna SQL og fá samþykki áður en DDL/gögnum er breytt.
 
 ## Supabase Auth
 
@@ -43,12 +48,12 @@ const SUPABASE_URL = 'https://nzuwplawwnlnjnbdpmei.supabase.co/rest/v1';
 # Á Mac:
 git push origin master
 
-# Á VPS (í VS Code terminal):
+# Á VPS:
 cd /home/arnisk/web/newibud
-git pull origin master
+git pull --ff-only
 ```
 
-Skrárnar eru þjónaðar beint af VPS úr `/home/arnisk/web/newibud/`. Live at `https://ibud.silfran.com`.
+Skrárnar eru þjónaðar beint af VPS úr `/home/arnisk/web/newibud/`. Live at `https://sumar.silfran.com`.
 
 Eftir breytingar á JS/CSS: bæta `?v=N` við script/link tags í `index.html` til cache-busting.
 

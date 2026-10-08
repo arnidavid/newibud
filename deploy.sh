@@ -6,4 +6,4 @@
 
 echo "✅ Síðan er þjónuð beint úr git repo á VPS."
 echo "   Deploy = git pull origin master"
-echo "🔗 https://ibud.silfran.com"
+echo "🔗 https://sumar.silfran.com"
