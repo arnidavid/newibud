@@ -975,6 +975,7 @@ let hofudPostnr  = null;
 let hofudTegund  = 'all';
 
 const SUB_TEXTS = {
+  yfirlit: 'Höfuðborgarsvæðið og Skorradalur',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis'
 };
@@ -990,17 +991,26 @@ function applyStreetFilter(q) {
   renderAuglystVsSelt(filtered, POSTNR);
 }
 
-async function initSumar() {
-  if (sumarReady) return;
-  sumarReady = true;
-  try {
-    const [kaupskraResult, ls] = await Promise.all([
+// Skorradalsgögn sótt einu sinni og samnýtt af forsíðu og Skorradals-flipa
+let _sumarDataPromise = null;
+function loadSumarData() {
+  if (!_sumarDataPromise) {
+    _sumarDataPromise = Promise.all([
       API.getKaupskra({
         select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi',
         postnr: 'eq.311', tegund: 'eq.Sumarhús', kaupverd: 'gt.500', order: 'thinglystdags.asc'
       }),
       fetchFastinnSumar(POSTNR)
     ]);
+  }
+  return _sumarDataPromise;
+}
+
+async function initSumar() {
+  if (sumarReady) return;
+  sumarReady = true;
+  try {
+    const [kaupskraResult, ls] = await loadSumarData();
 
     const rows = kaupskraResult.data;
     if (!rows || !rows.length) {
@@ -1023,7 +1033,6 @@ async function initSumar() {
     updateMetricsSumar(rows, ls);
     renderListingsSumar(ls, rows);
     renderAuglystVsSelt(rows, POSTNR);
-    document.getElementById('upd').textContent = 'Uppfært: ' + new Date().toLocaleString('is-IS');
   } catch (e) {
     console.error('initSumar error:', e);
     document.getElementById('lw').innerHTML = `<div class="err">Villa: ${e.message}</div>`;
@@ -1077,34 +1086,142 @@ async function initHofud(postnr, tegund = hofudTegund) {
     }
     renderRecentSalesHofud(postnr, tegund);
     hofudReady = true;
-    document.getElementById('upd').textContent = 'Uppfært: ' + new Date().toLocaleString('is-IS');
   } catch (e) {
     console.error('initHofud error:', e);
     document.getElementById('h-lw').innerHTML = `<div class="err">Villa: ${e.message}</div>`;
   }
 }
 
-// ---- Tab switching ----
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const view = btn.dataset.view;
-    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
-    btn.classList.add('active');
-    btn.setAttribute('aria-selected', 'true');
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + view).classList.add('active');
+// ============================================================
+// ====  YFIRLIT (forsíða)  ===================================
+// ============================================================
+let yfirlitReady = false;
+// Íslensk sniðun óháð vafra (ekki allir vafrar styðja 'is-IS')
+const MAN_STUTT = ['jan.','feb.','mars','apr.','maí','júní','júlí','ág.','sept.','okt.','nóv.','des.'];
+const MAN_LANGT = ['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
+const fmtInt = n => String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const fmtMkr = thkr => (Math.round(thkr / 100) / 10).toFixed(1).replace('.', ',') + ' m.kr';
+const fmtDag = d => { const x = new Date(d); return x.getDate() + '. ' + MAN_STUTT[x.getMonth()]; };
+const fmtDagLangt = d => { const x = new Date(d); return x.getDate() + '. ' + MAN_LANGT[x.getMonth()] + ' ' + x.getFullYear(); };
 
-    const subEl = document.getElementById('header-sub');
-    if (subEl) subEl.textContent = SUB_TEXTS[view] || '';
+// Ársmeðaltöl {ár: {nAll, nFm, sumFm}} úr einstökum sölum (sama síun og Skorradals-flipinn)
+function yearStatsFromRows(rows, fmMin, fmMax) {
+  const by = {};
+  for (const r of rows) {
+    const y = new Date(r.thinglystdags).getFullYear();
+    const b = by[y] || (by[y] = { nAll: 0, nFm: 0, sumFm: 0 });
+    b.nAll++;
+    const fm = r.einflm > 0 ? r.kaupverd / r.einflm : 0;
+    if (fm > fmMin && fm < fmMax) { b.nFm++; b.sumFm += fm; }
+  }
+  return by;
+}
 
-    if (view === 'sumar') initSumar();
-    else if (view === 'hofud') {
-      const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
-      const tegund = document.getElementById('hofud-tegund').value;
-      initHofud(postnr, tegund);
-    }
+function renderRegionCard(el, by, listingsCount) {
+  const avg = y => by[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
+  const since = Object.keys(by).filter(y => y >= 2023).map(y => by[y]);
+  const n = since.reduce((s, b) => s + b.nFm, 0);
+  const set = (k, v) => { const e = el.querySelector(`[data-k="${k}"]`); if (e) e.textContent = v; };
+  set('fm', n ? fmtInt(Math.round(since.reduce((s, b) => s + b.sumFm, 0) / n)) : '—');
+  set('ls', listingsCount != null ? fmtInt(listingsCount) : '—');
+  set('n', `${fmtInt(by[2025]?.nAll || 0)} / ${fmtInt(by[2026]?.nAll || 0)}`);
+
+  const v5 = avg(2025), v6 = avg(2026);
+  const chgEl = el.querySelector('[data-k="chg"]');
+  if (v5 && v6) {
+    const ch = Math.round((v6 - v5) / v5 * 100);
+    chgEl.textContent = (ch > 0 ? '+' : ch < 0 ? '−' : '') + Math.abs(ch) + '%';
+    chgEl.classList.toggle('up', ch > 0);
+    chgEl.classList.toggle('down', ch < 0);
+  }
+
+  const years = []; for (let y = 2016; y <= 2026; y++) years.push(y);
+  const vals = years.map(avg), max = Math.max(...vals.filter(Boolean));
+  el.querySelector('[data-k="bars"]').innerHTML = years.map((y, i) => vals[i]
+    ? `<div class="yf-bar${y === 2026 ? ' now' : ''}" style="height:${Math.round(vals[i] / max * 100)}%" title="${y}: ${fmtInt(Math.round(vals[i]))} þ.kr/m²"></div>`
+    : `<div class="yf-bar" style="height:0"></div>`).join('');
+}
+
+function renderSalesList(id, rows, showPostnr) {
+  const el = document.getElementById(id);
+  if (!rows?.length) { el.innerHTML = '<div class="emp" style="padding:1rem 1.25rem">Engar sölur fundust.</div>'; return; }
+  el.innerHTML = rows.map(r => `
+    <div class="yf-row">
+      <div style="min-width:0">
+        <div class="yf-addr">${r.heimilisfang}</div>
+        <div class="yf-meta">${[showPostnr ? r.postnr : null, r.tegund, String(r.einflm).replace('.', ',') + ' m²', fmtDag(r.thinglystdags)].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div>
+        <div class="yf-price">${fmtMkr(r.kaupverd)}</div>
+        <div class="yf-fm">${fmtInt(Math.round(r.kaupverd / r.einflm))} þ.kr/m²</div>
+      </div>
+    </div>`).join('');
+}
+
+async function initYfirlit() {
+  if (yfirlitReady) return;
+  yfirlitReady = true;
+
+  // Höfuðborgarsvæðið: samantekt úr Supabase + fjöldi auglýsinga + nýjustu sölur
+  Promise.all([API.getManadarsolur(0, null), fetchFastinnHofud(0, 'all')]).then(([agg, ls]) => {
+    if (agg.data) renderRegionCard(document.getElementById('yf-hofud'), hofudByYear(agg.data), ls.length);
   });
+  API.query('kaupskra', {
+    select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags',
+    kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1',
+    and: '(postnr.gte.100,postnr.lte.230)', order: 'thinglystdags.desc', limit: 4
+  }, { paginate: false }).then(({ data }) => {
+    renderSalesList('yf-sales-hofud', data, true);
+    if (data?.[0]) document.getElementById('upd').textContent = 'Sölur til og með ' + fmtDagLangt(data[0].thinglystdags);
+  });
+
+  // Skorradalur: sömu gögn og síun og Skorradals-flipinn
+  loadSumarData().then(([k, ls]) => {
+    const rows = k.data || [];
+    renderRegionCard(document.getElementById('yf-sumar'), yearStatsFromRows(rows, 10, 2000), ls.length);
+    const latest = rows.filter(r => r.einflm > 10 && r.onothaefur_samningur !== '1')
+      .slice(-4).reverse().map(r => ({ ...r, tegund: 'Sumarhús' }));
+    renderSalesList('yf-sales-sumar', latest, false);
+  });
+}
+
+// ---- Tab switching ----
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', sumar: 'skorradalur' };
+
+function showView(view, { push = true } = {}) {
+  if (!document.getElementById('view-' + view)) view = 'yfirlit';
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.dataset.view === view;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+
+  const subEl = document.getElementById('header-sub');
+  if (subEl) subEl.textContent = SUB_TEXTS[view] || '';
+  if (push && location.hash !== '#' + VIEW_HASH[view]) history.pushState(null, '', '#' + VIEW_HASH[view]);
+
+  if (view === 'yfirlit') initYfirlit();
+  else if (view === 'sumar') initSumar();
+  else if (view === 'hofud') {
+    const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
+    const tegund = document.getElementById('hofud-tegund').value;
+    initHofud(postnr, tegund);
+  }
+}
+
+function viewFromHash() {
+  const h = location.hash.replace('#', '');
+  return Object.keys(VIEW_HASH).find(k => VIEW_HASH[k] === h) || 'yfirlit';
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => showView(btn.dataset.view));
 });
+document.querySelectorAll('[data-goto]').forEach(a => {
+  a.addEventListener('click', e => { e.preventDefault(); showView(a.dataset.goto); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+});
+window.addEventListener('popstate', () => showView(viewFromHash(), { push: false }));
 
 // ---- Postnr dropdown ----
 document.getElementById('hofud-postnr').addEventListener('change', e => {
@@ -1127,5 +1244,5 @@ document.addEventListener('input', e => {
   _streetFilterTimer = setTimeout(() => applyStreetFilter(e.target.value.trim()), 300);
 });
 
-// ---- Startup: init hofud view (default) ----
-initHofud(parseInt(document.getElementById('hofud-postnr').value, 10));
+// ---- Startup: forsíða nema slóðin vísi á svæði (#hofud, #skorradalur) ----
+showView(viewFromHash(), { push: false });

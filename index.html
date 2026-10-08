@@ -7,37 +7,125 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
-<div class="topo"></div>
-<header>
-  <div class="htop">
-    <div>
-      <h1>Fasteignavaktin</h1>
-      <p class="sub" id="header-sub">Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis</p>
-      <p class="upd" id="upd"></p>
+<header class="site-hd">
+  <div class="hd-topo" aria-hidden="true"></div>
+  <div class="hd-in">
+    <div class="hd-top">
+      <a class="brand" href="#yfirlit" data-goto="yfirlit" aria-label="Fasteignavaktin – yfirlit">
+        <svg class="brand-mark" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 21 20 10l12 11"/><path d="M12 18v8h16v-8"/><path d="M17 26v-5h6v5"/>
+          <path d="M5 31c3-2 6-2 9 0s6 2 9 0 6-2 9 0 3 1.5 3 1.5"/>
+        </svg>
+        <span class="brand-txt">
+          <span class="brand-name">Fasteignavaktin</span>
+          <span class="brand-sub" id="header-sub">Höfuðborgarsvæðið og Skorradalur</span>
+        </span>
+      </a>
+      <div class="hd-live" role="status"><span class="hd-dot" aria-hidden="true"></span><span id="upd">Lifandi gögn</span></div>
     </div>
-    <div class="badge">Lifandi gögn</div>
+
+    <nav class="tabs" role="tablist" aria-label="Svæði">
+      <button class="tab-btn active" data-view="yfirlit" role="tab" aria-selected="true">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>
+        Yfirlit
+      </button>
+      <button class="tab-btn" data-view="hofud" role="tab" aria-selected="false">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V8l4-2v12M7 18V4l6 3v11M13 18v-7l4 2v5M2 18h16"/></svg>
+        <span class="tl-long">Höfuðborgarsvæðið</span><span class="tl-short">Höfuðborg</span>
+      </button>
+      <button class="tab-btn" data-view="sumar" role="tab" aria-selected="false">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M7 18V11h6v7"/></svg>
+        Skorradalur
+      </button>
+    </nav>
   </div>
 </header>
 
-<!-- Tab navigation -->
-<div class="tab-wrap">
-  <div class="tabs">
-    <button class="tab-btn active" data-view="hofud" aria-selected="true">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="16" height="12" rx="1"/><path d="M5 7V5a5 5 0 0110 0v2"/><path d="M8 13h4M10 11v4"/></svg>
-      Höfuðborgarsvæði
-    </button>
-    <button class="tab-btn" data-view="sumar" aria-selected="false">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M7 18V11h6v7"/></svg>
-      Skorradalur
-    </button>
-  </div>
-</div>
-
 <main>
+
+  <!-- ===================== YFIRLIT (forsíða) ===================== -->
+  <div id="view-yfirlit" class="view active">
+    <section class="yf-intro">
+      <h1 class="yf-h1">Fasteignamarkaðurinn í tölum</h1>
+      <p class="yf-lead">Þinglýstar sölur úr kaupskrá og eignir á sölu á fastinn.is – reiknað saman á hverri nóttu.</p>
+    </section>
+
+    <section class="yf-regions" aria-label="Svæði">
+      <article class="yf-card" style="--rc: var(--hofud)" id="yf-hofud">
+        <div class="yf-card-hd">
+          <div>
+            <div class="yf-kicker">Íbúðarhúsnæði · póstnr. 101–230</div>
+            <h2 class="yf-name">Höfuðborgarsvæðið</h2>
+          </div>
+          <div class="yf-big">
+            <div class="yf-big-l">Meðalfm.verð 2023–26</div>
+            <div class="yf-big-v"><span data-k="fm">—</span> <small>þ.kr/m²</small></div>
+          </div>
+        </div>
+        <div class="yf-chart">
+          <div class="yf-bars" data-k="bars" role="img" aria-label="Meðalfermetraverð eftir árum, 2016 til 2026"></div>
+          <div class="yf-axis"><span>2016</span><span>Meðalfermetraverð eftir árum</span><span>2026</span></div>
+        </div>
+        <div class="yf-stats">
+          <div><div class="yf-sl">Á sölu núna</div><div class="yf-sv" data-k="ls">—</div></div>
+          <div><div class="yf-sl">Sölur 2025 / 2026</div><div class="yf-sv" data-k="n">—</div></div>
+          <div><div class="yf-sl">Verð 2025→26</div><div class="yf-sv" data-k="chg">—</div></div>
+        </div>
+        <a class="yf-cta" href="#hofud" data-goto="hofud">Skoða höfuðborgarsvæðið
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </article>
+
+      <article class="yf-card" style="--rc: var(--skorr)" id="yf-sumar">
+        <div class="yf-card-hd">
+          <div>
+            <div class="yf-kicker">Sumarhús · póstnr. 311</div>
+            <h2 class="yf-name">Skorradalur</h2>
+          </div>
+          <div class="yf-big">
+            <div class="yf-big-l">Meðalfm.verð 2023–26</div>
+            <div class="yf-big-v"><span data-k="fm">—</span> <small>þ.kr/m²</small></div>
+          </div>
+        </div>
+        <div class="yf-chart">
+          <div class="yf-bars" data-k="bars" role="img" aria-label="Meðalfermetraverð eftir árum, 2016 til 2026"></div>
+          <div class="yf-axis"><span>2016</span><span>Meðalfermetraverð eftir árum</span><span>2026</span></div>
+        </div>
+        <div class="yf-stats">
+          <div><div class="yf-sl">Á sölu núna</div><div class="yf-sv" data-k="ls">—</div></div>
+          <div><div class="yf-sl">Sölur 2025 / 2026</div><div class="yf-sv" data-k="n">—</div></div>
+          <div><div class="yf-sl">Verð 2025→26</div><div class="yf-sv" data-k="chg">—</div></div>
+        </div>
+        <a class="yf-cta" href="#skorradalur" data-goto="sumar">Skoða Skorradal
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </article>
+    </section>
+
+    <section class="yf-sales">
+      <div class="yf-sales-hd">
+        <h2 class="yf-h2">Nýjustu þinglýstu sölurnar</h2>
+        <span class="yf-src">Úr kaupskrá HMS</span>
+      </div>
+      <div class="yf-regions">
+        <div class="yf-list" style="--rc: var(--hofud)">
+          <div class="yf-list-hd"><span class="yf-sw"></span>Höfuðborgarsvæðið</div>
+          <div id="yf-sales-hofud"><div class="ldw"><div class="ldr"></div>Sæki sölur…</div></div>
+        </div>
+        <div class="yf-list" style="--rc: var(--skorr)">
+          <div class="yf-list-hd"><span class="yf-sw"></span>Skorradalur</div>
+          <div id="yf-sales-sumar"><div class="ldw"><div class="ldr"></div>Sæki sölur…</div></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="yf-foot">
+      <span>Heimildir: kaupskrá HMS (þinglýstir kaupsamningar) og fastinn.is (eignir á sölu).</span>
+      <span>Fermetraverð í þúsundum króna á m², óleiðrétt fyrir verðbólgu.</span>
+    </footer>
+  </div><!-- /view-yfirlit -->
 
   <!-- ===================== SUMARHÚSASVÆÐI VIEW ===================== -->
   <div id="view-sumar" class="view">
@@ -114,7 +202,7 @@
 
 
   <!-- ===================== HÖFUÐBORGARSVÆÐI VIEW ===================== -->
-  <div id="view-hofud" class="view active">
+  <div id="view-hofud" class="view">
 
     <!-- Postnr selector -->
     <div class="postnr-sel">
@@ -239,6 +327,6 @@
 </main>
 
 <script src="api.js?v=5"></script>
-<script src="app.js?v=30"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>
