@@ -1142,20 +1142,47 @@ function renderRegionCard(el, by, listingsCount) {
     : `<div class="yf-bar" style="height:0"></div>`).join('');
 }
 
+// Finnur auglýsingu á fastinn.is fyrir hverja sölu: sama póstnr. og heimilisfang,
+// stærð innan 5% (fjölbýli hafa margar íbúðir á sama heimilisfangi) og auglýst fyrir þinglýsingu.
+async function matchSalesToListings(sales) {
+  if (!sales?.length) return sales;
+  const { data } = await API.rpc('get_auglysingar_fyrir_solur', {
+    p_postnr: sales.map(s => s.postnr),
+    p_heimilisfong: sales.map(s => s.heimilisfang)
+  });
+  return sales.map(s => {
+    const key = normAddr(s.heimilisfang), sqm = Number(s.einflm);
+    const hit = (data || [])
+      .filter(l => l.postnr === s.postnr && normAddr(l.heimilisfang) === key && l.staerd
+        && Math.abs(Number(l.staerd) - sqm) <= Math.max(2, sqm * 0.05)
+        && (!l.first_seen || l.first_seen.slice(0, 10) <= s.thinglystdags))
+      .sort((a, b) => (b.removed - a.removed) || String(b.last_seen).localeCompare(String(a.last_seen)))[0];
+    return hit ? { ...s, listing: hit } : s;
+  });
+}
+
 function renderSalesList(id, rows, showPostnr) {
   const el = document.getElementById(id);
   if (!rows?.length) { el.innerHTML = '<div class="emp" style="padding:1rem 1.25rem">Engar sölur fundust.</div>'; return; }
-  el.innerHTML = rows.map(r => `
+  el.innerHTML = rows.map(r => {
+    const l = r.listing;
+    const askThkr = l?.verd ? l.verd / 1000 : 0;
+    const diff = askThkr ? Math.round((r.kaupverd - askThkr) / askThkr * 100) : null;
+    const diffTxt = diff == null ? '' : `<span class="${diff < 0 ? 'down' : diff > 0 ? 'up' : ''}">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>`;
+    return `
     <div class="yf-row">
       <div style="min-width:0">
-        <div class="yf-addr">${r.heimilisfang}</div>
+        <div class="yf-addr">${l ? `<a href="${l.linkur}" target="_blank" rel="noopener">${r.heimilisfang}</a>` : r.heimilisfang}</div>
         <div class="yf-meta">${[showPostnr ? r.postnr : null, r.tegund, String(r.einflm).replace('.', ',') + ' m²', fmtDag(r.thinglystdags)].filter(Boolean).join(' · ')}</div>
+        ${l ? `<a class="yf-ask" href="${l.linkur}" target="_blank" rel="noopener">Auglýst ${askThkr ? fmtMkr(askThkr) : 'á fastinn.is'} ${diffTxt}
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h7v7M13 3 4 12"/></svg></a>` : ''}
       </div>
       <div>
         <div class="yf-price">${fmtMkr(r.kaupverd)}</div>
         <div class="yf-fm">${fmtInt(Math.round(r.kaupverd / r.einflm))} þ.kr/m²</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function initYfirlit() {
@@ -1170,8 +1197,9 @@ async function initYfirlit() {
     select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags',
     kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1',
     and: '(postnr.gte.100,postnr.lte.230)', order: 'thinglystdags.desc', limit: 4
-  }, { paginate: false }).then(({ data }) => {
+  }, { paginate: false }).then(async ({ data }) => {
     renderSalesList('yf-sales-hofud', data, true);
+    renderSalesList('yf-sales-hofud', await matchSalesToListings(data), true);
     if (data?.[0]) document.getElementById('upd').textContent = 'Sölur til og með ' + fmtDagLangt(data[0].thinglystdags);
   });
 
@@ -1180,8 +1208,9 @@ async function initYfirlit() {
     const rows = k.data || [];
     renderRegionCard(document.getElementById('yf-sumar'), yearStatsFromRows(rows, 10, 2000), ls.length);
     const latest = rows.filter(r => r.einflm > 10 && r.onothaefur_samningur !== '1')
-      .slice(-4).reverse().map(r => ({ ...r, tegund: 'Sumarhús' }));
+      .slice(-4).reverse().map(r => ({ ...r, postnr: POSTNR, tegund: 'Sumarhús' }));
     renderSalesList('yf-sales-sumar', latest, false);
+    matchSalesToListings(latest).then(m => renderSalesList('yf-sales-sumar', m, false));
   });
 }
 
