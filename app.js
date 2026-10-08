@@ -348,29 +348,27 @@ async function fetchFastinnHofud(postnr, tegund = 'all') {
   } catch (e) { console.error('Fastinn.is (hofud) error:', e); return []; }
 }
 
-function buildChartsHofud(rows, postnr) {
+// Leggur mánaðarsamantekt (get_manadarsolur) saman eftir árum
+function hofudByYear(agg) {
+  const by = {};
+  for (const a of agg) {
+    const y = by[a.ar] || (by[a.ar] = { nAll: 0, nFm: 0, sumFm: 0, nMat: 0, sumMat: 0 });
+    y.nAll += a.n_allt; y.nFm += a.n_fm; y.sumFm += Number(a.sum_fm || 0);
+    y.nMat += a.n_mat;  y.sumMat += Number(a.sum_mat || 0);
+  }
+  return by;
+}
+
+function buildChartsHofud(agg, postnr) {
   destroyHofudCharts();
 
   const yrs = [];
   for (let y = 2008; y <= 2026; y++) yrs.push(y);
 
-  // Group by year, filter outliers for apartments
-  const byYear = {};
-  for (const r of rows) {
-    const y = new Date(r.thinglystdags).getFullYear();
-    const fm = r.einflm > 0 ? r.kaupverd / r.einflm : null;
-    if (!fm || fm < H_FM_MIN || fm > H_FM_MAX) continue;
-    if (!byYear[y]) byYear[y] = { fms: [], matRatios: [], count: 0 };
-    byYear[y].fms.push(fm);
-    byYear[y].count++;
-    if (r.fasteignamat > 0 && r.kaupverd > 1000) {
-      byYear[y].matRatios.push(r.kaupverd / r.fasteignamat * 100);
-    }
-  }
-
-  const avg   = y => byYear[y]?.fms.length ? Math.round(byYear[y].fms.reduce((a, b) => a + b, 0) / byYear[y].fms.length) : null;
-  const cnt   = y => byYear[y]?.count || null;
-  const matR  = y => byYear[y]?.matRatios.length ? Math.round(byYear[y].matRatios.reduce((a, b) => a + b, 0) / byYear[y].matRatios.length) : null;
+  const byYear = hofudByYear(agg);
+  const avg   = y => byYear[y]?.nFm  ? Math.round(byYear[y].sumFm  / byYear[y].nFm)  : null;
+  const cnt   = y => byYear[y]?.nFm  || null;
+  const matR  = y => byYear[y]?.nMat ? Math.round(byYear[y].sumMat / byYear[y].nMat) : null;
   const label = `Póstnúmer ${postnr}`;
 
   // Update legend
@@ -409,39 +407,33 @@ function buildChartsHofud(rows, postnr) {
   });
 }
 
-function seasonalAnalysisHofud(rows) {
-  _seasonalAnalysis(rows, H_FM_MAX, {
+function seasonalAnalysisHofud(agg) {
+  _seasonalRender(_seasonFromAgg(agg, [2020, 2026]), {
     best: 'h-sBest', bestSub: 'h-sBestSub', worst: 'h-sWorst', worstSub: 'h-sWorstSub',
     diff: 'h-sDiff', advice: 'h-seasonAdvice', c5: 'h-c5', c6: 'h-c6'
   }, [2020, 2026]);
 }
 
-function updateMetricsHofud(rows, ls, postnr) {
+function updateMetricsHofud(agg, ls, postnr) {
   document.getElementById('h-m1').textContent = ls.length;
   document.getElementById('h-m1s').textContent = `íbúðarhúsnæði á póstnr. ${postnr}`;
   document.getElementById('h-m3s').textContent = `íbúðarhúsnæði á ${postnr}`;
 
-  const f = r => r.einflm > 0 && r.kaupverd / r.einflm < H_FM_MAX && r.kaupverd / r.einflm > H_FM_MIN;
-  const rc = rows.filter(r => { const y = new Date(r.thinglystdags).getFullYear(); return y >= 2023 && f(r); });
-  if (rc.length) document.getElementById('h-m2').textContent = Math.round(rc.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / rc.length) + ' þ.kr';
-  const hn25 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025).length;
-  const hn26 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2026).length;
-  document.getElementById('h-m3').textContent = `${hn25} / ${hn26}`;
+  const by = hofudByYear(agg);
+  const yAvg = y => by[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
+  const since23 = Object.keys(by).filter(y => y >= 2023).map(y => by[y]);
+  const n23 = since23.reduce((s, y) => s + y.nFm, 0);
+  if (n23) document.getElementById('h-m2').textContent = Math.round(since23.reduce((s, y) => s + y.sumFm, 0) / n23) + ' þ.kr';
+  document.getElementById('h-m3').textContent = `${by[2025]?.nAll || 0} / ${by[2026]?.nAll || 0}`;
 
-  const a4 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2024 && f(r));
-  const a5 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2025 && f(r));
-  const a6 = rows.filter(r => new Date(r.thinglystdags).getFullYear() === 2026 && f(r));
-  if (a4.length && a5.length) {
-    const v4 = a4.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a4.length;
-    const v5 = a5.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a5.length;
+  const v4 = yAvg(2024), v5 = yAvg(2025), v6 = yAvg(2026);
+  if (v4 && v5) {
     const ch = ((v5 - v4) / v4) * 100;
     const e = document.getElementById('h-m4');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
     e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
   }
-  if (a5.length && a6.length) {
-    const v5 = a5.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a5.length;
-    const v6 = a6.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a6.length;
+  if (v5 && v6) {
     const ch = ((v6 - v5) / v5) * 100;
     const e = document.getElementById('h-m5');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
@@ -455,11 +447,6 @@ function renderListingsHofud(ls, rows) {
     w.innerHTML = '<div class="emp">Engar íbúðir á markaði á þessu svæði.</div>';
     return;
   }
-  // Compute avg for scoring
-  const validRows = rows.filter(r => r.einflm > 0 && r.kaupverd / r.einflm >= H_FM_MIN && r.kaupverd / r.einflm <= H_FM_MAX);
-  const recent = validRows.filter(r => new Date(r.thinglystdags).getFullYear() >= 2022);
-  const avgFm = recent.length ? Math.round(recent.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / recent.length) : 0;
-
   for (const l of ls) {
     l._lastSale = lastSaleOnStreet(rows, l.heimilisfang);
   }
@@ -613,20 +600,52 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
 // ====  SHARED SEASONAL ANALYSIS  ============================
 // ============================================================
 
-function _seasonalAnalysis(rows, fmMax, ids, yearRange) {
-  const MON    = ['Jan','Feb','Mar','Apr','Maí','Jún','Júl','Ágú','Sep','Okt','Nóv','Des'];
-  const MON_IS = ['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
-
-  const [fromY, toY] = yearRange;
+// Árstíðagreining: gögnin eru {avgFm[12], counts[12], cells:[{yr, m, v}]} — reiknuð úr
+// einstökum sölum (sumarhús) eða mánaðarsamantekt úr Supabase (höfuðborgarsvæði).
+function _seasonFromRows(rows, fmMax, [fromY, toY]) {
   const recent = rows.filter(r => {
     const y = new Date(r.thinglystdags).getFullYear();
     return y >= fromY && y <= toY && r.einflm > 0 && r.kaupverd / r.einflm < fmMax && r.kaupverd / r.einflm > 10;
   });
+  const byMonth = Array(12).fill(null).map(() => ({ sum: 0, count: 0 }));
+  const byYm = {};
+  recent.forEach(r => {
+    const d = new Date(r.thinglystdags), m = d.getMonth(), k = d.getFullYear() + '-' + m, fm = r.kaupverd / r.einflm;
+    byMonth[m].sum += fm; byMonth[m].count++;
+    if (!byYm[k]) byYm[k] = { yr: d.getFullYear(), m, sum: 0, n: 0 };
+    byYm[k].sum += fm; byYm[k].n++;
+  });
+  return {
+    avgFm:  byMonth.map(m => m.count ? Math.round(m.sum / m.count) : 0),
+    counts: byMonth.map(m => m.count),
+    cells:  Object.values(byYm).map(c => ({ yr: c.yr, m: c.m, v: Math.round(c.sum / c.n) }))
+  };
+}
 
-  const byMonth = Array(12).fill(null).map(() => ({ fms: [], count: 0 }));
-  recent.forEach(r => { const m = new Date(r.thinglystdags).getMonth(); byMonth[m].fms.push(r.kaupverd / r.einflm); byMonth[m].count++; });
-  const avgFm  = byMonth.map(m => m.fms.length ? Math.round(m.fms.reduce((a, b) => a + b, 0) / m.fms.length) : 0);
-  const counts = byMonth.map(m => m.count);
+function _seasonFromAgg(agg, [fromY, toY]) {
+  const byMonth = Array(12).fill(null).map(() => ({ sum: 0, count: 0 }));
+  const cells = [];
+  for (const a of agg) {
+    if (a.ar < fromY || a.ar > toY || !a.n_fm) continue;
+    byMonth[a.man - 1].sum += Number(a.sum_fm); byMonth[a.man - 1].count += a.n_fm;
+    cells.push({ yr: a.ar, m: a.man - 1, v: Math.round(Number(a.sum_fm) / a.n_fm) });
+  }
+  return {
+    avgFm:  byMonth.map(m => m.count ? Math.round(m.sum / m.count) : 0),
+    counts: byMonth.map(m => m.count),
+    cells
+  };
+}
+
+function _seasonalAnalysis(rows, fmMax, ids, yearRange) {
+  _seasonalRender(_seasonFromRows(rows, fmMax, yearRange), ids, yearRange);
+}
+
+function _seasonalRender({ avgFm, counts, cells }, ids, yearRange) {
+  const MON    = ['Jan','Feb','Mar','Apr','Maí','Jún','Júl','Ágú','Sep','Okt','Nóv','Des'];
+  const MON_IS = ['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
+
+  const [fromY, toY] = yearRange;
 
   const valid = avgFm.map((v, i) => ({ v, i })).filter(x => x.v > 0);
   if (!valid.length) return;
@@ -679,15 +698,10 @@ function _seasonalAnalysis(rows, fmMax, ids, yearRange) {
   const years = [];
   for (let y = fromY; y <= toY; y++) years.push(y);
   const hmData = [];
-  years.forEach((yr, yi) => {
-    for (let m = 0; m < 12; m++) {
-      const recs = recent.filter(r => { const d = new Date(r.thinglystdags); return d.getFullYear() === yr && d.getMonth() === m; });
-      if (recs.length > 0) {
-        const a = Math.round(recs.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / recs.length);
-        hmData.push({ x: m, y: yi, v: a });
-      }
-    }
-  });
+  for (const c of cells) {
+    const yi = years.indexOf(c.yr);
+    if (yi >= 0) hmData.push({ x: c.m, y: yi, v: c.v });
+  }
   const maxV = Math.max(...hmData.map(d => d.v)), minV = Math.min(...hmData.map(d => d.v));
 
   const c6 = new Chart(c6el, {
@@ -1035,35 +1049,32 @@ async function initHofud(postnr, tegund = hofudTegund) {
   });
 
   try {
-    const kParams = {
-      select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi',
-      kaupverd: 'gt.1000', onothaefur_samningur: 'neq.1', order: 'thinglystdags.asc'
-    };
-    if (postnr === 0) {
-      kParams['and'] = '(postnr.gte.100,postnr.lte.230)';
-    } else {
-      kParams['postnr'] = `eq.${postnr}`;
-    }
-    const kaupTegund = TEGUND_MAP[tegund]?.kaupskra;
-    if (kaupTegund) kParams['tegund'] = `eq.${kaupTegund}`;
-
-    const [kaupskraResult, ls] = await Promise.all([
-      API.getKaupskra(kParams),
+    const kaupTegund = TEGUND_MAP[tegund]?.kaupskra || null;
+    const [aggResult, ls] = await Promise.all([
+      API.getManadarsolur(postnr, kaupTegund),
       fetchFastinnHofud(postnr, tegund)
     ]);
 
     if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
 
-    const rows = kaupskraResult.data;
-    if (!rows || !rows.length) {
+    const agg = aggResult.data;
+    if (!agg || !agg.length) {
       document.getElementById('h-lw').innerHTML = `<div class="err">Engin gögn úr Supabase fyrir póstnúmer ${postnr}.</div>`;
       return;
     }
 
-    buildChartsHofud(rows, postnr);
-    seasonalAnalysisHofud(rows);
-    updateMetricsHofud(rows, ls, postnr);
-    renderListingsHofud(ls, rows);
+    buildChartsHofud(agg, postnr);
+    seasonalAnalysisHofud(agg);
+    updateMetricsHofud(agg, ls, postnr);
+
+    // Spjöldin birtast strax; fyrri sölur á sömu götum (saga/fasteignamat) bætast við þegar þær berast
+    renderListingsHofud(ls, []);
+    const gotur = [...new Set(ls.map(l => l.heimilisfang.replace(/\s+\d.*$/, '')))];
+    if (gotur.length) {
+      API.getSolurGotur(gotur).then(({ data }) => {
+        if (data?.length && hofudPostnr === postnr && hofudTegund === tegund) renderListingsHofud(ls, data);
+      });
+    }
     renderRecentSalesHofud(postnr, tegund);
     hofudReady = true;
     document.getElementById('upd').textContent = 'Uppfært: ' + new Date().toLocaleString('is-IS');

@@ -157,6 +157,16 @@ const API = (() => {
     return rpc('get_verdthroun_ar', { p_postnr: postnr, p_tegund: tegund });
   }
 
+  /** Mánaðarleg samantekt sölna (RPC á mv_manadarsolur). postnr 0 = allt höfuðborgarsvæðið (100–230) */
+  function getManadarsolur(postnr, tegund = null) {
+    return rpc('get_manadarsolur', { p_postnr: postnr, p_tegund: tegund });
+  }
+
+  /** Nýjustu sölur (≤25 á götu, frá 2010) á tilteknum götum */
+  function getSolurGotur(gotur) {
+    return rpc('get_solur_gotur', { p_gotur: gotur });
+  }
+
   /** Raw kaupskra query — with JS-side filtering support */
   async function getKaupskra(params = {}, jsFilter = null) {
     const { data, error } = await fetchAll('kaupskra', params);
@@ -231,6 +241,8 @@ const API = (() => {
     getHreyfanlegtMedaltal,
     getSumarhusStats,
     getVerdthounAr,
+    getManadarsolur,
+    getSolurGotur,
     // fastinn_listings DB
     getListingsDb,
     // Nýjustu sölur
