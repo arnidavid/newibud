@@ -1142,21 +1142,24 @@ function renderRegionCard(el, by, listingsCount) {
     : `<div class="yf-bar" style="height:0"></div>`).join('');
 }
 
-// Finnur auglýsingu á fastinn.is fyrir hverja sölu: sama póstnr. og heimilisfang,
-// stærð innan 5% (fjölbýli hafa margar íbúðir á sama heimilisfangi) og auglýst fyrir þinglýsingu.
+// Finnur auglýsingu á fastinn.is fyrir hverja sölu (sama póstnr./heimilisfang, auglýst fyrir þinglýsingu):
+// fyrst eftir fastanúmeri, annars eftir stærð innan 5% (fjölbýli hafa margar íbúðir á sama heimilisfangi).
 async function matchSalesToListings(sales) {
   if (!sales?.length) return sales;
   const { data } = await API.rpc('get_auglysingar_fyrir_solur', {
     p_postnr: sales.map(s => s.postnr),
     p_heimilisfong: sales.map(s => s.heimilisfang)
   });
+  const newest = (a, b) => (b.removed - a.removed) || String(b.last_seen).localeCompare(String(a.last_seen));
   return sales.map(s => {
     const key = normAddr(s.heimilisfang), sqm = Number(s.einflm);
-    const hit = (data || [])
-      .filter(l => l.postnr === s.postnr && normAddr(l.heimilisfang) === key && l.staerd
-        && Math.abs(Number(l.staerd) - sqm) <= Math.max(2, sqm * 0.05)
-        && (!l.first_seen || l.first_seen.slice(0, 10) <= s.thinglystdags))
-      .sort((a, b) => (b.removed - a.removed) || String(b.last_seen).localeCompare(String(a.last_seen)))[0];
+    const sameAddr = (data || []).filter(l => l.postnr === s.postnr && normAddr(l.heimilisfang) === key
+      && (!l.first_seen || l.first_seen.slice(0, 10) <= s.thinglystdags));
+    // 1) Nákvæmt: sama fastanúmer (HMS) og í kaupskrá
+    let hit = s.fastnum ? sameAddr.filter(l => l.fastnum === String(s.fastnum)).sort(newest)[0] : null;
+    // 2) Annars: stærð innan 5%, aðeins auglýsingar sem hafa ekki (enn) fengið fastanúmer
+    if (!hit) hit = sameAddr.filter(l => !l.fastnum && l.staerd
+      && Math.abs(Number(l.staerd) - sqm) <= Math.max(2, sqm * 0.05)).sort(newest)[0];
     return hit ? { ...s, listing: hit } : s;
   });
 }
