@@ -997,7 +997,7 @@ function loadSumarData() {
   if (!_sumarDataPromise) {
     _sumarDataPromise = Promise.all([
       API.getKaupskra({
-        select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi',
+        select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi,fastnum,heinum',
         postnr: 'eq.311', tegund: 'eq.Sumarhús', kaupverd: 'gt.500', order: 'thinglystdags.asc'
       }),
       fetchFastinnSumar(POSTNR)
@@ -1166,13 +1166,15 @@ function renderSalesList(id, rows, showPostnr) {
   if (!rows?.length) { el.innerHTML = '<div class="emp" style="padding:1rem 1.25rem">Engar sölur fundust.</div>'; return; }
   el.innerHTML = rows.map(r => {
     const l = r.listing;
+    // Eignasíða á fastinn.is eftir fastanúmeri (HMS) – nákvæm tenging fyrir allar sölur
+    const propUrl = r.fastnum && r.heinum ? `https://fastinn.is/fasteignir/${r.heinum}/${r.fastnum}` : l?.linkur;
     const askThkr = l?.verd ? l.verd / 1000 : 0;
     const diff = askThkr ? Math.round((r.kaupverd - askThkr) / askThkr * 100) : null;
     const diffTxt = diff == null ? '' : `<span class="${diff < 0 ? 'down' : diff > 0 ? 'up' : ''}">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>`;
     return `
     <div class="yf-row">
       <div style="min-width:0">
-        <div class="yf-addr">${l ? `<a href="${l.linkur}" target="_blank" rel="noopener">${r.heimilisfang}</a>` : r.heimilisfang}</div>
+        <div class="yf-addr">${propUrl ? `<a href="${propUrl}" target="_blank" rel="noopener" title="Eignin á fastinn.is (fastanúmer ${r.fastnum})">${r.heimilisfang}</a>` : r.heimilisfang}</div>
         <div class="yf-meta">${[showPostnr ? r.postnr : null, r.tegund, String(r.einflm).replace('.', ',') + ' m²', fmtDag(r.thinglystdags)].filter(Boolean).join(' · ')}</div>
         ${l ? `<a class="yf-ask" href="${l.linkur}" target="_blank" rel="noopener">Auglýst ${askThkr ? fmtMkr(askThkr) : 'á fastinn.is'} ${diffTxt}
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h7v7M13 3 4 12"/></svg></a>` : ''}
@@ -1194,7 +1196,7 @@ async function initYfirlit() {
     if (agg.data) renderRegionCard(document.getElementById('yf-hofud'), hofudByYear(agg.data), ls.length);
   });
   API.query('kaupskra', {
-    select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags',
+    select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
     kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1',
     and: '(postnr.gte.100,postnr.lte.230)', order: 'thinglystdags.desc', limit: 4
   }, { paginate: false }).then(async ({ data }) => {
