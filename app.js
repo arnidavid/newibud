@@ -736,6 +736,33 @@ function normAddr(addr) {
  * Passar fastinn_listings við kaupskra sölur á JS-hlið.
  * Skilar array af { listing, sale, auglystThkr, seltThkr, munurPct, dagar }.
  */
+// Velur auglýsingu (fastinn_listings) sem á við tiltekna sölu (kaupskra):
+//  - auglýsingin birtist fyrir þinglýsingu (seinni auglýsing = næsta sala sömu eignar)
+//    og var enn á skrá innan við 4 mánuðum fyrir hana
+//  - 1) sama fastanúmer og í kaupskrá (nákvæmt)
+//  - 2) annars sama heimilisfang, aðeins auglýsingar ÁN fastanúmers (annað fastanúmer = önnur eign).
+//       Fjölbýli/þéttbýli: stærð innan 5% (margar íbúðir á sama heimilisfangi).
+//       Sumarhús: engin stærðarregla – stærð á fastinn.is víkur oft mikið frá HMS.
+//  - Ef eignin var auglýst oftar en einu sinni gildir síðasta auglýsingin fyrir sölu (síðasta ásetta verð).
+function pickListingForSale(sale, listings) {
+  const saleDay = String(sale.thinglystdags).slice(0, 10);
+  const minLast = new Date(new Date(saleDay).getTime() - 120 * 86400000).toISOString().slice(0, 10);
+  const day     = v => String(v || '').slice(0, 10);
+  const cands   = (listings || []).filter(l =>
+    (!l.first_seen || day(l.first_seen) <= saleDay) && (!l.last_seen || day(l.last_seen) >= minLast));
+  const latest  = (a, b) => day(b.first_seen).localeCompare(day(a.first_seen)) || day(b.last_seen).localeCompare(day(a.last_seen));
+
+  if (sale.fastnum) {
+    const exact = cands.filter(l => l.fastnum && l.fastnum === String(sale.fastnum));
+    if (exact.length) return exact.sort(latest)[0];
+  }
+  const key = normAddr(sale.heimilisfang), sqm = Number(sale.einflm) || 0;
+  const sumarhus = sale.postnr === 311 || sale.tegund === 'Sumarhús';
+  return cands.filter(l => !l.fastnum && normAddr(l.heimilisfang) === key
+      && (sumarhus || !sqm || !Number(l.staerd) || Math.abs(Number(l.staerd) - sqm) <= Math.max(2, sqm * 0.05)))
+    .sort(latest)[0] || null;
+}
+
 function matchListingsToKaupskra(listings, kaupRows) {
   // Búa til lookup-dict á normalisert heimilisfang
   const kaupIdx = {};
@@ -915,12 +942,17 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
       return;
     }
 
-    // Build listing lookup by normalized address (newest first, so first entry wins)
-    const listingIdx = {};
+    // Auglýsingar flokkaðar eftir fastanúmeri og heimilisfangi (pickListingForSale velur)
+    const byKey = {};
     for (const l of listings) {
-      const key = normAddr(l.heimilisfang);
-      if (key && !listingIdx[key]) listingIdx[key] = l;
+      for (const k of [l.fastnum && 'f:' + l.fastnum, 'a:' + normAddr(l.heimilisfang)]) {
+        if (k) (byKey[k] = byKey[k] || []).push(l);
+      }
     }
+    const listingFor = sale => pickListingForSale({ ...sale, postnr }, [
+      ...(sale.fastnum ? byKey['f:' + sale.fastnum] || [] : []),
+      ...(byKey['a:' + normAddr(sale.heimilisfang)] || [])
+    ]);
 
     // Sort sales newest-first, filter outliers, take 20
     const sales = [...kaupRows]
@@ -928,18 +960,15 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
       .sort((a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags))
       .slice(0, 20);
 
-    const cards = sales.map((sale, i) => {
-      const key = normAddr(sale.heimilisfang);
-      return renderAvsCard(sale, key ? listingIdx[key] : null, i);
-    }).join('');
+    const picked = sales.map(sale => listingFor(sale));
+    const cards = sales.map((sale, i) => renderAvsCard(sale, picked[i], i)).join('');
 
     wrap.innerHTML = cards ? `<div class="avs-cards">${cards}</div>` :
       '<div class="emp">Engar sölur fundust á þessu svæði.</div>';
 
     // Aggregate stats — aðeins fyrir pör með listing match
-    const pairs = sales.map(sale => {
-      const key = normAddr(sale.heimilisfang);
-      const listing = key ? listingIdx[key] : null;
+    const pairs = sales.map((sale, i) => {
+      const listing = picked[i];
       if (!listing || !listing.verd) return null;
       const auglystThkr = Math.round(listing.verd / 1000);
       if (!auglystThkr) return null;
@@ -1142,24 +1171,15 @@ function renderRegionCard(el, by, listingsCount) {
     : `<div class="yf-bar" style="height:0"></div>`).join('');
 }
 
-// Finnur auglýsingu á fastinn.is fyrir hverja sölu (sama póstnr./heimilisfang, auglýst fyrir þinglýsingu):
-// fyrst eftir fastanúmeri, annars eftir stærð innan 5% (fjölbýli hafa margar íbúðir á sama heimilisfangi).
+// Finnur auglýsingu á fastinn.is fyrir hverja sölu á forsíðunni (reglan: pickListingForSale).
 async function matchSalesToListings(sales) {
   if (!sales?.length) return sales;
   const { data } = await API.rpc('get_auglysingar_fyrir_solur', {
     p_postnr: sales.map(s => s.postnr),
     p_heimilisfong: sales.map(s => s.heimilisfang)
   });
-  const newest = (a, b) => (b.removed - a.removed) || String(b.last_seen).localeCompare(String(a.last_seen));
   return sales.map(s => {
-    const key = normAddr(s.heimilisfang), sqm = Number(s.einflm);
-    const sameAddr = (data || []).filter(l => l.postnr === s.postnr && normAddr(l.heimilisfang) === key
-      && (!l.first_seen || l.first_seen.slice(0, 10) <= s.thinglystdags));
-    // 1) Nákvæmt: sama fastanúmer (HMS) og í kaupskrá
-    let hit = s.fastnum ? sameAddr.filter(l => l.fastnum === String(s.fastnum)).sort(newest)[0] : null;
-    // 2) Annars: stærð innan 5%, aðeins auglýsingar sem hafa ekki (enn) fengið fastanúmer
-    if (!hit) hit = sameAddr.filter(l => !l.fastnum && l.staerd
-      && Math.abs(Number(l.staerd) - sqm) <= Math.max(2, sqm * 0.05)).sort(newest)[0];
+    const hit = pickListingForSale(s, (data || []).filter(l => l.postnr === s.postnr));
     return hit ? { ...s, listing: hit } : s;
   });
 }
