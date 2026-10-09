@@ -8,7 +8,7 @@
 <script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 <header class="site-hd">
@@ -40,6 +40,10 @@
       <button class="tab-btn" data-view="sumar" role="tab" aria-selected="false">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M7 18V11h6v7"/></svg>
         Skorradalur
+      </button>
+      <button class="tab-btn" data-view="hiti" role="tab" aria-selected="false">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5a2 2 0 014 0v8.3a3.8 3.8 0 11-4 0V3.5z"/><path d="M10 8v6"/></svg>
+        <span class="tl-long">Markaðshiti</span><span class="tl-short">Hiti</span>
       </button>
     </nav>
   </div>
@@ -322,9 +326,57 @@
     </div>
   </div><!-- /view-hofud -->
 
+  <!-- ===================== MARKAÐSHITI ===================== -->
+  <div id="view-hiti" class="view">
+    <div class="mh-intro">
+      <div class="mh-intro-txt">
+        <h1 class="yf-h1">Markaðshiti</h1>
+        <p class="yf-lead">Hvernig gengur að selja? Reiknað út frá öllum seldum eignum, borið saman við sama tíma í fyrra.</p>
+      </div>
+      <div class="mh-seg" role="group" aria-label="Veldu svæði">
+        <button type="button" class="mh-seg-btn" data-svaedi="hofud" aria-pressed="true">Höfuðborgarsvæðið</button>
+        <button type="button" class="mh-seg-btn" data-svaedi="skorr" aria-pressed="false">Skorradalur</button>
+      </div>
+    </div>
+
+    <section class="mh-status" aria-labelledby="mh-headline" aria-live="polite">
+      <div class="mh-status-txt">
+        <div class="mh-period" id="mh-period">&nbsp;</div>
+        <h2 class="mh-headline" id="mh-headline">Sæki gögn…</h2>
+        <p class="mh-summary" id="mh-summary"></p>
+      </div>
+      <div class="mh-heat">
+        <div class="mh-heat-label">Hitastig markaðarins: <strong id="mh-heatlabel">—</strong></div>
+        <div class="mh-scale" id="mh-scale" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="mh-kpis" id="mh-kpis" aria-label="Lykiltölur"></section>
+
+    <section class="mh-chartbox" aria-labelledby="mh-chart-title">
+      <div class="mh-chart-hd">
+        <h2 class="mh-h2" id="mh-chart-title">Þróun</h2>
+        <button type="button" class="mh-ghost" id="mh-table-btn" aria-pressed="false">Sýna sem töflu</button>
+      </div>
+      <div class="mh-metrics" id="mh-metrics" role="group" aria-label="Veldu mælikvarða"></div>
+      <div id="mh-chart"></div>
+      <div id="mh-table" hidden></div>
+    </section>
+
+    <section class="mh-defs" aria-labelledby="mh-defs-title">
+      <h2 class="mh-h2" id="mh-defs-title">Hvað þýða tölurnar?</h2>
+      <div class="mh-defs-grid">
+        <div class="mh-def"><h3>Seldust yfir ásettu verði</h3><p>Hlutfall seldra eigna þar sem söluverð var hærra en síðasta ásetta verð. Hátt hlutfall bendir til samkeppni milli kaupenda.</p></div>
+        <div class="mh-def"><h3>Söluverð sem hlutfall af ásettu</h3><p>Miðgildi söluverðs deilt með síðasta ásetta verði. 98% þýðir að eign á 60 m.kr. seldist að jafnaði á um 58,8 m.kr.</p></div>
+        <div class="mh-def"><h3>Dagar á sölu</h3><p>Miðgildi daga frá því eign var fyrst auglýst þar til hún seldist. Helmingur eigna seldist hraðar, helmingur hægar.</p></div>
+        <div class="mh-def"><h3>Lækkuðu ásett verð</h3><p>Hlutfall seldra eigna þar sem seljandi lækkaði ásett verð að minnsta kosti einu sinni áður en eignin seldist.</p></div>
+      </div>
+    </section>
+  </div><!-- /view-hiti -->
+
 </main>
 
 <script src="api.js?v=6"></script>
-<script src="app.js?v=43"></script>
+<script src="app.js?v=46"></script>
 </body>
 </html>

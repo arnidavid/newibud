@@ -942,6 +942,7 @@ let hofudTegund  = 'all';
 
 const SUB_TEXTS = {
   yfirlit: 'Höfuðborgarsvæðið og Skorradalur',
+  hiti: 'Hversu auðvelt er að selja núna?',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis'
 };
@@ -1177,8 +1178,225 @@ async function initYfirlit() {
   });
 }
 
+// ============================================================
+// ====  MARKAÐSHITI  =========================================
+// ============================================================
+// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Höfuðborgarsvæðið eftir mánuðum,
+// Skorradalur eftir hálfum árum (of fáar sölur á mánuði) + staða eigna á sölu núna.
+const MH = { data: null, svaedi: 'hofud', metric: 'yfir_asettu', table: false };
+const MH_COOL = '#2f5f8a', MH_WARM = '#a3312a';
+const MH_SCALE = [
+  { label: 'Kaldur',   bg: '#5b8db3' }, { label: 'Svalur',  bg: '#9dbfd3' },
+  { label: 'Jafnvægi', bg: '#d6cfbf' }, { label: 'Heitur',  bg: '#e0a27a' }, { label: 'Sjóðandi', bg: '#c0563a' }
+];
+// Mælikvarðar: hvaða átt þýðir „kólnun“ (cool = -1: lækkun er kólnun, +1: hækkun er kólnun)
+const MH_METRICS = {
+  yfir_asettu:  { label: 'Yfir ásettu verði', kpi: 'Seldust yfir ásettu verði', unit: '%', dec: 0, cool: -1, thr: 2, unitChg: 'prósentustig',
+                  sig: ['Kaupendur hafa sterkari stöðu', 'Meiri samkeppni um eignir'] },
+  soluhlutfall: { label: 'Söluverð af ásettu', kpi: 'Söluverð sem hlutfall af ásettu', unit: '%', dec: 1, cool: -1, thr: 0.3, unitChg: 'stig',
+                  sig: ['Afsláttur að aukast', 'Minni afsláttur'] },
+  dagar:        { label: 'Dagar á sölu', kpi: 'Dagar á sölu (miðgildi)', unit: '', dec: 0, cool: +1, thr: 5, unitChg: 'dagar',
+                  sig: ['Salan tekur lengri tíma', 'Eignir seljast hraðar'] },
+  laekkad:      { label: 'Lækkuðu verð', kpi: 'Lækkuðu ásett verð fyrir sölu', unit: '%', dec: 0, cool: +1, thr: 2, unitChg: 'prósentustig',
+                  sig: ['Fleiri seljendur slaka á', 'Færri lækka verð'] }
+};
+const mhFmt = (v, key) => {
+  if (v == null || isNaN(v)) return '—';
+  const m = MH_METRICS[key];
+  return (m.dec ? Number(v).toFixed(m.dec).replace('.', ',') : String(Math.round(v))) + m.unit;
+};
+const mhAvg = arr => { const a = arr.filter(v => v != null).map(Number); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; };
+const mhYm  = d => String(d).slice(0, 7);
+const mhShift = (ym, months) => { const [y, m] = ym.split('-').map(Number); const t = y * 12 + (m - 1) + months;
+  return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; };
+
+// Hitastig eftir söluverði sem hlutfalli af ásettu verði
+function mhLevel(hlut) {
+  if (hlut == null) return 2;
+  return hlut >= 100.5 ? 4 : hlut >= 99.3 ? 3 : hlut >= 98.6 ? 2 : hlut >= 96 ? 1 : 0;
+}
+
+// Reiknar núverandi tímabil og sama tímabil ári fyrr fyrir valið svæði
+function mhCompute(svaedi) {
+  const rows = MH.data.filter(r => r.svaedi === svaedi);
+  const today = new Date(), curYm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  if (svaedi === 'hofud') {
+    const months = rows.filter(r => r.gerd === 'manudur').sort((a, b) => a.timabil.localeCompare(b.timabil));
+    const full = months.filter(r => mhYm(r.timabil) < curYm);       // aðeins heilir mánuðir
+    const last = full.slice(-3).map(r => mhYm(r.timabil));
+    const byYm = Object.fromEntries(months.map(r => [mhYm(r.timabil), r]));
+    const cur = {}, prev = {};
+    for (const k of Object.keys(MH_METRICS)) {
+      cur[k]  = mhAvg(last.map(ym => byYm[ym]?.[k]));
+      prev[k] = mhAvg(last.map(ym => byYm[mhShift(ym, -12)]?.[k]));
+    }
+    const [a, b] = [last[0], last[last.length - 1]].map(ym => MAN_LANGT[Number(ym.slice(5)) - 1]);
+    return {
+      cur, prev, keys: Object.keys(MH_METRICS), series: months, fullMonths: full,
+      period: `Staðan núna – ${a} til ${b} ${last[last.length - 1].slice(0, 4)}`,
+      refLabel: 'Sama tíma ' + (Number(last[0].slice(0, 4)) - 1)
+    };
+  }
+  // Skorradalur: síðasta heila hálfa ár borið saman við sama hálfa ár árið áður
+  const halves = rows.filter(r => r.gerd === 'halfar').sort((a, b) => a.timabil.localeCompare(b.timabil));
+  const isFull = r => mhShift(mhYm(r.timabil), 6) <= curYm;
+  const full = halves.filter(isFull);
+  const curH = full[full.length - 1], prevH = halves.find(r => mhYm(r.timabil) === mhShift(mhYm(curH.timabil), -12));
+  const hName = (r, fall) => (mhYm(r.timabil).slice(5) === '01' ? 'fyrri' : 'seinni') + (fall === 'þgf' ? ' hluta ' : ' hluti ') + r.timabil.slice(0, 4);
+  const nuna = rows.filter(r => r.gerd === 'nuna').sort((a, b) => b.timabil.localeCompare(a.timabil))[0];
+  const keys = ['soluhlutfall', 'dagar', 'laekkad'];
+  const cur = {}, prev = {};
+  for (const k of keys) { cur[k] = curH?.[k] != null ? Number(curH[k]) : null; prev[k] = prevH?.[k] != null ? Number(prevH[k]) : null; }
+  return {
+    cur, prev, keys, series: halves, nuna, isFull,
+    period: `Staðan núna – ${hName(curH)} borinn saman við ${prevH ? hName(prevH, 'þgf') : 'fyrra ár'}`,
+    refLabel: prevH ? hName(prevH).replace(/^./, c => c.toUpperCase()) : 'Fyrra ár',
+    halfName: hName
+  };
+}
+
+// Breyting milli ára: stefna (kólnun/hlýnun/lítil) og texti
+function mhChange(key, cur, prev) {
+  const m = MH_METRICS[key];
+  if (cur == null || prev == null) return { dir: 0, text: '' };
+  const d = cur - prev, abs = Math.abs(d);
+  if (abs < m.thr) return { dir: 0, text: 'Lítil breyting' };
+  const cooling = Math.sign(d) === m.cool;
+  const n = m.dec ? abs.toFixed(m.dec).replace('.', ',') : String(Math.round(abs));
+  const unit = key === 'dagar' && Math.round(abs) % 10 === 1 && Math.round(abs) % 100 !== 11 ? 'dagur' : m.unitChg;
+  return { dir: cooling ? -1 : 1, text: `${d > 0 ? '↑' : '↓'} ${n} ${unit}` };
+}
+
+function mhSummary(svaedi, c, changes) {
+  if (svaedi === 'skorr') {
+    const p = c.cur.soluhlutfall != null ? mhFmt(c.cur.soluhlutfall, 'soluhlutfall') : null;
+    const nuna = c.nuna?.dagar != null ? ` og þau sem eru á sölu núna hafa verið þar í um ${fmtInt(Math.round(c.nuna.dagar / 10) * 10)} daga` : '';
+    return (p ? `Sumarhús seljast að jafnaði á um ${p} af ásettu verði${nuna}.` : '') + ' Fáar sölur, svo tölurnar sveiflast milli tímabila.';
+  }
+  const parts = { yfir_asettu: ['færri eignir seljast yfir ásettu verði', 'fleiri eignir seljast yfir ásettu verði'],
+                  soluhlutfall: ['afslættir aukast', 'afslættir minnka'],
+                  dagar: ['eignir eru lengur á sölu', 'eignir seljast hraðar'],
+                  laekkad: ['fleiri seljendur lækka verð', 'færri seljendur lækka verð'] };
+  const list = c.keys.filter(k => changes[k].dir !== 0).map(k => parts[k][changes[k].dir < 0 ? 0 : 1]);
+  if (!list.length) return 'Litlar breytingar frá sama tíma í fyrra.';
+  const txt = list.length === 1 ? list[0] : list.slice(0, -1).join(', ') + ' og ' + list[list.length - 1];
+  return txt.charAt(0).toUpperCase() + txt.slice(1) + ' en á sama tíma í fyrra.';
+}
+
+function mhHeadline(level, changes) {
+  const v = Object.values(changes), cool = v.filter(c => c.dir < 0).length, warm = v.filter(c => c.dir > 0).length;
+  if (level === 0) return 'Rólegur markaður – kaupendur hafa samningsstöðu';
+  if (cool >= 2 && cool > warm) return 'Markaðurinn er að kólna';
+  if (warm >= 2 && warm > cool) return 'Markaðurinn er að hitna';
+  return ['', 'Frekar rólegur markaður', 'Markaðurinn er í jafnvægi', 'Mikil eftirspurn – seljendur hafa yfirhöndina', 'Mikil eftirspurn – seljendur hafa yfirhöndina'][level];
+}
+
+function mhRender() {
+  if (!MH.data) return;
+  const sv = MH.svaedi, c = mhCompute(sv), isH = sv === 'hofud';
+  document.getElementById('view-hiti').style.setProperty('--rc', isH ? 'var(--hofud)' : 'var(--skorr)');
+  document.querySelectorAll('.mh-seg-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.svaedi === sv)));
+
+  const changes = Object.fromEntries(c.keys.map(k => [k, mhChange(k, c.cur[k], c.prev[k])]));
+  const level = mhLevel(c.cur.soluhlutfall);
+  document.getElementById('mh-period').textContent = c.period;
+  document.getElementById('mh-headline').textContent = mhHeadline(level, changes);
+  document.getElementById('mh-summary').textContent = mhSummary(sv, c, changes);
+  document.getElementById('mh-heatlabel').textContent = MH_SCALE[level].label;
+  document.getElementById('mh-scale').innerHTML = MH_SCALE.map((s, i) =>
+    `<div class="mh-step${i === level ? ' on' : ''}"><div class="mh-step-bar" style="background:${s.bg}"></div><div class="mh-step-txt">${s.label}</div></div>`).join('');
+
+  // Lykilspjöld
+  const cards = c.keys.map(k => {
+    const m = MH_METRICS[k], ch = changes[k];
+    const color = ch.dir < 0 ? MH_COOL : ch.dir > 0 ? MH_WARM : 'var(--tx2)';
+    const sig = ch.dir === 0 ? 'Svipað og í fyrra' : m.sig[ch.dir < 0 ? 0 : 1];
+    return `<article class="mh-kpi">
+      <h3>${m.kpi}</h3>
+      <div class="mh-kpi-row"><div class="mh-kpi-v">${mhFmt(c.cur[k], k)}</div><div class="mh-kpi-chg" style="color:${color}">${ch.text}</div></div>
+      <div class="mh-kpi-ref">${c.refLabel}: ${mhFmt(c.prev[k], k)}</div>
+      <div class="mh-kpi-sig"><span class="mh-dot" style="background:${color}"></span>${sig}</div>
+    </article>`;
+  });
+  if (!isH && c.nuna) {
+    cards.push(`<article class="mh-kpi">
+      <h3>Eignir á sölu núna – tími á sölu</h3>
+      <div class="mh-kpi-row"><div class="mh-kpi-v">${fmtInt(c.nuna.dagar)}</div><div class="mh-kpi-chg">dagar (miðgildi)</div></div>
+      <div class="mh-kpi-ref">${fmtInt(c.nuna.laekkad)}% hafa lækkað ásett verð</div>
+      <div class="mh-kpi-sig"><span class="mh-dot" style="background:${MH_COOL}"></span>${c.nuna.dagar > 180 ? 'Margar eignir seljast hægt' : 'Eignir seljast á eðlilegum hraða'}</div>
+    </article>`);
+  }
+  document.getElementById('mh-kpis').innerHTML = cards.join('');
+
+  // Val á mælikvarða
+  if (!c.keys.includes(MH.metric)) MH.metric = c.keys[0];
+  document.getElementById('mh-metrics').innerHTML = c.keys.map(k =>
+    `<button type="button" class="mh-pill" data-metric="${k}" aria-pressed="${k === MH.metric}">${MH_METRICS[k].label}</button>`).join('');
+  mhRenderChart(c);
+}
+
+function mhRenderChart(c) {
+  const k = MH.metric, m = MH_METRICS[k], isH = MH.svaedi === 'hofud';
+  const series = isH ? c.fullMonths : c.series;
+  const curYear = String(new Date().getFullYear());
+  const pts = series.map(r => {
+    const ym = mhYm(r.timabil), y = ym.slice(0, 4), mo = Number(ym.slice(5));
+    return {
+      v: r[k] == null ? null : Number(r[k]), n: r.n,
+      x: isH ? 'JFMAMJJÁSOND'[mo - 1] : `${mo === 1 ? 'H1' : 'H2'} ’${y.slice(2)}`,
+      p: (isH ? `${MAN_LANGT[mo - 1]} ${y}` : c.halfName(r) + (c.isFull(r) ? '' : ' (til þessa)')).replace(/^./, ch => ch.toUpperCase()),
+      newer: isH ? y === curYear : y === curYear
+    };
+  });
+  const vals = pts.map(p => p.v).filter(v => v != null);
+  const lo = k === 'soluhlutfall' ? Math.floor(Math.min(...vals) - 0.5) : 0, hi = Math.max(...vals);
+  document.getElementById('mh-chart-title').textContent = 'Þróun: ' + m.label.toLowerCase();
+
+  const first = pts[0], last = pts[pts.length - 1];
+  const aria = `${m.label} eftir ${isH ? 'mánuðum' : 'hálfum árum'}, frá ${first.p} til ${last.p}. Fyrsta gildi ${mhFmt(first.v, k)}, síðasta ${mhFmt(last.v, k)}. Hnappurinn „Sýna sem töflu“ sýnir öll gildi.`;
+  document.getElementById('mh-chart').innerHTML = `
+    <div class="mh-chart" role="img" aria-label="${aria}">
+      <div class="mh-bars">${pts.map(p => `<div class="mh-col"><div class="mh-bar-v">${mhFmt(p.v, k)}</div>
+        <div class="mh-bar${p.newer ? ' now' : ''}" style="height:${p.v == null ? 0 : Math.max(3, Math.round((p.v - lo) / (hi - lo || 1) * 100))}%"></div></div>`).join('')}</div>
+      <div class="mh-xs">${pts.map(p => `<div>${p.x}</div>`).join('')}</div>
+      <div class="mh-legend"><span><i class="mh-sw old"></i>${isH ? Number(curYear) - 1 : 'Fyrri ár'}</span><span><i class="mh-sw now"></i>${curYear}</span></div>
+    </div>`;
+  document.getElementById('mh-table').innerHTML = `
+    <div class="mh-tablewrap"><table class="mh-table">
+      <caption>${m.label} – öll tímabil</caption>
+      <thead><tr><th scope="col">Tímabil</th><th scope="col">${m.label}</th><th scope="col">Seldar eignir</th></tr></thead>
+      <tbody>${pts.map(p => `<tr><th scope="row">${p.p}</th><td>${mhFmt(p.v, k)}</td><td>${fmtInt(p.n)}</td></tr>`).join('')}</tbody>
+    </table></div>`;
+  document.getElementById('mh-chart').hidden = MH.table;
+  document.getElementById('mh-table').hidden = !MH.table;
+  const tb = document.getElementById('mh-table-btn');
+  tb.setAttribute('aria-pressed', String(MH.table));
+  tb.textContent = MH.table ? 'Sýna sem graf' : 'Sýna sem töflu';
+}
+
+async function initHiti() {
+  if (MH.data) return mhRender();
+  const { data } = await API.query('markadshiti', { select: '*', order: 'timabil.asc' }, { paginate: false });
+  if (!data?.length) {
+    document.getElementById('mh-headline').textContent = 'Ekki tókst að sækja gögn. Reyndu aftur síðar.';
+    return;
+  }
+  MH.data = data;
+  mhRender();
+}
+
+document.addEventListener('click', e => {
+  const seg = e.target.closest('.mh-seg-btn');
+  if (seg) { MH.svaedi = seg.dataset.svaedi; return mhRender(); }
+  const pill = e.target.closest('.mh-pill');
+  if (pill) { MH.metric = pill.dataset.metric;
+    document.querySelectorAll('.mh-pill').forEach(b => b.setAttribute('aria-pressed', String(b === pill)));
+    return mhRenderChart(mhCompute(MH.svaedi)); }
+  if (e.target.closest('#mh-table-btn')) { MH.table = !MH.table; return mhRenderChart(mhCompute(MH.svaedi)); }
+});
+
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', sumar: 'skorradalur' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', sumar: 'skorradalur', hiti: 'markadshiti' };
 
 function showView(view, { push = true } = {}) {
   if (!document.getElementById('view-' + view)) view = 'yfirlit';
@@ -1194,6 +1412,7 @@ function showView(view, { push = true } = {}) {
   if (push && location.hash !== '#' + VIEW_HASH[view]) history.pushState(null, '', '#' + VIEW_HASH[view]);
 
   if (view === 'yfirlit') initYfirlit();
+  else if (view === 'hiti') initHiti();
   else if (view === 'sumar') initSumar();
   else if (view === 'hofud') {
     const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
