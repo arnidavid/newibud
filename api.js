@@ -121,42 +121,6 @@ const API = (() => {
 
   // ---- Convenience methods for ibud v2 views ----
 
-  /** Verðþróun sumarhúsa eftir póstnúmeri (materialized view) */
-  function getVerdthounPostnr(postnr) {
-    return fetchAll('mv_verdthroun_postnr', {
-      postnr: `eq.${postnr}`,
-      order: 'manudur.asc'
-    });
-  }
-
-  /** YoY árssamanburður */
-  function getArssamanburdur(postnr, tegund = 'Sumarhús') {
-    return fetchAll('mv_arssamanburdur', {
-      postnr: `eq.${postnr}`,
-      tegund: `eq.${tegund}`,
-      order: 'ar.asc'
-    });
-  }
-
-  /** 12 mánaða hreyfanlegt meðaltal */
-  function getHreyfanlegtMedaltal(postnr, tegund = 'Sumarhús') {
-    return fetchAll('mv_hreyfanlegt_medaltal', {
-      postnr: `eq.${postnr}`,
-      tegund: `eq.${tegund}`,
-      order: 'manudur.asc'
-    });
-  }
-
-  /** Sumarhúsa stats — aggregate eftir sveitarfélagi (RPC) */
-  function getSumarhusStats(postnr) {
-    return rpc('get_sumarhus_stats', { p_postnr: postnr });
-  }
-
-  /** Árleg verðþróun (RPC) */
-  function getVerdthounAr(postnr, tegund = 'Sumarhús') {
-    return rpc('get_verdthroun_ar', { p_postnr: postnr, p_tegund: tegund });
-  }
-
   /** Mánaðarleg samantekt sölna (RPC á mv_manadarsolur). postnr 0 = allt höfuðborgarsvæðið (100–230) */
   function getManadarsolur(postnr, tegund = null) {
     return rpc('get_manadarsolur', { p_postnr: postnr, p_tegund: tegund });
@@ -176,19 +140,6 @@ const API = (() => {
       return { data: data.filter(jsFilter), error: null };
     }
     return { data, error: null };
-  }
-
-  /** Nýjustu sölur — sækir nýjustu þinglýstu sölur úr kaupskra */
-  function getNyjustuSolur(postnr, limit = 10) {
-    return query('kaupskra', {
-      postnr: `eq.${postnr}`,
-      tegund: 'eq.Sumarhús',
-      kaupverd: 'gt.500',
-      einflm: 'gt.10',
-      onothaefur_samningur: 'neq.1',
-      order: 'thinglystdags.desc',
-      limit: limit
-    }, { paginate: false });
   }
 
   /** Sækir fastinn_listings úr Supabase (n8n scraper) */
@@ -235,23 +186,12 @@ const API = (() => {
     query,
     rpc,
     fetchAll,
-    // v2 views
-    getVerdthounPostnr,
-    getArssamanburdur,
-    getHreyfanlegtMedaltal,
-    getSumarhusStats,
-    getVerdthounAr,
+    // Samantektir og sölur
     getManadarsolur,
     getSolurGotur,
-    // fastinn_listings DB
-    getListingsDb,
-    // Nýjustu sölur
-    getNyjustuSolur,
-    getSheetListings,
-    // Raw
     getKaupskra,
-    // Constants
-    BASE_URL,
-    DEFAULT_PAGE_SIZE
+    // Auglýsingar
+    getListingsDb,
+    getSheetListings
   };
 })();
