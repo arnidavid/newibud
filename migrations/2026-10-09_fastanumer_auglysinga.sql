@@ -50,3 +50,26 @@ $$;
 --   drop index public.idx_listings_fastnum; drop index public.idx_listings_vantar_fastnum;
 --   alter table public.fastinn_listings drop column fastnum, drop column heinum, drop column fastnum_sott;
 --   (og endurskapa get_auglysingar_fyrir_solur án fastnum, sjá 2026-10-08_auglysingar_fyrir_solur.sql)
+
+-- ============================================================
+-- Viðbót 9. okt.: forsíðan leitar líka eftir fastanúmeri
+-- (heimilisfang á auglýsingu getur verið skrifað öðruvísi en í kaupskrá,
+--  t.d. „Tannalækjarhólar 8“ vs „Tannalækjarhólar austur 8“)
+-- ============================================================
+drop function public.get_auglysingar_fyrir_solur(int[], text[]);
+create function public.get_auglysingar_fyrir_solur(p_postnr int[], p_heimilisfong text[], p_fastnum text[] default '{}')
+returns table (heimilisfang text, postnr int, staerd numeric, verd bigint, linkur text,
+               first_seen timestamptz, last_seen timestamptz, removed boolean, fastnum text)
+language sql stable security invoker set search_path = public as $$
+  select l.heimilisfang, l.postnr, l.staerd, l.verd, l.linkur, l.first_seen, l.last_seen, l.removed, l.fastnum
+  from unnest(p_postnr, p_heimilisfong) as s(pnr, addr)
+  join fastinn_listings l
+    on l.postnr = s.pnr
+   and lower(l.heimilisfang) ~>=~ lower(s.addr)
+   and lower(l.heimilisfang) ~<~ (lower(s.addr) || chr(65535))
+   and starts_with(lower(l.heimilisfang), lower(s.addr))
+  union
+  select l.heimilisfang, l.postnr, l.staerd, l.verd, l.linkur, l.first_seen, l.last_seen, l.removed, l.fastnum
+  from fastinn_listings l
+  where l.fastnum = any(p_fastnum);
+$$;

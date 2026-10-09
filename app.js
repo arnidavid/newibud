@@ -1179,7 +1179,8 @@ async function matchSalesToListings(sales) {
   if (!sales?.length) return sales;
   const { data } = await API.rpc('get_auglysingar_fyrir_solur', {
     p_postnr: sales.map(s => s.postnr),
-    p_heimilisfong: sales.map(s => s.heimilisfang)
+    p_heimilisfong: sales.map(s => s.heimilisfang),
+    p_fastnum: sales.map(s => s.fastnum).filter(Boolean).map(String)
   });
   return sales.map(s => {
     const hit = pickListingForSale(s, (data || []).filter(l => l.postnr === s.postnr));
