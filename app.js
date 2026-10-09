@@ -308,8 +308,6 @@ function destroyHofudCharts() {
 const H_FM_MIN = 50;
 const H_FM_MAX = 5000;
 
-const HOFUD_POSTNRS = [101,103,104,105,107,108,109,110,111,112,113,116,200,201,202,203,210,212,220,221,225];
-
 const TEGUND_MAP = {
   all:   { algolia: '(type:fjolb OR type:einb OR type:raðpar OR type:hæðir)', kaupskra: null },
   fjolb: { algolia: 'type:fjolb',  kaupskra: 'Fjölbýli' },
@@ -732,10 +730,6 @@ function normAddr(addr) {
   return m ? m[1].trim() : s.trim();
 }
 
-/**
- * Passar fastinn_listings við kaupskra sölur á JS-hlið.
- * Skilar array af { listing, sale, auglystThkr, seltThkr, munurPct, dagar }.
- */
 // Velur auglýsingu (fastinn_listings) sem á við tiltekna sölu (kaupskra).
 // Fastanúmer, stærð og verð þurfa ÖLL að hanga saman (mælt á ~2.400 sölum maí–okt. 2026:
 // þegar stærð passar er söluverð 90–102% af ásettu; þegar stærð víkur >25% er verðið út um allt):
@@ -764,66 +758,6 @@ function pickListingForSale(sale, listings) {
     .filter(l => sameProperty(l) && timeOk(l) && sizeOk(l) && priceOk(l))
     // Nákvæm fastanúmers-pör ganga fyrir pörum eftir heimilisfangi
     .sort((a, b) => (!!b.fastnum - !!a.fastnum) || latest(a, b))[0] || null;
-}
-
-function matchListingsToKaupskra(listings, kaupRows) {
-  // Búa til lookup-dict á normalisert heimilisfang
-  const kaupIdx = {};
-  for (const r of kaupRows) {
-    // Outlier filter
-    if (!r.einflm || r.einflm <= 10) continue;
-    const fm = r.kaupverd / r.einflm;
-    if (fm < 10 || fm > 2000) continue;
-    const key = normAddr(r.heimilisfang);
-    if (!key) continue;
-    if (!kaupIdx[key]) kaupIdx[key] = [];
-    kaupIdx[key].push(r);
-  }
-
-  const matched = [];
-  const seen = new Set(); // forðast duplicate matches
-
-  for (const listing of listings) {
-    const key = normAddr(listing.heimilisfang);
-    if (!key || seen.has(key)) continue;
-    const sales = kaupIdx[key];
-    if (!sales || !sales.length) continue;
-
-    // Velja sölu: ef listing hefur þekkta stærð, sía burt sölur með >20% stærðarmun
-    // (forðast apples-to-oranges í fjölbýlishúsum með margar íbúðir á sama heimilisfangi)
-    const listingSize = Number(listing.staerd) || 0;
-    let saleCandidates = sales;
-    if (listingSize > 0) {
-      const close = sales.filter(r => Math.abs(Number(r.einflm) - listingSize) / listingSize <= 0.20);
-      if (!close.length) continue;
-      saleCandidates = close;
-    }
-    const sale = saleCandidates.slice().sort(
-      (a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags)
-    )[0];
-
-    // Verðmunur: fastinn_listings.verd er full ISK → deila með 1000
-    const auglystThkr = Math.round(listing.verd / 1000);
-    const seltThkr    = Math.round(sale.kaupverd);      // þegar þúsundir ISK
-    if (!auglystThkr || !seltThkr) continue;
-
-    const munurPct = Math.round((seltThkr / auglystThkr - 1) * 100);
-
-    // Dagar á markaði: einungis þegar first_seen er á undan söludegi
-    const firstSeen = new Date(listing.first_seen);
-    const saleDate  = new Date(sale.thinglystdags);
-    const dagar = firstSeen < saleDate
-      ? Math.round((saleDate - firstSeen) / 86_400_000)
-      : null;
-
-    seen.add(key);
-    matched.push({ listing, sale, auglystThkr, seltThkr, munurPct, dagar });
-  }
-
-  // Nýjasta sala fyrst
-  return matched.sort(
-    (a, b) => new Date(b.sale.thinglystdags) - new Date(a.sale.thinglystdags)
-  );
 }
 
 /** Reiknar aggregate tölfræði úr pörum (síðustu 12 mánuðir) */
