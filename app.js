@@ -116,7 +116,7 @@ function renderListingCard(l, i, hist, mi, matRatioEnabled) {
         ${hH}${matH}
       </div>
     </div>
-    <div class="lc-a"><a class="vb" href="${l.linkur}" target="_blank" rel="noopener">Fastinn.is<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7v7"/><path d="M13 3L6 10"/></svg></a></div>
+    <div class="lc-a"><a class="vb" href="${l.linkur}" target="_blank" rel="noopener">Sjá auglýsingu<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7v7"/><path d="M13 3L6 10"/></svg></a></div>
   </div>`;
 }
 
@@ -558,7 +558,7 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
     if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
 
     const sales = salesResult.data;
-    if (!sales || !sales.length) { wrap.innerHTML = `<div class="ns-empty">Engar nýlegar sölur fundust í kaupskrá á þessu svæði.</div>`; return; }
+    if (!sales || !sales.length) { wrap.innerHTML = `<div class="ns-empty">Engar nýlegar sölur fundust á þessu svæði.</div>`; return; }
 
     const validSales = sales.filter(r =>
       r.einflm > 20 && r.kaupverd > 5000 &&
@@ -592,7 +592,7 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
     wrap.innerHTML = '<div class="avs-cards">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup, dbLookup)).join('') + '</div>';
   } catch (err) {
     console.error('Recent sales (hofud) error:', err);
-    wrap.innerHTML = `<div class="err">Villa við að sækja nýjustu sölur: ${err.message}</div>`;
+    wrap.innerHTML = `<div class="err">Ekki tókst að sækja nýjustu sölur. Reyndu aftur síðar.</div>`;
   }
 }
 
@@ -866,7 +866,7 @@ function renderAvsAgg(stats) {
     <div class="avs-stat">
       <div class="avs-stat-label">Meðal dagar á markaði</div>
       <div class="avs-stat-val">${stats.avgDagar !== null ? stats.avgDagar : '—'}</div>
-      <div class="avs-stat-sub">${stats.avgDagar !== null ? 'frá skráningu á fastinn' : 'gögn safnast enn'}</div>
+      <div class="avs-stat-sub">${stats.avgDagar !== null ? 'frá því eignin var auglýst' : 'gögn safnast enn'}</div>
     </div>
     <div class="avs-stat">
       <div class="avs-stat-label">Selt undir auglýstu verði</div>
@@ -941,7 +941,7 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
     const { data: listings, error } = await API.getListingsDb(postnr, 'sumarhus');
 
     if (error || !listings) {
-      wrap.innerHTML = `<div class="err">Villa við að sækja fastinn_listings: ${error || 'tóm niðurstaða'}</div>`;
+      wrap.innerHTML = `<div class="err">Ekki tókst að sækja auglýsingar. Reyndu aftur síðar.</div>`;
       return;
     }
 
@@ -990,7 +990,7 @@ async function renderAuglystVsSelt(kaupRows, postnr) {
 
   } catch (err) {
     console.error('[AVS] Villa:', err);
-    wrap.innerHTML = `<div class="err">Villa: ${err.message}</div>`;
+    wrap.innerHTML = `<div class="err">Ekki tókst að sækja gögn. Reyndu aftur síðar.</div>`;
   }
 }
 
@@ -1046,7 +1046,7 @@ async function initSumar() {
 
     const rows = kaupskraResult.data;
     if (!rows || !rows.length) {
-      document.getElementById('lw').innerHTML = '<div class="err">Engin gögn úr Supabase. Athugaðu API tengingu.</div>';
+      document.getElementById('lw').innerHTML = '<div class="err">Ekki tókst að sækja gögn. Reyndu aftur síðar.</div>';
       return;
     }
 
@@ -1067,7 +1067,7 @@ async function initSumar() {
     renderAuglystVsSelt(rows, POSTNR);
   } catch (e) {
     console.error('initSumar error:', e);
-    document.getElementById('lw').innerHTML = `<div class="err">Villa: ${e.message}</div>`;
+    document.getElementById('lw').innerHTML = `<div class="err">Ekki tókst að sækja gögn. Reyndu aftur síðar.</div>`;
   }
 }
 
@@ -1100,7 +1100,7 @@ async function initHofud(postnr, tegund = hofudTegund) {
 
     const agg = aggResult.data;
     if (!agg || !agg.length) {
-      document.getElementById('h-lw').innerHTML = `<div class="err">Engin gögn úr Supabase fyrir póstnúmer ${postnr}.</div>`;
+      document.getElementById('h-lw').innerHTML = `<div class="err">Engin gögn fundust fyrir póstnúmer ${postnr}.</div>`;
       return;
     }
 
@@ -1120,7 +1120,7 @@ async function initHofud(postnr, tegund = hofudTegund) {
     hofudReady = true;
   } catch (e) {
     console.error('initHofud error:', e);
-    document.getElementById('h-lw').innerHTML = `<div class="err">Villa: ${e.message}</div>`;
+    document.getElementById('h-lw').innerHTML = `<div class="err">Ekki tókst að sækja gögn. Reyndu aftur síðar.</div>`;
   }
 }
 
@@ -1200,9 +1200,9 @@ function renderSalesList(id, rows, showPostnr) {
     return `
     <div class="yf-row">
       <div style="min-width:0">
-        <div class="yf-addr">${propUrl ? `<a href="${propUrl}" target="_blank" rel="noopener" title="Eignin á fastinn.is (fastanúmer ${r.fastnum})">${r.heimilisfang}</a>` : r.heimilisfang}</div>
+        <div class="yf-addr">${propUrl ? `<a href="${propUrl}" target="_blank" rel="noopener" title="Skoða eign">${r.heimilisfang}</a>` : r.heimilisfang}</div>
         <div class="yf-meta">${[showPostnr ? r.postnr : null, r.tegund, String(r.einflm).replace('.', ',') + ' m²', fmtDag(r.thinglystdags)].filter(Boolean).join(' · ')}</div>
-        ${l ? `<a class="yf-ask" href="${l.linkur}" target="_blank" rel="noopener">Auglýst ${askThkr ? fmtMkr(askThkr) : 'á fastinn.is'} ${diffTxt}
+        ${l ? `<a class="yf-ask" href="${l.linkur}" target="_blank" rel="noopener">Auglýst ${askThkr ? fmtMkr(askThkr) : ''} ${diffTxt}
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h7v7M13 3 4 12"/></svg></a>` : ''}
       </div>
       <div>
