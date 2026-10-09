@@ -736,31 +736,34 @@ function normAddr(addr) {
  * Passar fastinn_listings við kaupskra sölur á JS-hlið.
  * Skilar array af { listing, sale, auglystThkr, seltThkr, munurPct, dagar }.
  */
-// Velur auglýsingu (fastinn_listings) sem á við tiltekna sölu (kaupskra):
-//  - auglýsingin birtist fyrir þinglýsingu (seinni auglýsing = næsta sala sömu eignar)
-//    og var enn á skrá innan við 4 mánuðum fyrir hana
-//  - 1) sama fastanúmer og í kaupskrá (nákvæmt)
-//  - 2) annars sama heimilisfang, aðeins auglýsingar ÁN fastanúmers (annað fastanúmer = önnur eign).
-//       Fjölbýli/þéttbýli: stærð innan 5% (margar íbúðir á sama heimilisfangi).
-//       Sumarhús: engin stærðarregla – stærð á fastinn.is víkur oft mikið frá HMS.
-//  - Ef eignin var auglýst oftar en einu sinni gildir síðasta auglýsingin fyrir sölu (síðasta ásetta verð).
+// Velur auglýsingu (fastinn_listings) sem á við tiltekna sölu (kaupskra).
+// Fastanúmer, stærð og verð þurfa ÖLL að hanga saman (mælt á ~2.400 sölum maí–okt. 2026:
+// þegar stærð passar er söluverð 90–102% af ásettu; þegar stærð víkur >25% er verðið út um allt):
+//  1) sama eign: sama fastanúmer og í kaupskrá, eða sama heimilisfang ef auglýsingin hefur ekkert fastanúmer
+//     (auglýsing með annað fastanúmer er önnur eign, t.d. önnur íbúð í sama húsi)
+//  2) stærð innan 10% (ef stærð er skráð á báðum stöðum)
+//  3) söluverð 75–115% af ásettu verði
+//  4) auglýsingin birtist fyrir þinglýsingu og var á skrá innan 4 mánaða fyrir hana;
+//     ef eignin var auglýst oftar en einu sinni gildir síðasta auglýsingin (síðasta ásetta verð).
 function pickListingForSale(sale, listings) {
   const saleDay = String(sale.thinglystdags).slice(0, 10);
   const minLast = new Date(new Date(saleDay).getTime() - 120 * 86400000).toISOString().slice(0, 10);
   const day     = v => String(v || '').slice(0, 10);
-  const cands   = (listings || []).filter(l =>
-    (!l.first_seen || day(l.first_seen) <= saleDay) && (!l.last_seen || day(l.last_seen) >= minLast));
+  const sqm     = Number(sale.einflm) || 0;
+  const key     = normAddr(sale.heimilisfang);
+  const fast    = sale.fastnum ? String(sale.fastnum) : null;
+
+  const sameProperty = l => l.fastnum ? (fast && l.fastnum === fast) : normAddr(l.heimilisfang) === key;
+  const sizeOk  = l => !sqm || !Number(l.staerd) || Math.abs(Number(l.staerd) - sqm) <= sqm * 0.10;
+  const priceOk = l => { const ask = Number(l.verd) / 1000; if (!ask) return false;
+                         const r = Number(sale.kaupverd) / ask; return r >= 0.75 && r <= 1.15; };
+  const timeOk  = l => (!l.first_seen || day(l.first_seen) <= saleDay) && (!l.last_seen || day(l.last_seen) >= minLast);
   const latest  = (a, b) => day(b.first_seen).localeCompare(day(a.first_seen)) || day(b.last_seen).localeCompare(day(a.last_seen));
 
-  if (sale.fastnum) {
-    const exact = cands.filter(l => l.fastnum && l.fastnum === String(sale.fastnum));
-    if (exact.length) return exact.sort(latest)[0];
-  }
-  const key = normAddr(sale.heimilisfang), sqm = Number(sale.einflm) || 0;
-  const sumarhus = sale.postnr === 311 || sale.tegund === 'Sumarhús';
-  return cands.filter(l => !l.fastnum && normAddr(l.heimilisfang) === key
-      && (sumarhus || !sqm || !Number(l.staerd) || Math.abs(Number(l.staerd) - sqm) <= Math.max(2, sqm * 0.05)))
-    .sort(latest)[0] || null;
+  return (listings || [])
+    .filter(l => sameProperty(l) && timeOk(l) && sizeOk(l) && priceOk(l))
+    // Nákvæm fastanúmers-pör ganga fyrir pörum eftir heimilisfangi
+    .sort((a, b) => (!!b.fastnum - !!a.fastnum) || latest(a, b))[0] || null;
 }
 
 function matchListingsToKaupskra(listings, kaupRows) {
