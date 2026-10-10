@@ -943,6 +943,7 @@ let hofudTegund  = 'all';
 const SUB_TEXTS = {
   yfirlit: 'Höfuðborgarsvæðið og Skorradalur',
   hiti: 'Hversu auðvelt er að selja núna?',
+  verdmat: 'Hvað er eignin mín virði?',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis'
 };
@@ -1395,8 +1396,195 @@ document.addEventListener('click', e => {
   if (e.target.closest('#mh-table-btn')) { MH.table = !MH.table; return mhRenderChart(mhCompute(MH.svaedi)); }
 });
 
+// ============================================================
+// VERÐMAT – „Hvað er eignin mín virði?“
+// fasteignamat × miðgildi (söluverð / mat) í nýlegum sölum í hverfinu.
+// Bilið = 25.–75. hundraðshluti. Gögn: RPC leita_eign, eignir_a_heimilisfangi, get_verdmat.
+// ============================================================
+const VM_POSTNR = [
+  [101, 'Reykjavík'], [102, 'Reykjavík'], [103, 'Reykjavík'], [104, 'Reykjavík'], [105, 'Reykjavík'],
+  [107, 'Reykjavík'], [108, 'Reykjavík'], [109, 'Reykjavík'], [110, 'Reykjavík'], [111, 'Reykjavík'],
+  [112, 'Reykjavík'], [113, 'Reykjavík'], [116, 'Reykjavík'], [170, 'Seltjarnarnes'],
+  [200, 'Kópavogur'], [201, 'Kópavogur'], [203, 'Kópavogur'], [210, 'Garðabær'], [225, 'Garðabær'],
+  [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær']
+];
+const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'] };
+const VM = { mode: 'addr', addr: null, units: [], unit: null, qseq: 0, cseq: 0, ready: false };
+
+const vmEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const vmPct = r => (r * 100).toFixed(1).replace('.', ',') + '%';
+const vmM2 = m => String(Math.round(m * 10) / 10).replace('.', ',') + ' m²';
+const vmPostTxt = p => { const x = VM_POSTNR.find(a => a[0] === p); return p + (x ? ' ' + x[1] : ''); };
+
+function initVerdmat() {
+  if (VM.ready) return;
+  VM.ready = true;
+  const sel = document.getElementById('vm-postnr');
+  sel.innerHTML = VM_POSTNR.map(([p, n]) => `<option value="${p}">${p} ${n}</option>`).join('');
+  sel.value = '105';
+
+  let t;
+  document.getElementById('vm-q').addEventListener('input', e => {
+    clearTimeout(t);
+    t = setTimeout(() => vmSearch(e.target.value), 250);
+  });
+  document.getElementById('vm-manual').addEventListener('submit', e => { e.preventDefault(); vmManual(); });
+}
+
+function vmSetMode(mode) {
+  VM.mode = mode;
+  document.querySelectorAll('.vm-mode').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  document.getElementById('vm-addr').hidden = mode !== 'addr';
+  document.getElementById('vm-manual').hidden = mode !== 'manual';
+}
+
+async function vmSearch(q) {
+  const box = document.getElementById('vm-results');
+  q = q.split(',')[0].trim();
+  if (q.length < 3) { box.innerHTML = ''; return; }
+  const seq = ++VM.qseq;
+  const { data: rows } = await API.rpc('leita_eign', { p_q: q });
+  if (seq !== VM.qseq) return;                                   // nýrri leit komin af stað
+  if (!rows) { box.innerHTML = '<p class="vm-help">Ekki tókst að leita. Reyndu aftur síðar.</p>'; return; }
+  if (!rows.length) { box.innerHTML = '<p class="vm-help">Ekkert heimilisfang fannst sem byrjar svona.</p>'; return; }
+  box.innerHTML = '<ul class="vm-list">' + rows.map(r =>
+    `<li><button type="button" class="vm-opt vm-addr-btn" data-h="${vmEsc(r.heimilisfang)}" data-p="${r.postnr}">
+      <span class="vm-opt-main">${vmEsc(r.heimilisfang)}, ${vmEsc(vmPostTxt(r.postnr))}</span>
+      <span class="vm-opt-side">${r.eignir} ${r.eignir === 1 ? 'eign' : 'eignir'}</span>
+    </button></li>`).join('') + '</ul>';
+}
+
+async function vmPickAddr(h, p) {
+  const box = document.getElementById('vm-results');
+  document.getElementById('vm-q').value = h;
+  box.innerHTML = '<p class="vm-help">Sæki eignir…</p>';
+  ++VM.qseq;                                                    // hunsa eldri leitarniðurstöður
+  const { data: units } = await API.rpc('eignir_a_heimilisfangi', { p_heimilisfang: h, p_postnr: p });
+  if (!units?.length) { box.innerHTML = '<p class="vm-help">Ekki tókst að sækja eignir. Reyndu aftur síðar.</p>'; return; }
+  units.sort((a, b) => a.einflm - b.einflm || a.fasteignamat - b.fasteignamat);
+  VM.addr = { h, p };
+  VM.units = units;
+  vmRenderUnits();
+  if (units.length === 1) vmPickUnit(0);
+}
+
+function vmRenderUnits() {
+  const { h, p } = VM.addr;
+  const n = VM.units.length;
+  document.getElementById('vm-results').innerHTML =
+    `<p class="vm-help vm-help-dk">${n === 1 ? '1 eign' : n + ' eignir'} fundust á ${vmEsc(h)}, ${vmEsc(vmPostTxt(p))}${n > 1 ? ' – veldu þína:' : ''}</p>
+     <ul class="vm-list">` + VM.units.map((u, i) =>
+    `<li><button type="button" class="vm-opt vm-unit-btn" data-i="${i}" aria-pressed="${VM.unit === i}">
+      <span class="vm-opt-txt">
+        <span class="vm-opt-main">${VM_TEG[u.tegund]?.[0] || 'Eign'} · ${vmM2(u.einflm)}${u.byggar ? ' · byggt ' + u.byggar : ''}</span>
+        <span class="vm-opt-sub">Fastanúmer F${vmEsc(u.fastnum)}</span>
+      </span>
+      <span class="vm-opt-side">Mat ${fmtMkr(u.fasteignamat)}</span>
+    </button></li>`).join('') + '</ul>';
+}
+
+function vmPickUnit(i) {
+  VM.unit = i;
+  vmRenderUnits();
+  const u = VM.units[i];
+  vmCompute({
+    mat: u.fasteignamat, mat27: u.fasteignamat_2027, postnr: VM.addr.p, tegund: u.tegund,
+    einflm: u.einflm, fastnum: u.fastnum,
+    title: `${VM.addr.h}, ${(VM_TEG[u.tegund]?.[0] || 'eign').toLowerCase()} ${vmM2(u.einflm)}`
+  });
+}
+
+// Tekur „68.000.000“, „68000000“, „68000“ (þ.kr) eða „68“ (m.kr) → þ.kr
+function vmParseMat(s) {
+  const n = parseInt(String(s).replace(/\D/g, ''), 10);
+  if (!n) return null;
+  if (n >= 1e6) return Math.round(n / 1000);
+  if (n >= 1000) return n;
+  return n * 1000;
+}
+
+function vmManual() {
+  const err = document.getElementById('vm-mat-err');
+  const mat = vmParseMat(document.getElementById('vm-mat').value);
+  if (!mat || mat < 5000 || mat > 1000000) {
+    err.textContent = 'Sláðu inn fasteignamat í krónum, t.d. 68.000.000.';
+    document.getElementById('vm-mat').setAttribute('aria-invalid', 'true');
+    return;
+  }
+  err.textContent = '';
+  document.getElementById('vm-mat').removeAttribute('aria-invalid');
+  const postnr = parseInt(document.getElementById('vm-postnr').value, 10);
+  const tegund = document.getElementById('vm-tegund').value;
+  vmCompute({ mat, postnr, tegund, title: `${VM_TEG[tegund][1].replace(/^./, c => c.toUpperCase())}, ${vmPostTxt(postnr)}` });
+}
+
+async function vmCompute(e) {
+  const body = document.getElementById('vm-res-body');
+  document.getElementById('vm-res-title').textContent = '2. Áætlað söluverð';
+  body.innerHTML = '<p class="vm-empty">Reikna…</p>';
+  const seq = ++VM.cseq;
+  const { data: d } = await API.rpc('get_verdmat', {
+    p_postnr: e.postnr, p_tegund: e.tegund, p_einflm: e.einflm ?? null, p_fastnum: e.fastnum ?? null
+  });
+  if (seq !== VM.cseq) return;
+  if (!d || !d.p50) { body.innerHTML = '<p class="vm-empty">Ekki tókst að reikna verðmat. Reyndu aftur síðar.</p>'; return; }
+
+  const lo = e.mat * d.p25, mid = e.mat * d.p50, hi = e.mat * d.p75;
+  const mark = 12 + (d.p50 - d.p25) / ((d.p75 - d.p25) || 1) * 76;
+  const teg = VM_TEG[e.tegund][1];
+  const hvar = d.svaedi === 'postnr' ? `í ${e.postnr}`
+             : d.svaedi === 'sveitarfelag' ? `í sama sveitarfélagi (of fáar sölur í ${e.postnr} einu)`
+             : `á höfuðborgarsvæðinu (of fáar sölur í ${e.postnr} einu)`;
+  const breyt27 = e.mat27 ? (e.mat27 / e.mat - 1) * 100 : null;
+
+  document.getElementById('vm-res-title').textContent = '2. Áætlað söluverð – ' + e.title;
+  body.innerHTML = `
+    <div class="vm-big">${fmtMkr(mid)}</div>
+    <div class="vm-range-txt">Líklegt bil: <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></div>
+    <div class="vm-range" role="img" aria-label="Áætlað verð ${fmtMkr(mid)}, líklegt bil ${fmtMkr(lo)} til ${fmtMkr(hi)}.">
+      <div class="vm-track"></div><div class="vm-band"></div><div class="vm-mark" style="left:${mark.toFixed(1)}%"></div>
+    </div>
+    <div class="vm-range-ends"><span>Lægra: ${fmtMkr(lo)}</span><span>Hærra: ${fmtMkr(hi)}</span></div>
+    <dl class="vm-facts">
+      <div><dt>Fasteignamat 2026</dt><dd>${fmtMkr(e.mat)}</dd></div>
+      <div><dt>Sölur ${d.svaedi === 'postnr' ? 'í hverfinu' : 'á svæðinu'}, % af mati</dt><dd>${vmPct(d.p50)}</dd></div>
+      ${e.mat27 ? `<div><dt>Fasteignamat 2027</dt><dd>${fmtMkr(e.mat27)} <small>(${breyt27 >= 0 ? '+' : '−'}${Math.abs(breyt27).toFixed(1).replace('.', ',')}%)</small></dd></div>` : ''}
+    </dl>
+    <p class="vm-expl">${teg.replace(/^./, c => c.toUpperCase())} ${hvar} seldust að jafnaði á ${vmPct(d.p50)} af fasteignamati síðustu 12 mánuði (${fmtInt(d.n)} sölur). Helmingur seldist á ${vmPct(d.p25)}–${vmPct(d.p75)} af mati – það er bilið hér að ofan. Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.</p>`;
+
+  // Sambærilegar sölur
+  const cBox = document.getElementById('vm-comps-box');
+  cBox.hidden = false;
+  document.getElementById('vm-comps-sub').textContent =
+    `${teg.replace(/^./, c => c.toUpperCase())} í ${e.postnr}${e.einflm ? `, ${Math.round(e.einflm * 0.8)}–${Math.round(e.einflm * 1.2)} m²` : ''}, nýjustu sölur síðustu 12 mánuði.`;
+  document.getElementById('vm-comps').innerHTML = d.samb.length ? `
+    <div class="vm-tablewrap"><table class="vm-table">
+      <thead><tr><th scope="col">Gata</th><th scope="col">Þinglýst</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Byggt</th><th scope="col" class="r">Söluverð</th><th scope="col" class="r">% af mati</th></tr></thead>
+      <tbody>${d.samb.map(s => `<tr>
+        <th scope="row">${vmEsc(s.gata)}</th><td class="vm-c-dag">${fmtDagLangt(s.thinglystdags)}</td>
+        <td class="r vm-c-m2" data-l="Stærð">${vmM2(s.einflm)}</td><td class="r vm-c-ar" data-l="Byggt">${s.byggar || '—'}</td>
+        <td class="r b vm-c-verd">${fmtMkr(s.kaupverd)}</td><td class="r b vm-c-r ${s.r >= 1 ? 'vm-yfir' : 'vm-undir'}">${vmPct(s.r)} <span class="vm-c-af">af mati</span></td></tr>`).join('')}
+      </tbody></table></div>`
+    : '<p class="vm-help">Engar sambærilegar sölur í þessu póstnúmeri síðustu 12 mánuði.</p>';
+
+  // Fyrri sölur eignarinnar
+  const sBox = document.getElementById('vm-saga-box');
+  sBox.hidden = !d.saga.length;
+  document.getElementById('vm-saga').innerHTML = d.saga.map(s =>
+    `<li><span>${fmtDagLangt(s.thinglystdags)}</span><span class="b">${fmtMkr(s.kaupverd)}</span></li>`).join('');
+}
+
+document.addEventListener('click', e => {
+  const m = e.target.closest('.vm-mode');
+  if (m) return vmSetMode(m.dataset.mode);
+  const a = e.target.closest('.vm-addr-btn');
+  if (a) return vmPickAddr(a.dataset.h, parseInt(a.dataset.p, 10));
+  const u = e.target.closest('.vm-unit-btn');
+  if (u) return vmPickUnit(parseInt(u.dataset.i, 10));
+});
+
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', sumar: 'skorradalur', hiti: 'markadshiti' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
 
 function showView(view, { push = true } = {}) {
   if (!document.getElementById('view-' + view)) view = 'yfirlit';
@@ -1413,6 +1601,7 @@ function showView(view, { push = true } = {}) {
 
   if (view === 'yfirlit') initYfirlit();
   else if (view === 'hiti') initHiti();
+  else if (view === 'verdmat') initVerdmat();
   else if (view === 'sumar') initSumar();
   else if (view === 'hofud') {
     const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
