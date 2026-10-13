@@ -233,9 +233,13 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .k-chart { position: relative; margin-top: 8px; }
 .k-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .k-yl { position: absolute; left: 0; transform: translateY(-120%); font-size: 12px; color: var(--k-muted); }
+/* Graf með ás-dálki: ás-tölurnar standa vinstra megin við grafið, ekki ofan á línunum */
+.k-gut { --gut: 34px; }
+.k-gut svg { margin-left: var(--gut); width: calc(100% - var(--gut)); }
+.k-gut .k-yl { width: calc(var(--gut) - 8px); text-align: right; transform: translateY(-50%); }
 .k-xl { position: absolute; bottom: -22px; transform: translateX(-50%); font-size: 12px; color: var(--k-muted); }
 .k-note { position: absolute; transform: translate(-50%, -100%); font-size: 12px; white-space: nowrap; padding-bottom: 18px; }
-.k-note::after { content: ""; position: absolute; left: 50%; bottom: 2px; height: 14px; border-left: 1px solid var(--k-ink); }
+.k-note::after { content: ""; position: absolute; left: 50%; bottom: 2px; height: 14px; border-left: 1px solid currentColor; }
 .k-cols { display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid var(--k-ink); }
 .k-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
 .k-col { padding: 22px 28px 24px 0; display: block; color: var(--k-ink); text-decoration: none; }
@@ -268,6 +272,7 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 /* Þrír dálkar: tengill alltaf undir fyrirsögn svo dálkarnir standist á (í síma aftur við hliðina) */
 @media (min-width: 641px) { .k-cols-3 .k-reg-hd { flex-direction: column; align-items: flex-start; gap: 0; } }
 .k-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.k-stats > div { display: flex; flex-direction: column; justify-content: space-between; }   /* tölur standast á þótt merki brotni */
 .k-stats dt { font-size: 13px; color: var(--k-muted); }
 .k-stats dd { margin: 2px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.5px; }
 .k-col-t { display: block; font-size: 22px; font-weight: 800; }
@@ -304,6 +309,26 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-filters label { font-size: 13px; color: var(--k-muted); }
 .k-sel { font: inherit; font-size: 15px; min-height: 44px; padding: 0 12px; border: 1px solid #857F74; border-radius: 0; background: #fff; color: var(--k-ink); }
 .k-sel:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+
+/* ---- Verðmatsleit á forsíðu ---- */
+.k-vmf { margin-top: 52px; padding: 26px 0 28px; border-top: 2px solid var(--k-ink); border-bottom: 1px solid var(--k-rule);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px 40px; align-items: end; }
+.k-vmf p { margin: 6px 0 0; color: var(--k-muted); font-size: 15px; line-height: 1.5; max-width: 46ch; }
+.k-vmf form { display: flex; }
+.k-vmf input { flex: 1 1 auto; min-width: 0; font: inherit; font-size: 16px; min-height: 48px; padding: 0 14px;
+  border: 1px solid #857F74; border-right: 0; border-radius: 0; background: #fff; color: var(--k-ink); }
+.k-vmf button { font: inherit; font-size: 15px; font-weight: 700; min-height: 48px; padding: 0 18px; border: 1px solid var(--k-ink);
+  border-radius: 0; background: var(--k-ink); color: var(--k-paper); cursor: pointer; white-space: nowrap; }
+.k-vmf button:hover { background: #33454f; }
+.k-vmf input:focus-visible, .k-vmf button:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .k-vmf { grid-template-columns: 1fr; margin-top: 40px; }
+  .k-vmf form { flex-direction: column; gap: 8px; }
+  .k-vmf input { border-right: 1px solid #857F74; }
+}
+/* Ystu ártöl á ás halla inn á við svo þau klippist ekki við skjábrún */
+.k-gut .k-xl.k-xl-start { transform: none; }
+.k-gut .k-xl.k-xl-end { transform: translateX(-100%); }
 .k-kpis { margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 2px solid var(--k-ink); border-bottom: 1px solid var(--k-rule); }
 .k-kpis > div { padding: 16px 18px 18px 0; }
 .k-kpis dt { font-size: 13px; color: var(--k-muted); }

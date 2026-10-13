@@ -264,6 +264,9 @@ function hofudByYear(agg) {
 
 // ---- Kortastefna: almenn teikniföll (Höfuðborg, síðar Skorradalur) ----
 // Hæðarsnið eins svæðis: lína + fjall með hæðarlínu á hverjum 100 þ.kr/m²
+// Lárétt staða (%) í grafi sem hefur ás-dálk (--gut) vinstra megin fyrir lóðréttu ás-tölurnar
+const kXpos = p => `calc(var(--gut, 0px) + (100% - var(--gut, 0px)) * ${(p / 100).toFixed(4)})`;
+
 function kProfile(el, years, vals, col, { tall = true, ariaLabel = '' } = {}) {
   const W = 1000, B = 300, n = years.length;
   const ok = vals.filter(v => v);
@@ -280,6 +283,7 @@ function kProfile(el, years, vals, col, { tall = true, ariaLabel = '' } = {}) {
   const pct = (v, of) => +(v / of * 100).toFixed(1);
   const ticks = [years[0], ...years.filter(y => y % 4 === 0 && y > years[0] && y < years[n - 1] - 1), years[n - 1]];
   el.classList.toggle('k-tall', tall);
+  el.classList.add('k-gut');
   el.innerHTML = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="${ariaLabel}">
       <defs><clipPath id="${id}"><path d="${area}"/></clipPath></defs>
       ${grid.map(g => `<line x1="0" x2="${W}" y1="${yv(g)}" y2="${yv(g)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
@@ -288,7 +292,7 @@ function kProfile(el, years, vals, col, { tall = true, ariaLabel = '' } = {}) {
       <line x1="0" x2="${W}" y1="${B}" y2="${B}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
     </svg>`
     + grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), B)}%">${fmtInt(g)}</span>`).join('')
-    + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : ''}" style="left:${pct(x(years.indexOf(y)), W)}%">${y}</span>`).join('');
+    + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : i ? ' k-xl-end' : ' k-xl-start'}" style="left:${kXpos(pct(x(years.indexOf(y)), W))}">${y}</span>`).join('');
 }
 
 // Lítið súlurit (fjöldi á ári) og lítið línurit (hlutfall) í sama ramma og sniðið
@@ -392,7 +396,7 @@ function khKpis(by, lsCount, elId = 'kh-kpis') {
   [[1, y - 2, y - 1], [2, y - 1, y]].forEach(([k, p, c]) => {
     const ch = chg(a(p), a(c));
     set(`c${k}-l`, `${p} → ${c}`);
-    set(`c${k}`, ch == null ? '—' : sg(ch), ch > 0 ? 'k-up' : ch < 0 ? 'k-down' : '');
+    set(`c${k}`, ch == null ? '—' : sg(ch), '');      // formerki nægir; rautt/blátt er frátekið fyrir markaðshita
     set(`c${k}-s`, a(p) && a(c) ? `${fmtInt(a(p))} → ${fmtInt(a(c))} þ.kr/m²` : '');
   });
 }
@@ -747,7 +751,7 @@ function kRegion(id, by, lsCount) {
   if (v && p) {
     const ch = Math.round((v - p) / p * 100);
     chg.textContent = (ch > 0 ? '+' : ch < 0 ? '−' : '±') + Math.abs(ch) + '%';
-    chg.className = ch > 0 ? 'k-up' : ch < 0 ? 'k-down' : '';
+    chg.className = '';
   }
 }
 
@@ -771,21 +775,22 @@ function kFjall(hBy, sBy, aBy, lastDate) {
   const pct = (v, of) => +(v / of * 100).toFixed(1);
   const hLast = H[n - 1], sLast = S[n - 1], aLast = A?.[n - 1];
   const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}. ${A ? ` Akureyri úr ${fmtInt(A[0])} í ${fmtInt(aLast)}.` : ''} Skorradalur úr ${fmtInt(S[0])} í ${fmtInt(sLast)}.">
-    <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath>${A ? `<clipPath id="kA"><path d="${area(A)}"/></clipPath>` : ''}<clipPath id="kS"><path d="${area(S)}"/></clipPath></defs>
+    <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath></defs>
     ${grid.map(v => `<line x1="0" x2="${W}" y1="${yv(v)}" y2="${yv(v)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
     <g clip-path="url(#kH)"><path d="${area(H)}" fill="${K_COL.hofud.fill}"/>${lv(K_COL.hofud.c)}</g>
-    ${A ? `<g clip-path="url(#kA)"><path d="${area(A)}" fill="${K_COL.akureyri.fill}"/>${lv(K_COL.akureyri.c)}</g>` : ''}
-    <g clip-path="url(#kS)"><path d="${area(S)}" fill="${K_COL.sumar.fill}"/>${lv(K_COL.sumar.c)}</g>
     <path d="${line(H)}" fill="none" stroke="${K_COL.hofud.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     ${A ? `<path d="${line(A)}" fill="none" stroke="${K_COL.akureyri.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` : ''}
     <path d="${line(S)}" fill="none" stroke="${K_COL.sumar.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     <line x1="0" x2="${W}" y1="${B}" y2="${B}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
   </svg>`;
   const ticks = [years[0], ...years.filter(y => y % 4 === 0 && y > years[0] && y < y1 - 1), y1];
-  document.getElementById('k-fjall').innerHTML = svg
+  // Aðeins höfuðborgarsvæðið er fyllt „fjall“ með hæðarlínum; Akureyri og Skorradalur eru línur ofan á
+  const fjall = document.getElementById('k-fjall');
+  fjall.classList.add('k-gut');
+  fjall.innerHTML = svg
     + grid.map(v => `<span class="k-yl" style="top:${pct(yv(v), B)}%">${v}</span>`).join('')
-    + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : ''}" style="left:${pct(x(years.indexOf(y)), W)}%">${y}</span>`).join('')
-    + `<span class="k-note" style="left:${pct(x(lo), W)}%;top:${pct(yv(H[lo]) - 10, B)}%">${years[lo]}: ${fmtInt(H[lo])}</span>`;
+    + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : i ? ' k-xl-end' : ' k-xl-start'}" style="left:${kXpos(pct(x(years.indexOf(y)), W))}">${y}</span>`).join('')
+    + `<span class="k-note" style="left:${kXpos(pct(x(lo), W))};top:${pct(yv(H[lo]) - 10, B)}%;color:${K_COL.hofud.tx}">${years[lo]}: ${fmtInt(H[lo])}</span>`;
 
   document.getElementById('k-ends').innerHTML =
     `<div class="k-end"><i style="background:${K_COL.hofud.c}"></i><b style="color:${K_COL.hofud.tx}">${fmtInt(hLast)}</b><span>Höfuðborgarsvæðið, íbúðir</span></div>`
@@ -1343,6 +1348,18 @@ document.querySelectorAll('[data-goto]').forEach(a => {
 window.addEventListener('popstate', () => showView(viewFromHash(), { push: false }));
 
 // ---- Postnr dropdown ----
+// ---- Verðmatsleit á forsíðu → Verðmat-flipinn með sömu leit ----
+document.getElementById('k-vm-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = document.getElementById('k-vm-q').value.trim();
+  showView('verdmat');
+  window.scrollTo({ top: 0 });
+  const inp = document.getElementById('vm-q');
+  inp.value = q;
+  inp.focus();
+  if (q) vmSearch(q);
+});
+
 // ---- Svæði og tegund (höfuðborgarsvæðið / Akureyri) ----
 document.getElementById('hofud-postnr').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 document.getElementById('hofud-tegund').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });

@@ -7,7 +7,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=32">
+<link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
 <header class="site-hd">
@@ -82,6 +82,18 @@
       </div>
     </section>
 
+    <section class="k-vmf" aria-labelledby="k-vm-h">
+      <div>
+        <h2 id="k-vm-h" class="k-h2">Hvað er eignin mín virði?</h2>
+        <p>Áætlað söluverð út frá fasteignamati og nýlegum sölum í hverfinu. Íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu og Akureyri.</p>
+      </div>
+      <form id="k-vm-form" role="search" aria-label="Verðmat eftir heimilisfangi">
+        <label for="k-vm-q" class="sr-only">Heimilisfang</label>
+        <input id="k-vm-q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Heimilisfang, t.d. Skarðshlíð 29">
+        <button type="submit">Finna verðmat</button>
+      </form>
+    </section>
+
     <section aria-labelledby="k-solur-h" style="margin-top:52px">
       <div class="k-sechd">
         <h2 id="k-solur-h" class="k-h2">Nýjustu þinglýstu sölurnar</h2>
@@ -93,14 +105,10 @@
       </table>
     </section>
 
-    <section class="k-cols" aria-label="Meira" style="margin-top:52px">
+    <section class="k-cols" aria-label="Meira" style="margin-top:52px;grid-template-columns:1fr">
       <a href="#markadshiti" data-goto="hiti" class="k-col">
         <span class="k-col-t">Markaðshiti</span>
         <span class="k-col-p">Hve auðvelt er að selja? Hlutfall sem selst yfir ásettu verði, afsláttur og dagar á sölu, borið saman við fyrra ár.</span>
-      </a>
-      <a href="#verdmat" data-goto="verdmat" class="k-col">
-        <span class="k-col-t">Hvað er eignin mín virði?</span>
-        <span class="k-col-p">Sláðu inn heimilisfang og fáðu áætlað verð út frá fasteignamati og nýlegum sölum í hverfinu.</span>
       </a>
     </section>
 
@@ -444,6 +452,6 @@
 </main>
 
 <script src="api.js?v=8"></script>
-<script src="app.js?v=75"></script>
+<script src="app.js?v=76"></script>
 </body>
 </html>
