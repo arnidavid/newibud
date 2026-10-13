@@ -4,15 +4,26 @@
 
 // ---- Shared constants ----
 const CHART_GRID = 'rgba(0,0,0,.04)';
-const CHART_TICK = 'rgba(0,0,0,.35)';
+const CHART_TICK = '#6b675f';   // 5:1 litaskil á hvítu (áður 2,4:1)
 const CHART_TT   = { backgroundColor:'#fff', titleColor:'#1a1a18', bodyColor:'#5c5a54', borderColor:'rgba(0,0,0,.08)', borderWidth:1 };
+// Þúsundaskil sem punktur í öllum gröfum; de-DE ef vafrinn kann ekki is-IS (sama snið)
+if (window.Chart) Chart.defaults.locale = Intl.NumberFormat.supportedLocalesOf(['is-IS']).length ? 'is-IS' : 'de-DE';
 
 // VNV ársmeðaltöl (grunnur maí 1988=100), uppfært jan 2026 frá Hagstofu
 const VNV = {2006:281.4,2007:295.8,2008:332.4,2009:372.2,2010:392.7,2011:408.3,2012:429.5,2013:446.0,2014:457.2,2015:464.8,2016:474.5,2017:482.8,2018:496.0,2019:511.8,2020:525.5,2021:547.7,2022:592.0,2023:647.2,2024:690.3,2025:720.0,2026:740.0};
 const VNV_BASE = 2024;
 
 // ---- Shared helpers ----
-function fISK(v) { return Number(v).toLocaleString('is-IS') + ' kr.'; }
+// Íslenskt tölu- og dagsetningasnið (ekki toLocaleString – sumir vafrar kunna ekki is-IS)
+const MAN_STUTT = ['jan.','feb.','mars','apr.','maí','júní','júlí','ág.','sept.','okt.','nóv.','des.'];
+const MAN_LANGT = ['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
+const fmtInt = n => String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const fmtMkr = thkr => (Math.round(thkr / 100) / 10).toFixed(1).replace('.', ',') + ' m.kr';
+const fmtDag = d => { const x = new Date(d); return x.getDate() + '. ' + MAN_STUTT[x.getMonth()]; };
+const fmtDagLangt = d => { const x = new Date(d); return x.getDate() + '. ' + MAN_LANGT[x.getMonth()] + ' ' + x.getFullYear(); };
+const fmtDagAr = d => { const x = new Date(d); return x.getDate() + '. ' + MAN_STUTT[x.getMonth()] + ' ' + x.getFullYear(); };
+const fmtM2 = m => String(Math.round(Number(m) * 10) / 10).replace('.', ',') + ' m²';
+function fISK(v) { return fmtInt(v) + ' kr.'; }
 
 function toReal(thkr, year) {
   const v = VNV[year], b = VNV[VNV_BASE];
@@ -50,7 +61,7 @@ function hist(rows, addr, sqm) {
     .filter(r => r.heimilisfang.startsWith(b) && Math.abs(Number(r.einflm) - sqm) < 20 && r.einflm > 0)
     .map(r => ({
       a: r.heimilisfang,
-      d: new Date(r.thinglystdags).toLocaleDateString('is-IS'),
+      d: fmtDagAr(r.thinglystdags),
       d_raw: new Date(r.thinglystdags),
       v: Number(r.kaupverd),
       f: Math.round(r.kaupverd / r.einflm),
@@ -82,13 +93,13 @@ function getMatInfo(rows, addr, sqm) {
 function renderListingCard(l, i, hist, mi, matRatioEnabled) {
   const dagsInfo = [];
   if (l.dags) dagsInfo.push(`Skráð: ${l.dags}`);
-  if (l._lastSale) dagsInfo.push(`Síðasta sala á götu: ${l._lastSale.toLocaleDateString('is-IS')}`);
+  if (l._lastSale) dagsInfo.push(`Síðasta sala á götu: ${fmtDagAr(l._lastSale)}`);
   const dagsH = dagsInfo.length
     ? `<div style="font-size:.72rem;color:var(--tx3);margin-bottom:.75rem;display:flex;gap:1.25rem;flex-wrap:wrap">${dagsInfo.map(d => `<span>${d}</span>`).join('')}</div>`
     : '';
 
   const hH = hist.length
-    ? `<div class="lc-hi"><div class="ht">Þinglýstar sölur — sama gata</div>${hist.map(x => `<div class="hr"><span>${x.a} · ${x.d}</span><span>${(x.v / 1000).toFixed(1)}M · ${x.f} þ.kr/m²</span></div>`).join('')}</div>`
+    ? `<div class="lc-hi"><div class="ht">Þinglýstar sölur — sama gata</div>${hist.map(x => `<div class="hr"><span>${x.a} · ${x.d}</span><span>${fmtMkr(x.v)} · ${fmtInt(x.f)} þ.kr/m²</span></div>`).join('')}</div>`
     : '';
 
   let matH = '';
@@ -98,8 +109,8 @@ function renderListingCard(l, i, hist, mi, matRatioEnabled) {
       ? `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--dng)"><path d="M8 3v10M3 8l5-5 5 5"/></svg>`
       : `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--acc)"><path d="M8 13V3M3 8l5 5 5-5"/></svg>`;
     const matTxt = ratio > 100
-      ? `Ásett verð er <strong>${ratio}%</strong> af fasteignamati (${(mi.mat / 1000).toFixed(1)}M) — yfir mati`
-      : `Ásett verð er <strong>${ratio}%</strong> af fasteignamati (${(mi.mat / 1000).toFixed(1)}M) — undir mati`;
+      ? `Ásett verð er <strong>${ratio}%</strong> af fasteignamati (${fmtMkr(mi.mat)}) — yfir mati`
+      : `Ásett verð er <strong>${ratio}%</strong> af fasteignamati (${fmtMkr(mi.mat)}) — undir mati`;
     matH = `<div style="font-size:.75rem;color:var(--tx2);margin-top:.5rem;padding:.5rem .75rem;background:var(--bg-alt);border-radius:8px;display:flex;align-items:center;gap:6px">${arrow}${matTxt}</div>`;
   }
 
@@ -110,8 +121,8 @@ function renderListingCard(l, i, hist, mi, matRatioEnabled) {
         ${dagsH}
         <div class="lc-sts">
           <div><div class="sl2">Verð</div><div class="sv2">${l.verd_kr > 0 ? fISK(l.verd_kr) : 'Tilboð'}</div></div>
-          <div><div class="sl2">Stærð</div><div class="sv2">${l.staerd} m²</div></div>
-          <div><div class="sl2">Fm.verð</div><div class="sv2">${l.fm_thkr > 0 ? l.fm_thkr + ' þ.kr/m²' : '–'}</div></div>
+          <div><div class="sl2">Stærð</div><div class="sv2">${fmtM2(l.staerd)}</div></div>
+          <div><div class="sl2">Fm.verð</div><div class="sv2">${l.fm_thkr > 0 ? fmtInt(l.fm_thkr) + ' þ.kr/m²' : '–'}</div></div>
         </div>
         ${hH}${matH}
       </div>
@@ -192,7 +203,7 @@ async function fetchFastinnSumar(postnr) {
           staerd: sqm,
           fm_thkr: sqm > 0 && price > 0 ? Math.round(price / sqm / 1000) : 0,
           linkur: `https://fastinn.is/soluskra/${h.mblAssetId || h.objectID}`,
-          dags: h.dateadded ? new Date(h.dateadded).toLocaleDateString('is-IS') : '',
+          dags: h.dateadded ? fmtDagAr(h.dateadded) : '',
           dags_raw: h.dateadded ? new Date(h.dateadded) : null
         };
       });
@@ -211,7 +222,7 @@ function buildChartsSumar(hs, rows) {
   SUMAR_CHARTS.c1 = new Chart(document.getElementById('c1'), {
     type: 'line',
     data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => av(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true })) },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + Math.round(c.parsed.y) + ' þ.kr/m²' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + fmtInt(c.parsed.y) + ' þ.kr/m²' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
   SUMAR_CHARTS.c2 = new Chart(document.getElementById('c2'), {
@@ -224,7 +235,7 @@ function buildChartsSumar(hs, rows) {
   SUMAR_CHARTS.c3 = new Chart(document.getElementById('c3'), {
     type: 'line',
     data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h + ' (raunverð)', data: yrs.map(y => realAv(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true, borderDash: [6, 3] })) },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + Math.round(c.parsed.y) + ' þ.kr/m² (raunverð 2024)' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + fmtInt(c.parsed.y) + ' þ.kr/m² (raunverð 2024)' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
   const matRatio = (h, y) => {
@@ -339,7 +350,7 @@ async function fetchFastinnHofud(postnr, tegund = 'all') {
           staerd: sqm,
           fm_thkr: sqm > 0 && price > 0 ? Math.round(price / sqm / 1000) : 0,
           linkur: `https://fastinn.is/soluskra/${h.mblAssetId || h.objectID}`,
-          dags: h.dateadded ? new Date(h.dateadded).toLocaleDateString('is-IS') : '',
+          dags: h.dateadded ? fmtDagAr(h.dateadded) : '',
           dags_raw: h.dateadded ? new Date(h.dateadded) : null
         };
       });
@@ -380,7 +391,7 @@ function buildChartsHofud(agg, postnr) {
   H_CHARTS.c1 = new Chart(document.getElementById('h-c1'), {
     type: 'line',
     data: { labels: yrs.map(String), datasets: [{ label, data: yrs.map(y => avg(y)), borderColor: H_COLOR, backgroundColor: H_COLOR_BG, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => Math.round(c.parsed.y) + ' þ.kr/m²' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => fmtInt(c.parsed.y) + ' þ.kr/m²' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
   // C2: fjöldi sölna
@@ -394,7 +405,7 @@ function buildChartsHofud(agg, postnr) {
   H_CHARTS.c3 = new Chart(document.getElementById('h-c3'), {
     type: 'line',
     data: { labels: yrs.map(String), datasets: [{ label: label + ' (raunverð)', data: yrs.map(y => { const v = avg(y); return v ? toReal(v, y) : null; }), borderColor: H_COLOR, backgroundColor: H_COLOR_BG, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true, borderDash: [6, 3] }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => Math.round(c.parsed.y) + ' þ.kr/m² (raunverð 2024)' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => fmtInt(c.parsed.y) + ' þ.kr/m² (raunverð 2024)' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
   // C4: kaupverð vs mat ratio
@@ -526,7 +537,7 @@ function renderListingsHofud(ls, rows) {
 
 function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
   const saleAddr  = sale.heimilisfang || '';
-  const saleDate  = new Date(sale.thinglystdags).toLocaleDateString('is-IS');
+  const saleDate  = fmtDagAr(sale.thinglystdags);
   const salePrice = sale.kaupverd * 1000;
   const saleSqm   = sale.einflm;
   const saleFm    = Math.round(sale.kaupverd / sale.einflm);
@@ -541,8 +552,8 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
   const adFm      = adSqm > 0 && adPrice > 0 ? Math.round(adPrice / adSqm / 1000) : 0;
   const linkUrl   = dbMatch?.linkur || matched?.linkur || null;
 
-  const sM = (salePrice / 1000000).toFixed(1);
-  const aM = adPrice > 0 ? (adPrice / 1000000).toFixed(1) : null;
+  const sM = fmtMkr(sale.kaupverd);
+  const aM = adPrice > 0 ? fmtMkr(adPrice / 1000) : null;
 
   let munCls = 'avs-zero', munStr = '—', munLabel = '';
   if (adPrice > 0) {
@@ -556,8 +567,8 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
     ? `<div class="avs-compare">
         <div class="avs-side">
           <div class="avs-side-label">Auglýst</div>
-          <div class="avs-side-amt">${aM}M</div>
-          ${adFm > 0 ? `<div class="avs-side-fm">${adFm} þ.kr/m²</div>` : ''}
+          <div class="avs-side-amt">${aM}</div>
+          ${adFm > 0 ? `<div class="avs-side-fm">${fmtInt(adFm)} þ.kr/m²</div>` : ''}
         </div>
         <div class="avs-arrow-wrap">
           <svg viewBox="0 0 28 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="avs-arrow-svg"><path d="M0 6h26M21 1l5 5-5 5"/></svg>
@@ -566,20 +577,20 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
         </div>
         <div class="avs-side">
           <div class="avs-side-label">Selt</div>
-          <div class="avs-side-amt">${sM}M</div>
-          <div class="avs-side-fm">${saleFm} þ.kr/m²</div>
+          <div class="avs-side-amt">${sM}</div>
+          <div class="avs-side-fm">${fmtInt(saleFm)} þ.kr/m²</div>
         </div>
       </div>`
     : `<div class="avs-compare">
         <div class="avs-side">
           <div class="avs-side-label">Söluverð</div>
-          <div class="avs-side-amt">${sM}M</div>
-          <div class="avs-side-fm">${saleFm} þ.kr/m²</div>
+          <div class="avs-side-amt">${sM}</div>
+          <div class="avs-side-fm">${fmtInt(saleFm)} þ.kr/m²</div>
         </div>
         <div class="avs-arrow-wrap"></div>
         <div class="avs-side">
           <div class="avs-side-label">Stærð</div>
-          <div class="avs-side-amt">${saleSqm} m²</div>
+          <div class="avs-side-amt">${fmtM2(saleSqm)}</div>
           <div class="avs-side-fm">ekki auglýst</div>
         </div>
       </div>`;
@@ -591,7 +602,7 @@ function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
     </div>
     ${compareH}
     <div class="avs-card-foot">
-      <span class="avs-dagar-tag">${saleSqm} m²</span>
+      <span class="avs-dagar-tag">${fmtM2(saleSqm)}</span>
       ${linkUrl ? `<a class="vb" href="${linkUrl}" target="_blank" rel="noopener" style="padding:5px 12px;font-size:.72rem">
         Sjá
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7v7"/><path d="M13 3L6 10"/></svg>
@@ -718,15 +729,15 @@ function _seasonalRender({ avgFm, counts, cells }, ids, yearRange) {
   const diffPct = Math.round((1 - best.v / worst.v) * 100);
 
   document.getElementById(ids.best).textContent     = MON_IS[best.i].charAt(0).toUpperCase() + MON_IS[best.i].slice(1);
-  document.getElementById(ids.bestSub).textContent  = best.v + ' þ.kr/m²';
+  document.getElementById(ids.bestSub).textContent  = fmtInt(best.v) + ' þ.kr/m²';
   document.getElementById(ids.worst).textContent    = MON_IS[worst.i].charAt(0).toUpperCase() + MON_IS[worst.i].slice(1);
-  document.getElementById(ids.worstSub).textContent = worst.v + ' þ.kr/m²';
+  document.getElementById(ids.worstSub).textContent = fmtInt(worst.v) + ' þ.kr/m²';
   document.getElementById(ids.diff).textContent     = '-' + diffPct + '%';
 
   const now = new Date().getMonth(), nowAvg = avgFm[now] || 0;
   const cheapMonths = valid.filter(x => x.v < best.v * 1.1).map(x => MON_IS[x.i]).join(', ');
   document.getElementById(ids.advice).innerHTML = nowAvg > 0
-    ? `<strong>Núna (${MON_IS[now]}):</strong> Meðalverð ${MON_IS[now]} er ${nowAvg} þ.kr/m². ${nowAvg <= best.v * 1.1 ? 'Þetta er <strong>góður tími</strong> til að kaupa — verð er nálægt lægstu gildum.' : 'Verð er <strong>yfir meðallagi</strong> núna. Hagstæðustu mánuðirnir eru ' + cheapMonths + '.'}`
+    ? `<strong>Núna (${MON_IS[now]}):</strong> Meðalverð ${MON_IS[now]} er ${fmtInt(nowAvg)} þ.kr/m². ${nowAvg <= best.v * 1.1 ? 'Þetta er <strong>góður tími</strong> til að kaupa — verð er nálægt lægstu gildum.' : 'Verð er <strong>yfir meðallagi</strong> núna. Hagstæðustu mánuðirnir eru ' + cheapMonths + '.'}`
     : 'Ekki nóg gögn til að meta núverandi mánuð.';
 
   const barCols = avgFm.map(v => {
@@ -754,7 +765,7 @@ function _seasonalRender({ avgFm, counts, cells }, ids, yearRange) {
       { label: 'Fm.verð', data: avgFm, backgroundColor: barCols, borderRadius: 6, barPercentage: .6, yAxisID: 'y', order: 2 },
       { label: 'Fjöldi',  data: counts, type: 'line', borderColor: 'rgba(58,124,165,.7)', backgroundColor: 'rgba(58,124,165,.06)', borderWidth: 2, pointRadius: 4, pointHoverRadius: 7, tension: .4, yAxisID: 'y1', fill: true, order: 1 }
     ]},
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label === 'Fm.verð' ? Math.round(c.parsed.y) + ' þ.kr/m²' : c.parsed.y + ' sölur' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 12 }, autoSkip: false } }, y: { position: 'left', grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => Math.round(v) }, beginAtZero: true, title: { display: true, text: 'þ.kr/m²', color: CHART_TICK, font: { size: 11 } } }, y1: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(58,124,165,.6)', font: { size: 11 } }, beginAtZero: true, title: { display: true, text: 'fjöldi', color: 'rgba(58,124,165,.6)', font: { size: 11 } } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label === 'Fm.verð' ? fmtInt(c.parsed.y) + ' þ.kr/m²' : c.parsed.y + ' sölur' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 12 }, autoSkip: false } }, y: { position: 'left', grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true, title: { display: true, text: 'þ.kr/m²', color: CHART_TICK, font: { size: 11 } } }, y1: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(58,124,165,.6)', font: { size: 11 } }, beginAtZero: true, title: { display: true, text: 'fjöldi', color: 'rgba(58,124,165,.6)', font: { size: 11 } } } } }
   });
   if (isHofud) H_CHARTS.c5 = c5; else SUMAR_CHARTS.c5 = c5;
 
@@ -878,17 +889,17 @@ function renderAvsAgg(stats) {
 /** Renderar eitt AVS kort — sýnir sölu alltaf, comparison aðeins ef matching listing finnst */
 function renderAvsCard(sale, listing, i) {
   const saleAddr  = sale.heimilisfang || '';
-  const thinglyst = new Date(sale.thinglystdags).toLocaleDateString('is-IS');
-  const sM  = (sale.kaupverd / 1000).toFixed(1);
-  const sFm = Number(sale.einflm) > 0 ? Math.round(sale.kaupverd / Number(sale.einflm)) + ' þ.kr/m²' : '';
-  const sqmStr = Number(sale.einflm) > 0 ? Number(sale.einflm).toFixed(1) + ' m²' : '';
+  const thinglyst = fmtDagAr(sale.thinglystdags);
+  const sM  = fmtMkr(sale.kaupverd);
+  const sFm = Number(sale.einflm) > 0 ? fmtInt(sale.kaupverd / Number(sale.einflm)) + ' þ.kr/m²' : '';
+  const sqmStr = Number(sale.einflm) > 0 ? fmtM2(sale.einflm) : '';
 
   let compareH, footH = '<span></span>';
 
   if (listing) {
     const auglystThkr = Math.round(listing.verd / 1000);
-    const aM  = (auglystThkr / 1000).toFixed(1);
-    const aFm = Number(sale.einflm) > 0 ? Math.round(auglystThkr / Number(sale.einflm)) + ' þ.kr/m²' : '';
+    const aM  = fmtMkr(auglystThkr);
+    const aFm = Number(sale.einflm) > 0 ? fmtInt(auglystThkr / Number(sale.einflm)) + ' þ.kr/m²' : '';
     const dp  = Math.round((sale.kaupverd / auglystThkr - 1) * 100);
     const munStr   = (dp >= 0 ? '+' : '') + dp + '%';
     const munLabel = dp < 0 ? 'afsláttur' : dp > 0 ? 'yfir verði' : 'jafnt';
@@ -896,7 +907,7 @@ function renderAvsCard(sale, listing, i) {
     compareH = `<div class="avs-compare">
       <div class="avs-side">
         <div class="avs-side-label">Auglýst</div>
-        <div class="avs-side-amt">${aM}M</div>
+        <div class="avs-side-amt">${aM}</div>
         ${aFm ? `<div class="avs-side-fm">${aFm}</div>` : ''}
       </div>
       <div class="avs-arrow-wrap">
@@ -906,7 +917,7 @@ function renderAvsCard(sale, listing, i) {
       </div>
       <div class="avs-side">
         <div class="avs-side-label">Selt</div>
-        <div class="avs-side-amt">${sM}M</div>
+        <div class="avs-side-amt">${sM}</div>
         ${sFm ? `<div class="avs-side-fm">${sFm}</div>` : ''}
       </div>
     </div>`;
@@ -915,7 +926,7 @@ function renderAvsCard(sale, listing, i) {
     compareH = `<div class="avs-compare avs-sale-only">
       <div class="avs-side">
         <div class="avs-side-label">Selt</div>
-        <div class="avs-side-amt">${sM}M</div>
+        <div class="avs-side-amt">${sM}</div>
         ${sFm ? `<div class="avs-side-fm">${sFm}</div>` : ''}
         ${sqmStr ? `<div class="avs-side-fm">${sqmStr}</div>` : ''}
       </div>
@@ -1132,12 +1143,6 @@ async function initHofud(postnr, tegund = hofudTegund) {
 // ============================================================
 let yfirlitReady = false;
 // Íslensk sniðun óháð vafra (ekki allir vafrar styðja 'is-IS')
-const MAN_STUTT = ['jan.','feb.','mars','apr.','maí','júní','júlí','ág.','sept.','okt.','nóv.','des.'];
-const MAN_LANGT = ['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
-const fmtInt = n => String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-const fmtMkr = thkr => (Math.round(thkr / 100) / 10).toFixed(1).replace('.', ',') + ' m.kr';
-const fmtDag = d => { const x = new Date(d); return x.getDate() + '. ' + MAN_STUTT[x.getMonth()]; };
-const fmtDagLangt = d => { const x = new Date(d); return x.getDate() + '. ' + MAN_LANGT[x.getMonth()] + ' ' + x.getFullYear(); };
 
 // Ársmeðaltöl {ár: {nAll, nFm, sumFm}} úr einstökum sölum (sama síun og Skorradals-flipinn)
 function yearStatsFromRows(rows, fmMin, fmMax) {

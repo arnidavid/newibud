@@ -11,7 +11,7 @@
   --bdr2: rgba(0,0,0,.12);
   --tx: #1a1a18;
   --tx2: #5c5a54;
-  --tx3: #9c9a94;
+  --tx3: #6b675f;   /* dekkt úr #9c9a94 (2,8:1) → ~5:1 litaskil */
   --acc: #2d6a4f;
   --acc-l: #d8f3dc;
   --acc-bg: rgba(45,106,79,.06);
