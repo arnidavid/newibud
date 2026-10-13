@@ -31,22 +31,6 @@ function toReal(thkr, year) {
   return Math.round(thkr * b / v);
 }
 
-function addrKey(addr) {
-  if (!addr) return '';
-  const m = addr.match(/^(.+?\s+\d+[a-záðéíóúýþæö]?)\b/i);
-  return m ? m[1].toLowerCase().trim() : addr.toLowerCase().trim();
-}
-
-function parseSheetPrice(priceStr) {
-  if (!priceStr || priceStr === 'Tilboð') return 0;
-  return parseInt(String(priceStr).replace(/[.\s]/g, '').replace(/kr\.?/, ''), 10) || 0;
-}
-
-function parseSheetSize(sizeStr) {
-  if (!sizeStr) return 0;
-  return parseFloat(String(sizeStr).replace(/fm|m2/gi, '').replace(',', '.').trim()) || 0;
-}
-
 function scoreListingVsAvg(listing, avg) {
   if (!listing.fm_thkr || !avg) return { s: 'ok', l: 'Sanngjarnt', t: 'Ekki nóg gögn til samanburðar.' };
   const r = listing.fm_thkr / avg;
@@ -536,136 +520,45 @@ function renderListingsHofud(ls, rows) {
   w.innerHTML = '<div class="lcs">' + ls.map((l, i) => renderListingCard(l, i, hist(rows, l.heimilisfang, l.staerd), getMatInfo(rows, l.heimilisfang, l.staerd), true)).join('') + '</div>';
 }
 
-function _recentSaleCard(sale, idx, sheetLookup, dbLookup = {}) {
-  const saleAddr  = sale.heimilisfang || '';
-  const saleDate  = fmtDagAr(sale.thinglystdags);
-  const salePrice = sale.kaupverd * 1000;
-  const saleSqm   = sale.einflm;
-  const saleFm    = Math.round(sale.kaupverd / sale.einflm);
-  const dbCandidates = dbLookup[normAddr(saleAddr)] || [];
-  const dbMatch = dbCandidates.length === 0 ? null :
-    dbCandidates.reduce((best, l) =>
-      Math.abs(Number(l.staerd) - saleSqm) < Math.abs(Number(best.staerd) - saleSqm) ? l : best
-    );
-  const matched   = dbMatch || sheetLookup[addrKey(saleAddr)];
-  const adPrice   = matched ? parseSheetPrice(matched.verd) : 0;
-  const adSqm     = matched ? parseSheetSize(matched.staerd) : 0;
-  const adFm      = adSqm > 0 && adPrice > 0 ? Math.round(adPrice / adSqm / 1000) : 0;
-  const linkUrl   = dbMatch?.linkur || matched?.linkur || null;
-
-  const sM = fmtMkr(sale.kaupverd);
-  const aM = adPrice > 0 ? fmtMkr(adPrice / 1000) : null;
-
-  let munCls = 'avs-zero', munStr = '—', munLabel = '';
-  if (adPrice > 0) {
-    const dp = Math.round((salePrice / adPrice - 1) * 100);
-    munStr   = (dp >= 0 ? '+' : '') + dp + '%';
-    munLabel = dp < 0 ? 'afsláttur' : dp > 0 ? 'yfirverð' : 'jafnt';
-    munCls   = dp < 0 ? 'avs-under' : dp > 0 ? 'avs-over' : 'avs-zero';
-  }
-
-  const compareH = aM
-    ? `<div class="avs-compare">
-        <div class="avs-side">
-          <div class="avs-side-label">Auglýst</div>
-          <div class="avs-side-amt">${aM}</div>
-          ${adFm > 0 ? `<div class="avs-side-fm">${fmtInt(adFm)} þ.kr/m²</div>` : ''}
-        </div>
-        <div class="avs-arrow-wrap">
-          <svg viewBox="0 0 28 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="avs-arrow-svg"><path d="M0 6h26M21 1l5 5-5 5"/></svg>
-          <div class="avs-diff ${munCls}">${munStr}</div>
-          <div class="avs-diff-label">${munLabel}</div>
-        </div>
-        <div class="avs-side">
-          <div class="avs-side-label">Selt</div>
-          <div class="avs-side-amt">${sM}</div>
-          <div class="avs-side-fm">${fmtInt(saleFm)} þ.kr/m²</div>
-        </div>
-      </div>`
-    : `<div class="avs-compare">
-        <div class="avs-side">
-          <div class="avs-side-label">Söluverð</div>
-          <div class="avs-side-amt">${sM}</div>
-          <div class="avs-side-fm">${fmtInt(saleFm)} þ.kr/m²</div>
-        </div>
-        <div class="avs-arrow-wrap"></div>
-        <div class="avs-side">
-          <div class="avs-side-label">Stærð</div>
-          <div class="avs-side-amt">${fmtM2(saleSqm)}</div>
-          <div class="avs-side-fm">ekki auglýst</div>
-        </div>
-      </div>`;
-
-  return `<div class="avs-card" style="animation-delay:${idx * 40}ms">
-    <div class="avs-card-head">
-      <span class="avs-card-addr">${saleAddr}</span>
-      <span class="avs-card-date">Þinglýst ${saleDate}</span>
-    </div>
-    ${compareH}
-    <div class="avs-card-foot">
-      <span class="avs-dagar-tag">${fmtM2(saleSqm)}</span>
-      ${linkUrl ? `<a class="vb" href="${linkUrl}" target="_blank" rel="noopener" style="padding:5px 12px;font-size:.72rem">
-        Sjá
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7v7"/><path d="M13 3L6 10"/></svg>
-      </a>` : ''}
-    </div>
-  </div>`;
-}
+// Íbúðarhúsnæði í PostgREST (tegund=in.(...) virkar ekki → or)
+const IBUD_OR = '(tegund.eq.Fjölbýli,tegund.eq.Sérbýli,tegund.eq.Einbýli)';
+const H_SALES_SHOW = 10;
 
 async function renderRecentSalesHofud(postnr, tegund = 'all') {
   const wrap = document.getElementById('h-recentSalesWrap');
   try {
     const kaupTegund = TEGUND_MAP[tegund]?.kaupskra;
     const qParams = {
-      kaupverd: 'gt.5000',
-      einflm: 'gt.20',
-      onothaefur_samningur: 'neq.1',
-      order: 'thinglystdags.desc',
-      limit: 30
+      select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
+      kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1',
+      order: 'thinglystdags.desc', limit: 30
     };
-    if (postnr === 0) {
-      qParams['and'] = '(postnr.gte.100,postnr.lte.230)';
-    } else {
-      qParams['postnr'] = `eq.${postnr}`;
-    }
+    if (postnr === 0) qParams['and'] = '(postnr.gte.100,postnr.lte.230)';
+    else qParams['postnr'] = `eq.${postnr}`;
     if (kaupTegund) qParams['tegund'] = `eq.${kaupTegund}`;
-    const salesResult = await API.query('kaupskra', qParams, { paginate: false });
-
+    else qParams['or'] = IBUD_OR;
+    const { data: sales } = await API.query('kaupskra', qParams, { paginate: false });
     if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
 
-    const sales = salesResult.data;
-    if (!sales || !sales.length) { wrap.innerHTML = `<div class="ns-empty">Engar nýlegar sölur fundust á þessu svæði.</div>`; return; }
+    const valid = (sales || []).filter(r =>
+      r.kaupverd / r.einflm >= H_FM_MIN && r.kaupverd / r.einflm <= H_FM_MAX).slice(0, 20);
+    if (!valid.length) { wrap.innerHTML = '<div class="ns-empty">Engar nýlegar sölur fundust á þessu svæði.</div>'; return; }
 
-    const validSales = sales.filter(r =>
-      r.einflm > 20 && r.kaupverd > 5000 &&
-      r.kaupverd / r.einflm >= H_FM_MIN &&
-      r.kaupverd / r.einflm <= H_FM_MAX
-    ).slice(0, 20);
-
-    if (!validSales.length) { wrap.innerHTML = '<div class="ns-empty">Engar gildar sölur eftir síun.</div>'; return; }
-
-    // Fetch both Postgres listings (primary) and Sheets (fallback)
-    const [sheetsResult, dbListingsResult] = await Promise.all([
-      API.getSheetListings(postnr),
-      API.getListingsDb(postnr)
-    ]);
-
-    if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
-    const sheetLookup = {};
-    for (const sr of (sheetsResult.data || [])) {
-      const key = addrKey(sr.titill);
-      if (key && !sheetLookup[key]) sheetLookup[key] = sr;
-    }
-    const dbLookup = {};
-    for (const l of (dbListingsResult.data || [])) {
-      const key = normAddr(l.heimilisfang);
-      if (key) {
-        if (!dbLookup[key]) dbLookup[key] = [];
-        dbLookup[key].push(l);
-      }
-    }
-
-    wrap.innerHTML = '<div class="avs-cards">' + validSales.map((sale, idx) => _recentSaleCard(sale, idx, sheetLookup, dbLookup)).join('') + '</div>';
+    const draw = rows => {
+      if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
+      const more = rows.length > H_SALES_SHOW;
+      wrap.innerHTML = `<div class="yf-list h-sales"><div id="h-sales-list"></div>
+        ${more ? `<button type="button" class="h-sales-more" aria-expanded="false">Sýna fleiri sölur (${rows.length - H_SALES_SHOW})</button>` : ''}</div>`;
+      renderSalesList('h-sales-list', rows, postnr === 0);
+      const items = [...document.querySelectorAll('#h-sales-list .yf-row')];
+      items.slice(H_SALES_SHOW).forEach(el => { el.hidden = true; });
+      wrap.querySelector('.h-sales-more')?.addEventListener('click', e => {
+        items.forEach(el => { el.hidden = false; });
+        e.currentTarget.remove();
+      });
+    };
+    draw(valid);                                        // sölur strax…
+    matchSalesToListings(valid).then(draw);            // …ásett verð bætist við þegar það finnst
   } catch (err) {
     console.error('Recent sales (hofud) error:', err);
     wrap.innerHTML = `<div class="err">Ekki tókst að sækja nýjustu sölur. Reyndu aftur síðar.</div>`;
@@ -782,7 +675,7 @@ function _seasonalRender({ avgFm, counts, cells }, ids, yearRange) {
   const c6 = new Chart(c6el, {
     type: 'scatter',
     data: { datasets: [{ data: hmData.map(d => ({ x: d.x, y: d.y })), pointRadius: hmData.map(() => 18), pointStyle: 'rectRounded', pointHoverRadius: 22, backgroundColor: hmData.map(d => { const t = maxV > minV ? (d.v - minV) / (maxV - minV) : .5; const [r, g, b] = RC.lo.map((lo, i) => Math.round(lo + t * (RC.hi[i] - lo))); return `rgb(${r},${g},${b})`; }) }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => { const d = hmData[c.dataIndex]; return `${MON[d.x]} ${years[d.y]}: ${fmtInt(d.v)} þ.kr/m²`; } } } }, scales: { x: { type: 'linear', min: -.5, max: 11.5, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => MON[v] || '', autoSkip: false } }, y: { type: 'linear', min: -.5, max: years.length - .5, reverse: true, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => years[v] || '' } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => { const d = hmData[c.dataIndex]; return `${MON[d.x]} ${years[d.y]}: ${fmtInt(d.v)} þ.kr/m²`; } } } }, scales: { x: { type: 'linear', min: -.5, max: 11.5, grid: { display: false }, afterBuildTicks: a => { a.ticks = MON.map((_, i) => ({ value: i })); }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => MON[v] || '', autoSkip: false } }, y: { type: 'linear', min: -.5, max: years.length - .5, reverse: true, grid: { display: false }, afterBuildTicks: a => { a.ticks = years.map((_, i) => ({ value: i })); }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => years[v] || '' } } } }
   });
   if (isHofud) H_CHARTS.c6 = c6; else SUMAR_CHARTS.c6 = c6;
 }
@@ -1236,7 +1129,7 @@ async function initYfirlit() {
   });
   API.query('kaupskra', {
     select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
-    kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1',
+    kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1', or: IBUD_OR,
     and: '(postnr.gte.100,postnr.lte.230)', order: 'thinglystdags.desc', limit: 4
   }, { paginate: false }).then(async ({ data }) => {
     renderSalesList('yf-sales-hofud', data, true);

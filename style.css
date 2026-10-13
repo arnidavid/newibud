@@ -614,3 +614,15 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 #view-hofud .vb:hover { background: var(--hofud); color: #fff; }
 #view-sumar .vb { color: var(--skorr); border-color: var(--skorr); }
 #view-sumar .vb:hover { background: var(--skorr); color: #fff; }
+
+/* ---- Nýjustu sölur í Höfuðborg: sami listi og á forsíðu ---- */
+.h-sales { margin-bottom: 1rem; }
+.h-sales-more { display: block; width: 100%; min-height: 48px; border: 0; border-top: 1px solid var(--bdr); background: var(--bg-alt);
+  font-family: 'Outfit', sans-serif; font-size: .9rem; font-weight: 600; color: var(--hofud); cursor: pointer; }
+.h-sales-more:hover { background: #fbf3ee; }
+.h-sales-more:focus-visible { outline: 3px solid #2f6f9f; outline-offset: -3px; }
+@media (min-width: 900px) {
+  #h-sales-list { display: grid; grid-template-columns: 1fr 1fr; }
+  #h-sales-list .yf-row:nth-child(odd) { border-right: 1px solid var(--bdr); }
+}
+.yf-row[hidden] { display: none; }

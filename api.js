@@ -150,36 +150,6 @@ const API = (() => {
     return fetchAll('fastinn_listings', params, { order: 'last_seen.desc' });
   }
 
-  /** Sækir fastinn.is listings úr Google Sheets (gviz API) */
-  async function getSheetListings(postnr) {
-    const SHEET_ID = '1ZHwaiL6InsBq4mCmraHPvTU27A1pvb4G9T93uOsfBv4';
-    const gvizUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&tq=` +
-      encodeURIComponent(`SELECT * WHERE F=${postnr}`);
-
-    try {
-      const response = await fetch(gvizUrl);
-      const text = await response.text();
-      // gviz wraps response in google.visualization.Query.setResponse(...)
-      const jsonStr = text.match(/google\.visualization\.Query\.setResponse\((.+)\)/)?.[1];
-      if (!jsonStr) throw new Error('Could not parse gviz response');
-
-      const gviz = JSON.parse(jsonStr);
-      const cols = gviz.table.cols.map(c => c.label);
-      const rows = gviz.table.rows.map(row => {
-        const obj = {};
-        row.c.forEach((cell, i) => {
-          obj[cols[i] || `col${i}`] = cell?.v ?? cell?.f ?? '';
-        });
-        return obj;
-      });
-
-      return { data: rows, error: null };
-    } catch (err) {
-      console.error('[API] Google Sheets fetch failed:', err.message);
-      return { data: [], error: err.message };
-    }
-  }
-
   // ---- Public API ----
   return {
     // Core
@@ -191,7 +161,6 @@ const API = (() => {
     getSolurGotur,
     getKaupskra,
     // Auglýsingar
-    getListingsDb,
-    getSheetListings
+    getListingsDb
   };
 })();

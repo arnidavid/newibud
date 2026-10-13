@@ -19,7 +19,7 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 ## Architecture
 
 - `index.html` — layout and Chart.js canvases, script tags með `?v=N` cache-busters
-- `api.js` — Supabase/PostgREST API module (IIFE pattern, exposed as `API`), Algolia, VNV
+- `api.js` — Supabase/PostgREST API module (IIFE pattern, exposed as `API`)
 - `app.js` — all chart rendering, data processing, UI logic
 - `style.css` — styles
 
@@ -27,7 +27,6 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 
 - **Supabase** (kaupskrá) — registered property sales, materialized views for price trends
 - **fastinn.is** (Algolia) — current market listings
-- **Google Sheets** (gviz API) — scraped fastinn.is listing data (via n8n automation)
 
 ## Supabase breytingar
 
@@ -78,4 +77,4 @@ Eftir breytingar á JS/CSS: bæta `?v=N` við script/link tags í `index.html` t
 - `API.query(endpoint, params, options)` — single paginated GET
 - `API.fetchAll(endpoint, params, options)` — auto-fetches all pages (max 50 pages safety limit)
 - `API.rpc(functionName, body)` — POST to Supabase RPC functions
-- Convenience methods: `getManadarsolur` (RPC, mánaðarsamantekt), `getSolurGotur` (RPC, sölur á götum), `getKaupskra`, `getListingsDb`, `getSheetListings`
+- Convenience methods: `getManadarsolur` (RPC, mánaðarsamantekt), `getSolurGotur` (RPC, sölur á götum), `getKaupskra`, `getListingsDb`
