@@ -1,5 +1,5 @@
 // Markaðshiti: reiknar mælikvarða úr söluferlum seldra eigna og eignum á sölu.
-// Höfuðborgarsvæðið eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
+// Höfuðborgarsvæðið og Akureyri eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
 // og „staðan núna“ fyrir Skorradal (eignir á sölu). Niðurstaðan er vistuð í public.markadshiti.
 const URL = 'https://chmqzsxu3l-dsn.algolia.net/1/indexes/listing_index/query';
 const QS = { 'x-algolia-application-id': 'CHMQZSXU3L', 'x-algolia-api-key': '9bfe0ddf26fdff0dd90dcdfc0e955eb7' };
@@ -41,14 +41,21 @@ const rows = [];
 const now = new Date();
 const curY = now.getUTCFullYear(), curM = now.getUTCMonth() + 1;
 
-// 1) Höfuðborgarsvæðið eftir mánuðum – skipt í póstnúmerahópa svo hver fyrirspurn sé undir 1000 færslum
-const HOFUD_ZIPS = ['100 TO 108', '109 TO 113', '114 TO 199', '200 TO 205', '206 TO 230'];
-for (let y = 2025, m = 1; y < curY || (y === curY && m <= curM); m === 12 ? (y++, m = 1) : m++) {
-  const a = ms(y, m), b = m === 12 ? ms(y + 1, 1) : ms(y, m + 1);
-  let hits = [];
-  for (const z of HOFUD_ZIPS) hits = hits.concat(await hitsFor(`journeyStatus:SOLD AND zip:${z} AND journeySoldAt_timestamp:${a} TO ${b - 1}`));
-  const s = soldStats(hits);
-  if (s) rows.push({ svaedi: 'hofud', gerd: 'manudur', timabil: iso(y, m), ...s });
+// 1) Þéttbýlissvæði eftir mánuðum – skipt í póstnúmerahópa svo hver fyrirspurn sé undir 1000 færslum.
+//    Höfuðborgarsvæðið: 101–116, 161–170 (Seltjarnarnes), 200–225 og 270 Mosfellsbær
+//    (ekki 190 Vogar né 230 Reykjanesbær) – sama skilgreining og á síðunni (SVAEDI í app.js).
+const MAN_SVAEDI = {
+  hofud:    ['100 TO 108', '109 TO 113', '114 TO 170', '200 TO 205', '206 TO 225', '270 TO 270'],
+  akureyri: ['600 TO 600', '603 TO 603']
+};
+for (const [svaedi, zips] of Object.entries(MAN_SVAEDI)) {
+  for (let y = 2025, m = 1; y < curY || (y === curY && m <= curM); m === 12 ? (y++, m = 1) : m++) {
+    const a = ms(y, m), b = m === 12 ? ms(y + 1, 1) : ms(y, m + 1);
+    let hits = [];
+    for (const z of zips) hits = hits.concat(await hitsFor(`journeyStatus:SOLD AND zip:${z} AND journeySoldAt_timestamp:${a} TO ${b - 1}`));
+    const s = soldStats(hits);
+    if (s) rows.push({ svaedi, gerd: 'manudur', timabil: iso(y, m), ...s });
+  }
 }
 
 // 2) Skorradalur eftir hálfum árum (of fáar sölur á mánuði)

@@ -863,7 +863,7 @@ async function initYfirlit() {
 // ============================================================
 // ====  MARKAÐSHITI  =========================================
 // ============================================================
-// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Höfuðborgarsvæðið eftir mánuðum,
+// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Höfuðborgarsvæðið og Akureyri eftir mánuðum,
 // Skorradalur eftir hálfum árum (of fáar sölur á mánuði) + staða eigna á sölu núna.
 const MH = { data: null, svaedi: 'hofud', metric: 'yfir_asettu', table: false };
 const MH_COOL = '#2f5f8a', MH_WARM = '#a3312a';
@@ -903,7 +903,7 @@ function mhLevel(hlut) {
 function mhCompute(svaedi) {
   const rows = MH.data.filter(r => r.svaedi === svaedi);
   const today = new Date(), curYm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-  if (svaedi === 'hofud') {
+  if (svaedi !== 'skorr') {                          // höfuðborgarsvæðið, Akureyri: eftir mánuðum
     const months = rows.filter(r => r.gerd === 'manudur').sort((a, b) => a.timabil.localeCompare(b.timabil));
     const full = months.filter(r => mhYm(r.timabil) < curYm);       // aðeins heilir mánuðir
     const last = full.slice(-3).map(r => mhYm(r.timabil));
@@ -976,7 +976,7 @@ function mhHeadline(level, changes) {
 
 function mhRender() {
   if (!MH.data) return;
-  const sv = MH.svaedi, c = mhCompute(sv), isH = sv === 'hofud';
+  const sv = MH.svaedi, c = mhCompute(sv), isH = sv !== 'skorr';
   document.querySelectorAll('.mh-seg-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.svaedi === sv)));
 
   const changes = Object.fromEntries(c.keys.map(k => [k, mhChange(k, c.cur[k], c.prev[k])]));
@@ -1012,7 +1012,7 @@ function mhRender() {
 }
 
 function mhRenderChart(c) {
-  const k = MH.metric, m = MH_METRICS[k], isH = MH.svaedi === 'hofud';
+  const k = MH.metric, m = MH_METRICS[k], isH = MH.svaedi !== 'skorr';
   const W = 1000, H = 240, pct = (v, of) => +(v / of * 100).toFixed(1);
   document.getElementById('mh-chart-title').textContent = 'Þróun: ' + m.label.toLowerCase();
   let svg, labels, legend, aria, note, rows;
@@ -1038,6 +1038,10 @@ function mhRenderChart(c) {
     const both = a1.map((v, i) => v != null && a0[i] != null ? Math.sign(v - a0[i]) : null).filter(v => v != null);
     const lower = both.filter(v => v < 0).length;
     note = both.length ? `Í ${lower} af ${both.length} mánuðum ${y1} var gildið lægra en sama mánuð ${y0}.` : '';
+    if (MH.svaedi === 'akureyri') {
+      const ns = cur.map(r => r.n);
+      note += ` Fáar sölur á mánuði (${Math.min(...ns)}–${Math.max(...ns)}), svo einstakir mánuðir sveiflast meira en á höfuðborgarsvæðinu.`;
+    }
     aria = `${m.label} eftir mánuðum ${y1} borið saman við ${y0}. ${y1}: ${a1.filter(v => v != null).map(v => mhFmt(v, k)).join(', ')}. Sömu mánuðir ${y0}: ${a0.slice(0, a1.filter(v => v != null).length).map(v => mhFmt(v, k)).join(', ')}.`;
     rows = mon.map((mm, i) => ({ p: MAN_LANGT[i].replace(/^./, ch => ch.toUpperCase()), a: a1[i], b: a0[i] })).filter(r => r.a != null || r.b != null);
     document.getElementById('mh-table').innerHTML = `<div class="k-tblbox"><table class="k-tbl"><caption class="k-sub" style="text-align:left;padding-bottom:6px">${m.label} eftir mánuðum</caption>
@@ -1082,6 +1086,8 @@ async function initHiti() {
     return;
   }
   MH.data = data;
+  // Akureyrarhnappur aðeins ef tölur eru komnar (n8n reiknar á nóttunni)
+  document.querySelector('.mh-seg-btn[data-svaedi="akureyri"]').hidden = !data.some(r => r.svaedi === 'akureyri');
   mhRender();
 }
 
