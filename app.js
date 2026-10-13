@@ -854,9 +854,10 @@ async function initYfirlit() {
 // Skorradalur eftir hálfum árum (of fáar sölur á mánuði) + staða eigna á sölu núna.
 const MH = { data: null, svaedi: 'hofud', metric: 'yfir_asettu', table: false };
 const MH_COOL = '#2f5f8a', MH_WARM = '#a3312a';
+// Hitakvarði eins og á veðurkorti: kalt (blátt) → hlutlaust grátt → heitt (rautt)
 const MH_SCALE = [
-  { label: 'Kaldur',   bg: '#5b8db3' }, { label: 'Svalur',  bg: '#9dbfd3' },
-  { label: 'Jafnvægi', bg: '#d6cfbf' }, { label: 'Heitur',  bg: '#e0a27a' }, { label: 'Sjóðandi', bg: '#c0563a' }
+  { label: 'Kaldur',   bg: '#2f5f8a' }, { label: 'Svalur',  bg: '#8fb3cc' },
+  { label: 'Jafnvægi', bg: '#c9cfcf' }, { label: 'Heitur',  bg: '#e3a57c' }, { label: 'Sjóðandi', bg: '#a3312a' }
 ];
 // Mælikvarðar: hvaða átt þýðir „kólnun“ (cool = -1: lækkun er kólnun, +1: hækkun er kólnun)
 const MH_METRICS = {
@@ -963,7 +964,6 @@ function mhHeadline(level, changes) {
 function mhRender() {
   if (!MH.data) return;
   const sv = MH.svaedi, c = mhCompute(sv), isH = sv === 'hofud';
-  document.getElementById('view-hiti').style.setProperty('--rc', isH ? 'var(--hofud)' : 'var(--skorr)');
   document.querySelectorAll('.mh-seg-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.svaedi === sv)));
 
   const changes = Object.fromEntries(c.keys.map(k => [k, mhChange(k, c.cur[k], c.prev[k])]));
@@ -973,27 +973,21 @@ function mhRender() {
   document.getElementById('mh-summary').textContent = mhSummary(sv, c, changes);
   document.getElementById('mh-heatlabel').textContent = MH_SCALE[level].label;
   document.getElementById('mh-scale').innerHTML = MH_SCALE.map((s, i) =>
-    `<div class="mh-step${i === level ? ' on' : ''}"><div class="mh-step-bar" style="background:${s.bg}"></div><div class="mh-step-txt">${s.label}</div></div>`).join('');
+    `<div${i === level ? ' class="on"' : ''}><i style="background:${s.bg}"></i><span>${s.label}</span></div>`).join('');
 
-  // Lykilspjöld
+  // Lykiltölur
   const cards = c.keys.map(k => {
     const m = MH_METRICS[k], ch = changes[k];
-    const color = ch.dir < 0 ? MH_COOL : ch.dir > 0 ? MH_WARM : 'var(--tx2)';
-    const sig = ch.dir === 0 ? 'Svipað og í fyrra' : m.sig[ch.dir < 0 ? 0 : 1];
-    return `<article class="mh-kpi">
-      <h3>${m.kpi}</h3>
-      <div class="mh-kpi-row"><div class="mh-kpi-v">${mhFmt(c.cur[k], k)}</div><div class="mh-kpi-chg" style="color:${color}">${ch.text}</div></div>
-      <div class="mh-kpi-ref">${c.refLabel}: ${mhFmt(c.prev[k], k)}</div>
-      <div class="mh-kpi-sig"><span class="mh-dot" style="background:${color}"></span>${sig}</div>
-    </article>`;
+    const cls = ch.dir < 0 ? 'k-down' : ch.dir > 0 ? 'k-up' : '';
+    // Breyting sýnd sem tala með formerki (hækkun/lækkun), litur segir kólnun/hlýnun
+    return `<div><dt>${m.kpi}</dt>
+      <dd class="k-kvrow"><b>${mhFmt(c.cur[k], k)}</b><span class="${cls}">${ch.text.replace('↑ ', '+').replace('↓ ', '−')}</span></dd>
+      <dd class="k-ks">${c.refLabel}: ${mhFmt(c.prev[k], k)}</dd></div>`;
   });
   if (!isH && c.nuna) {
-    cards.push(`<article class="mh-kpi">
-      <h3>Eignir á sölu núna – tími á sölu</h3>
-      <div class="mh-kpi-row"><div class="mh-kpi-v">${fmtInt(c.nuna.dagar)}</div><div class="mh-kpi-chg">dagar (miðgildi)</div></div>
-      <div class="mh-kpi-ref">${fmtInt(c.nuna.laekkad)}% hafa lækkað ásett verð</div>
-      <div class="mh-kpi-sig"><span class="mh-dot" style="background:${MH_COOL}"></span>${c.nuna.dagar > 180 ? 'Margar eignir seljast hægt' : 'Eignir seljast á eðlilegum hraða'}</div>
-    </article>`);
+    cards.push(`<div><dt>Á sölu núna, tími á sölu</dt>
+      <dd class="k-kvrow"><b>${fmtInt(c.nuna.dagar)}</b><span style="font-weight:400;color:var(--k-muted)">dagar</span></dd>
+      <dd class="k-ks">${fmtInt(c.nuna.laekkad)}% hafa lækkað ásett verð</dd></div>`);
   }
   document.getElementById('mh-kpis').innerHTML = cards.join('');
 
@@ -1006,36 +1000,60 @@ function mhRender() {
 
 function mhRenderChart(c) {
   const k = MH.metric, m = MH_METRICS[k], isH = MH.svaedi === 'hofud';
-  const series = isH ? c.fullMonths : c.series;
-  const curYear = String(new Date().getFullYear());
-  const pts = series.map(r => {
-    const ym = mhYm(r.timabil), y = ym.slice(0, 4), mo = Number(ym.slice(5));
-    return {
-      v: r[k] == null ? null : Number(r[k]), n: r.n,
-      x: isH ? 'JFMAMJJÁSOND'[mo - 1] : `${mo === 1 ? 'H1' : 'H2'} ’${y.slice(2)}`,
-      p: (isH ? `${MAN_LANGT[mo - 1]} ${y}` : c.halfName(r) + (c.isFull(r) ? '' : ' (til þessa)')).replace(/^./, ch => ch.toUpperCase()),
-      newer: isH ? y === curYear : y === curYear
-    };
-  });
-  const vals = pts.map(p => p.v).filter(v => v != null);
-  const lo = k === 'soluhlutfall' ? Math.floor(Math.min(...vals) - 0.5) : 0, hi = Math.max(...vals);
+  const W = 1000, H = 240, pct = (v, of) => +(v / of * 100).toFixed(1);
   document.getElementById('mh-chart-title').textContent = 'Þróun: ' + m.label.toLowerCase();
-
-  const first = pts[0], last = pts[pts.length - 1];
-  const aria = `${m.label} eftir ${isH ? 'mánuðum' : 'hálfum árum'}, frá ${first.p} til ${last.p}. Fyrsta gildi ${mhFmt(first.v, k)}, síðasta ${mhFmt(last.v, k)}. Hnappurinn „Sýna sem töflu“ sýnir öll gildi.`;
-  document.getElementById('mh-chart').innerHTML = `
-    <div class="mh-chart" role="img" aria-label="${aria}">
-      <div class="mh-bars">${pts.map(p => `<div class="mh-col"><div class="mh-bar-v">${mhFmt(p.v, k)}</div>
-        <div class="mh-bar${p.newer ? ' now' : ''}" style="height:${p.v == null ? 0 : Math.max(3, Math.round((p.v - lo) / (hi - lo || 1) * 100))}%"></div></div>`).join('')}</div>
-      <div class="mh-xs">${pts.map(p => `<div>${p.x}</div>`).join('')}</div>
-      <div class="mh-legend"><span><i class="mh-sw old"></i>${isH ? Number(curYear) - 1 : 'Fyrri ár'}</span><span><i class="mh-sw now"></i>${curYear}</span></div>
-    </div>`;
-  document.getElementById('mh-table').innerHTML = `
-    <div class="mh-tablewrap"><table class="mh-table">
-      <caption>${m.label} – öll tímabil</caption>
-      <thead><tr><th scope="col">Tímabil</th><th scope="col">${m.label}</th><th scope="col">Seldar eignir</th></tr></thead>
-      <tbody>${pts.map(p => `<tr><th scope="row">${p.p}</th><td>${mhFmt(p.v, k)}</td><td>${fmtInt(p.n)}</td></tr>`).join('')}</tbody>
-    </table></div>`;
+  let svg, labels, legend, aria, note, rows;
+  if (isH) {
+    // Mánuðir þessa árs (heilir) bornir saman við sömu mánuði árið áður
+    const cur = c.fullMonths, y1 = mhYm(cur[cur.length - 1].timabil).slice(0, 4), y0 = String(y1 - 1);
+    const by = Object.fromEntries(c.series.map(r => [mhYm(r.timabil), r[k] == null ? null : Number(r[k])]));
+    const mon = [...Array(12).keys()].map(i => String(i + 1).padStart(2, '0'));
+    const a0 = mon.map(mm => by[`${y0}-${mm}`] ?? null);
+    const a1 = mon.map(mm => cur.some(r => mhYm(r.timabil) === `${y1}-${mm}`) ? by[`${y1}-${mm}`] ?? null : null);
+    const all = [...a0, ...a1].filter(v => v != null), span = Math.max(...all) - Math.min(...all) || 1;
+    const lo = Math.min(...all) - span * .25, hi = Math.max(...all) + span * .25;
+    const x = i => +(i / 11 * W).toFixed(1), yv = v => +(H - (v - lo) / (hi - lo) * H).toFixed(1);
+    const path = a => a.map((v, i) => v == null ? null : [x(i), yv(v)]).filter(Boolean).map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ');
+    const grid = [lo + (hi - lo) * .25, (lo + hi) / 2, lo + (hi - lo) * .75];
+    svg = `${grid.map(g => `<line x1="0" x2="${W}" y1="${yv(g)}" y2="${yv(g)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
+      <path d="${path(a0)}" fill="none" stroke="#8B98A0" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>
+      <path d="${path(a1)}" fill="none" stroke="#1C2B33" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      ${a1.map((v, i) => v == null ? '' : `<circle cx="${x(i)}" cy="${yv(v)}" r="4" fill="#1C2B33" stroke="#F2F4F1" stroke-width="2" vector-effect="non-scaling-stroke"><title>${MAN_LANGT[i]} ${y1}: ${mhFmt(v, k)} (${y0}: ${mhFmt(a0[i], k)})</title></circle>`).join('')}`;
+    labels = grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), H)}%;left:auto;right:0">${mhFmt(g, k)}</span>`).join('')
+      + MAN_STUTT.map((l, i) => `<span class="k-xl${i % 3 ? ' mid' : ''}" style="left:${pct(x(i), W)}%">${l}</span>`).join('');
+    legend = `<span><i style="border-top:2px dashed #8B98A0"></i>${y0}</span><span><i style="height:3px;background:#1C2B33"></i>${y1}</span>`;
+    const both = a1.map((v, i) => v != null && a0[i] != null ? Math.sign(v - a0[i]) : null).filter(v => v != null);
+    const lower = both.filter(v => v < 0).length;
+    note = both.length ? `Í ${lower} af ${both.length} mánuðum ${y1} var gildið lægra en sama mánuð ${y0}.` : '';
+    aria = `${m.label} eftir mánuðum ${y1} borið saman við ${y0}. ${y1}: ${a1.filter(v => v != null).map(v => mhFmt(v, k)).join(', ')}. Sömu mánuðir ${y0}: ${a0.slice(0, a1.filter(v => v != null).length).map(v => mhFmt(v, k)).join(', ')}.`;
+    rows = mon.map((mm, i) => ({ p: MAN_LANGT[i].replace(/^./, ch => ch.toUpperCase()), a: a1[i], b: a0[i] })).filter(r => r.a != null || r.b != null);
+    document.getElementById('mh-table').innerHTML = `<div class="k-tblbox"><table class="k-tbl"><caption class="k-sub" style="text-align:left;padding-bottom:6px">${m.label} eftir mánuðum</caption>
+      <thead><tr><th scope="col">Mánuður</th><th scope="col" class="r">${y1}</th><th scope="col" class="r">${y0}</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><th scope="row" style="text-align:left;font-weight:500">${r.p}</th><td class="r">${mhFmt(r.a, k)}</td><td class="r">${mhFmt(r.b, k)}</td></tr>`).join('')}</tbody></table></div>`;
+  } else {
+    // Skorradalur: hálf ár (of fáar sölur á mánuði)
+    const pts = c.series.map(r => ({ v: r[k] == null ? null : Number(r[k]), n: r.n, p: (c.halfName(r) + (c.isFull(r) ? '' : ' (til þessa)')).replace(/^./, ch => ch.toUpperCase()),
+      x: (mhYm(r.timabil).slice(5) === '01' ? 'fyrri' : 'seinni') + ' ’' + r.timabil.slice(2, 4) }));
+    const all = pts.map(p => p.v).filter(v => v != null), span = Math.max(...all) - Math.min(...all) || 1;
+    const lo = Math.max(0, Math.min(...all) - span * .25), hi = Math.max(...all) + span * .25, n = pts.length;
+    const x = i => +((i + .5) / n * W).toFixed(1), yv = v => +(H - (v - lo) / (hi - lo) * H).toFixed(1);
+    const grid = [lo + (hi - lo) * .25, (lo + hi) / 2, lo + (hi - lo) * .75];
+    svg = `${grid.map(g => `<line x1="0" x2="${W}" y1="${yv(g)}" y2="${yv(g)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
+      <path d="${pts.map((p, i) => p.v == null ? null : [x(i), yv(p.v)]).filter(Boolean).map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ')}" fill="none" stroke="var(--k-skorr)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      ${pts.map((p, i) => p.v == null ? '' : `<circle cx="${x(i)}" cy="${yv(p.v)}" r="4" fill="var(--k-skorr)" stroke="#F2F4F1" stroke-width="2" vector-effect="non-scaling-stroke"><title>${p.p}: ${mhFmt(p.v, k)} (${p.n} sölur)</title></circle>`).join('')}`;
+    labels = grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), H)}%;left:auto;right:0">${mhFmt(g, k)}</span>`).join('')
+      + pts.map((p, i) => `<span class="k-xl${i && i < n - 1 ? ' mid' : ''}" style="left:${pct(x(i), W)}%">${p.x}</span>`).join('');
+    legend = `<span><i style="height:3px;background:var(--k-skorr)"></i>Sumarhús í Skorradal, eftir hálfum árum</span>`;
+    note = `Fáar sölur (${Math.min(...pts.map(p => p.n))}–${Math.max(...pts.map(p => p.n))} á hverju tímabili), svo tölurnar sveiflast mikið milli tímabila.`;
+    aria = `${m.label} eftir hálfum árum: ${pts.map(p => `${p.p} ${mhFmt(p.v, k)}`).join(', ')}.`;
+    document.getElementById('mh-table').innerHTML = `<div class="k-tblbox"><table class="k-tbl"><caption class="k-sub" style="text-align:left;padding-bottom:6px">${m.label} eftir hálfum árum</caption>
+      <thead><tr><th scope="col">Tímabil</th><th scope="col" class="r">${m.label}</th><th scope="col" class="r">Seldar eignir</th></tr></thead>
+      <tbody>${pts.map(p => `<tr><th scope="row" style="text-align:left;font-weight:500">${p.p}</th><td class="r">${mhFmt(p.v, k)}</td><td class="r">${fmtInt(p.n)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  document.getElementById('mh-chart').innerHTML = `<div class="k-legend">${legend}</div>
+    <div class="k-chart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:240px" role="img" aria-label="${aria}">${svg}
+      <line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/></svg>${labels}</div>
+    <p class="k-figp" style="margin-top:34px">${note}</p>`;
   document.getElementById('mh-chart').hidden = MH.table;
   document.getElementById('mh-table').hidden = !MH.table;
   const tb = document.getElementById('mh-table-btn');

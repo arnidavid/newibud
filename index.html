@@ -7,7 +7,7 @@
 <script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
 <header class="site-hd">
@@ -296,50 +296,52 @@
 
   <!-- ===================== MARKAÐSHITI ===================== -->
   <div id="view-hiti" class="view">
-    <div class="mh-intro">
-      <div class="mh-intro-txt">
-        <h1 class="yf-h1">Markaðshiti</h1>
-        <p class="yf-lead">Hvernig gengur að selja? Reiknað út frá öllum seldum eignum, borið saman við sama tíma í fyrra.</p>
+    <div class="k-titlerow">
+      <div>
+        <h1 class="k-h1" style="margin-bottom:8px">Markaðshiti</h1>
+        <p class="k-lead">Hve auðvelt er að selja? Reiknað úr öllum seldum eignum sem voru auglýstar, borið saman við sama tíma í fyrra.</p>
       </div>
-      <div class="mh-seg" role="group" aria-label="Veldu svæði">
+      <div class="k-seg" role="group" aria-label="Veldu svæði">
         <button type="button" class="mh-seg-btn" data-svaedi="hofud" aria-pressed="true">Höfuðborgarsvæðið</button>
         <button type="button" class="mh-seg-btn" data-svaedi="skorr" aria-pressed="false">Skorradalur</button>
       </div>
     </div>
 
-    <section class="mh-status" aria-labelledby="mh-headline" aria-live="polite">
-      <div class="mh-status-txt">
-        <div class="mh-period" id="mh-period">&nbsp;</div>
-        <h2 class="mh-headline" id="mh-headline">Sæki gögn…</h2>
-        <p class="mh-summary" id="mh-summary"></p>
+    <section class="k-state" aria-labelledby="mh-headline" aria-live="polite">
+      <div>
+        <div class="k-sub" id="mh-period">&nbsp;</div>
+        <h2 class="k-state-h" id="mh-headline">Sæki gögn…</h2>
+        <p class="k-state-p" id="mh-summary"></p>
       </div>
-      <div class="mh-heat">
-        <div class="mh-heat-label">Hitastig markaðarins: <strong id="mh-heatlabel">—</strong></div>
-        <div class="mh-scale" id="mh-scale" aria-hidden="true"></div>
-      </div>
+      <figure style="margin:0">
+        <figcaption style="font-size:14px;margin-bottom:10px">Hitastig: <strong id="mh-heatlabel">—</strong></figcaption>
+        <div class="k-scale" id="mh-scale" aria-hidden="true"></div>
+      </figure>
     </section>
 
-    <section class="mh-kpis" id="mh-kpis" aria-label="Lykiltölur"></section>
+    <dl class="k-kpis k-kpis4" id="mh-kpis" aria-label="Lykiltölur"></dl>
 
-    <section class="mh-chartbox" aria-labelledby="mh-chart-title">
-      <div class="mh-chart-hd">
-        <h2 class="mh-h2" id="mh-chart-title">Þróun</h2>
-        <button type="button" class="mh-ghost" id="mh-table-btn" aria-pressed="false">Sýna sem töflu</button>
+    <section aria-labelledby="mh-chart-title" style="margin-top:48px">
+      <div class="k-sechd" style="border-bottom:0;padding-bottom:0">
+        <h2 class="k-h2" id="mh-chart-title">Þróun</h2>
+        <button type="button" class="k-ghost" id="mh-table-btn" aria-pressed="false">Sýna sem töflu</button>
       </div>
-      <div class="mh-metrics" id="mh-metrics" role="group" aria-label="Veldu mælikvarða"></div>
+      <div class="k-pills" id="mh-metrics" role="group" aria-label="Veldu mælikvarða"></div>
       <div id="mh-chart"></div>
       <div id="mh-table" hidden></div>
     </section>
 
-    <section class="mh-defs" aria-labelledby="mh-defs-title">
-      <h2 class="mh-h2" id="mh-defs-title">Hvað þýða tölurnar?</h2>
-      <div class="mh-defs-grid">
-        <div class="mh-def"><h3>Seldust yfir ásettu verði</h3><p>Hlutfall seldra eigna þar sem söluverð var hærra en síðasta ásetta verð. Hátt hlutfall bendir til samkeppni milli kaupenda.</p></div>
-        <div class="mh-def"><h3>Söluverð sem hlutfall af ásettu</h3><p>Miðgildi söluverðs deilt með síðasta ásetta verði. 98% þýðir að eign á 60 m.kr. seldist að jafnaði á um 58,8 m.kr.</p></div>
-        <div class="mh-def"><h3>Dagar á sölu</h3><p>Miðgildi daga frá því eign var fyrst auglýst þar til hún seldist. Helmingur eigna seldist hraðar, helmingur hægar.</p></div>
-        <div class="mh-def"><h3>Lækkuðu ásett verð</h3><p>Hlutfall seldra eigna þar sem seljandi lækkaði ásett verð að minnsta kosti einu sinni áður en eignin seldist.</p></div>
-      </div>
+    <section aria-labelledby="mh-defs-title" style="margin-top:52px">
+      <h2 class="k-h2 k-rule" id="mh-defs-title">Skýringar</h2>
+      <dl class="k-defs">
+        <div><dt>Seldust yfir ásettu verði</dt><dd>Hlutfall seldra eigna þar sem söluverð var hærra en síðasta ásetta verð. Hátt hlutfall bendir til samkeppni milli kaupenda.</dd></div>
+        <div><dt>Söluverð sem hlutfall af ásettu</dt><dd>Miðgildi söluverðs deilt með síðasta ásetta verði. 98% þýðir að eign á 60 m.kr. seldist að jafnaði á um 58,8 m.kr.</dd></div>
+        <div><dt>Dagar á sölu</dt><dd>Miðgildi daga frá því eign var fyrst auglýst þar til hún seldist. Helmingur seldist hraðar, helmingur hægar.</dd></div>
+        <div><dt>Lækkuðu ásett verð</dt><dd>Hlutfall seldra eigna þar sem seljandi lækkaði ásett verð að minnsta kosti einu sinni áður en eignin seldist.</dd></div>
+      </dl>
     </section>
+
+    <footer class="k-foot">Reiknað á hverri nóttu úr söluferli seldra eigna: hvenær þær voru fyrst auglýstar, ásett verð og söluverð.</footer>
   </div><!-- /view-hiti -->
 
   <!-- ===================== VERÐMAT ===================== -->
@@ -421,6 +423,6 @@
 </main>
 
 <script src="api.js?v=7"></script>
-<script src="app.js?v=63"></script>
+<script src="app.js?v=66"></script>
 </body>
 </html>
