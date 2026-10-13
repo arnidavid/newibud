@@ -367,7 +367,7 @@ function buildChartsHofud(agg, postnr) {
   const avg   = y => byYear[y]?.nFm  ? Math.round(byYear[y].sumFm  / byYear[y].nFm)  : null;
   const cnt   = y => byYear[y]?.nFm  || null;
   const matR  = y => byYear[y]?.nMat ? Math.round(byYear[y].sumMat / byYear[y].nMat) : null;
-  const label = `Póstnúmer ${postnr}`;
+  const label = postnr === 0 ? 'Höfuðborgarsvæðið' : `Póstnúmer ${postnr}`;
 
   // Update legend
   const legHtml = `<span><span class="ld" style="background:${H_COLOR}"></span>${label}</span>`;
@@ -479,8 +479,9 @@ async function renderStaerdAldur(postnr, tegund, kaupTegund) {
 
 function updateMetricsHofud(agg, ls, postnr) {
   document.getElementById('h-m1').textContent = ls.length;
-  document.getElementById('h-m1s').textContent = `íbúðarhúsnæði á póstnr. ${postnr}`;
-  document.getElementById('h-m3s').textContent = `íbúðarhúsnæði á ${postnr}`;
+  const hvar = postnr === 0 ? 'á svæðinu' : `á póstnr. ${postnr}`;
+  document.getElementById('h-m1s').textContent = `íbúðarhúsnæði ${hvar}`;
+  document.getElementById('h-m3s').textContent = `íbúðarhúsnæði ${hvar}`;
 
   const by = hofudByYear(agg);
   const yAvg = y => by[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
