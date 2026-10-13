@@ -416,7 +416,10 @@ const SA_BINS = {
 const SA_MIN_N = 5;   // færri sölur en þetta → dauf súla, ekki notuð í samanburð
 
 async function renderStaerdAldur(postnr, tegund, kaupTegund) {
-  const { data } = await API.rpc('get_verd_staerd_aldur', { p_postnr: postnr, p_tegund: kaupTegund });
+  const args = { p_postnr: postnr, p_tegund: kaupTegund };
+  let { data } = await API.rpc('get_verd_staerd_aldur', args);
+  // Fyrsta kall eftir hlé getur runnið út á tíma (gögn ekki í minni); seinna kallið er ~0,3 sek.
+  if (!data && hofudPostnr === postnr && hofudTegund === tegund) ({ data } = await API.rpc('get_verd_staerd_aldur', args));
   if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
   ['c7', 'c8'].forEach(k => { if (H_CHARTS[k]) { H_CHARTS[k].destroy(); H_CHARTS[k] = null; } });
   const noteS = document.getElementById('h-sa-staerd'), noteA = document.getElementById('h-sa-aldur');
