@@ -106,8 +106,8 @@ function renderListingCard(l, i, hist, mi, matRatioEnabled) {
   if (matRatioEnabled && mi && mi.mat > 0 && l.verd_kr > 0) {
     const ratio = Math.round(l.verd_kr / mi.mat / 10);
     const arrow = ratio > 100
-      ? `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--dng)"><path d="M8 3v10M3 8l5-5 5 5"/></svg>`
-      : `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--acc)"><path d="M8 13V3M3 8l5 5 5-5"/></svg>`;
+      ? `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--up)"><path d="M8 3v10M3 8l5-5 5 5"/></svg>`
+      : `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--down)"><path d="M8 13V3M3 8l5 5 5-5"/></svg>`;
     const matTxt = ratio > 100
       ? `Ásett verð er <strong>${ratio}%</strong> af fasteignamati (${fmtMkr(mi.mat)}) — yfir mati`
       : `Ásett verð er <strong>${ratio}%</strong> af fasteignamati (${fmtMkr(mi.mat)}) — undir mati`;
@@ -138,10 +138,11 @@ function renderListingCard(l, i, hist, mi, matRatioEnabled) {
 const POSTNR = 311;
 const HVERFI = ['Fitjahlíð','Dagverðarnes','Vatnsendahlíð','Indriðastaðir','Refsholt',
   'Jötnagarðsás','Háahlíð','Mýrarholt','Þverásbyggð','Stóraborg','Fauskás','Skálalækjarás','Lækjarás'];
+// Litir hverfa – sannprófaðir (litblinda ΔE ≥ 11, mettun, ≥ 3:1 á hvítu). Heilir litir, engin gegnsæi.
 const HVERFI_LIT = {
-  'Dagverðarnes':  { line: '#6b4c9a', bg: 'rgba(107,76,154,.06)', bar: 'rgba(107,76,154,.5)' },
-  'Fitjahlíð':     { line: '#2d6a4f', bg: 'rgba(45,106,79,.06)',   bar: 'rgba(45,106,79,.5)' },
-  'Vatnsendahlíð': { line: '#3a7ca5', bg: 'rgba(58,124,165,.06)',  bar: 'rgba(58,124,165,.5)' }
+  'Dagverðarnes':  { line: '#b5761b', bg: 'rgba(181,118,27,.06)', bar: '#b5761b' },
+  'Fitjahlíð':     { line: '#00897b', bg: 'rgba(0,137,123,.06)',  bar: '#00897b' },
+  'Vatnsendahlíð': { line: '#6b5ea8', bg: 'rgba(107,94,168,.06)', bar: '#6b5ea8' }
 };
 
 function hvS(addr) {
@@ -221,7 +222,7 @@ function buildChartsSumar(hs, rows) {
 
   SUMAR_CHARTS.c1 = new Chart(document.getElementById('c1'), {
     type: 'line',
-    data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => av(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true })) },
+    data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => av(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2, tension: 0, pointRadius: 2, pointHoverRadius: 6, spanGaps: true })) },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + fmtInt(c.parsed.y) + ' þ.kr/m²' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
@@ -234,7 +235,7 @@ function buildChartsSumar(hs, rows) {
   const realAv = (h, y) => { const v = av(h, y); return v ? toReal(v, y) : null; };
   SUMAR_CHARTS.c3 = new Chart(document.getElementById('c3'), {
     type: 'line',
-    data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h + ' (raunverð)', data: yrs.map(y => realAv(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true, borderDash: [6, 3] })) },
+    data: { labels: yrs.map(String), datasets: Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h + ' (raunverð)', data: yrs.map(y => realAv(h, y)), borderColor: c.line, backgroundColor: c.bg, borderWidth: 2, tension: 0, pointRadius: 2, pointHoverRadius: 6, spanGaps: true, borderDash: [6, 3] })) },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + fmtInt(c.parsed.y) + ' þ.kr/m² (raunverð 2024)' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
@@ -245,7 +246,7 @@ function buildChartsSumar(hs, rows) {
   };
   SUMAR_CHARTS.c4 = new Chart(document.getElementById('c4'), {
     type: 'line',
-    data: { labels: yrs.map(String), datasets: [ ...Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => matRatio(h, y)), borderColor: c.line, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true })), { label: 'Fasteignamat = 100%', data: yrs.map(() => 100), borderColor: 'rgba(0,0,0,.15)', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, spanGaps: true } ] },
+    data: { labels: yrs.map(String), datasets: [ ...Object.entries(HVERFI_LIT).map(([h, c]) => ({ label: h, data: yrs.map(y => matRatio(h, y)), borderColor: c.line, borderWidth: 2, tension: 0, pointRadius: 2, pointHoverRadius: 6, spanGaps: true })), { label: 'Fasteignamat = 100%', data: yrs.map(() => 100), borderColor: 'rgba(0,0,0,.15)', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, spanGaps: true } ] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + Math.round(c.parsed.y) + '% af mati' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => v + '%' }, min: 0 } } }
   });
 }
@@ -271,7 +272,7 @@ function updateMetricsSumar(rows, ls) {
     const ch = ((v5 - v4) / v4) * 100;
     const e = document.getElementById('m4');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
-    e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
+    e.style.color = ch >= 0 ? 'var(--up)' : 'var(--down)';
   }
   if (a5.length && a6.length) {
     const v5 = a5.reduce((s, r) => s + r.kaupverd / r.einflm, 0) / a5.length;
@@ -279,7 +280,7 @@ function updateMetricsSumar(rows, ls) {
     const ch = ((v6 - v5) / v5) * 100;
     const e = document.getElementById('m5');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
-    e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
+    e.style.color = ch >= 0 ? 'var(--up)' : 'var(--down)';
   }
 }
 
@@ -300,9 +301,9 @@ function renderListingsSumar(ls, rows) {
 // ====  HÖFUÐBORGARSVÆÐI  ====================================
 // ============================================================
 
-const H_COLOR     = '#1a5a8a';
-const H_COLOR_BG  = 'rgba(26,90,138,.07)';
-const H_COLOR_BAR = 'rgba(26,90,138,.55)';
+const H_COLOR     = '#9a4a24';   // sami leirrauði og á forsíðu/Markaðshita
+const H_COLOR_BG  = 'rgba(154,74,36,.07)';
+const H_COLOR_BAR = '#b0704f';   // ljósari tónn af sama lit
 const H_CHARTS    = {};  // track instances for destruction
 const SUMAR_CHARTS = {};
 let sumarKaupRows = [];
@@ -390,7 +391,7 @@ function buildChartsHofud(agg, postnr) {
   // C1: avg fm.verð
   H_CHARTS.c1 = new Chart(document.getElementById('h-c1'), {
     type: 'line',
-    data: { labels: yrs.map(String), datasets: [{ label, data: yrs.map(y => avg(y)), borderColor: H_COLOR, backgroundColor: H_COLOR_BG, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true }] },
+    data: { labels: yrs.map(String), datasets: [{ label, data: yrs.map(y => avg(y)), borderColor: H_COLOR, backgroundColor: H_COLOR_BG, borderWidth: 2, tension: 0, pointRadius: 2, pointHoverRadius: 6, spanGaps: true }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => fmtInt(c.parsed.y) + ' þ.kr/m²' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
@@ -404,14 +405,14 @@ function buildChartsHofud(agg, postnr) {
   // C3: raunverð (inflation-adjusted)
   H_CHARTS.c3 = new Chart(document.getElementById('h-c3'), {
     type: 'line',
-    data: { labels: yrs.map(String), datasets: [{ label: label + ' (raunverð)', data: yrs.map(y => { const v = avg(y); return v ? toReal(v, y) : null; }), borderColor: H_COLOR, backgroundColor: H_COLOR_BG, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true, borderDash: [6, 3] }] },
+    data: { labels: yrs.map(String), datasets: [{ label: label + ' (raunverð)', data: yrs.map(y => { const v = avg(y); return v ? toReal(v, y) : null; }), borderColor: H_COLOR, backgroundColor: H_COLOR_BG, borderWidth: 2, tension: 0, pointRadius: 2, pointHoverRadius: 6, spanGaps: true, borderDash: [6, 3] }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => fmtInt(c.parsed.y) + ' þ.kr/m² (raunverð 2024)' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
 
   // C4: kaupverð vs mat ratio
   H_CHARTS.c4 = new Chart(document.getElementById('h-c4'), {
     type: 'line',
-    data: { labels: yrs.map(String), datasets: [{ label, data: yrs.map(y => matR(y)), borderColor: H_COLOR, borderWidth: 2.5, tension: .35, pointRadius: 2, pointHoverRadius: 6, spanGaps: true }, { label: 'Fasteignamat = 100%', data: yrs.map(() => 100), borderColor: 'rgba(0,0,0,.15)', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, spanGaps: true }] },
+    data: { labels: yrs.map(String), datasets: [{ label, data: yrs.map(y => matR(y)), borderColor: H_COLOR, borderWidth: 2, tension: 0, pointRadius: 2, pointHoverRadius: 6, spanGaps: true }, { label: 'Fasteignamat = 100%', data: yrs.map(() => 100), borderColor: 'rgba(0,0,0,.15)', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, spanGaps: true }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label + ': ' + Math.round(c.parsed.y) + '% af mati' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, maxRotation: 45 } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => v + '%' }, min: 0 } } }
   });
 }
@@ -451,7 +452,7 @@ async function renderStaerdAldur(postnr, tegund, kaupTegund) {
       type: 'bar',
       data: { labels, datasets: [{
         data: rows.map(r => r ? Number(r.fm) : null),
-        backgroundColor: rows.map(r => r && r.n >= SA_MIN_N ? H_COLOR_BAR : 'rgba(26,90,138,.18)'),
+        backgroundColor: rows.map(r => r && r.n >= SA_MIN_N ? H_COLOR_BAR : 'rgba(154,74,36,.18)'),
         borderRadius: 4, barPercentage: .75
       }] },
       options: { responsive: true, maintainAspectRatio: false,
@@ -506,13 +507,13 @@ function updateMetricsHofud(agg, ls, postnr) {
     const ch = ((v5 - v4) / v4) * 100;
     const e = document.getElementById('h-m4');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
-    e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
+    e.style.color = ch >= 0 ? 'var(--up)' : 'var(--down)';
   }
   if (v5 && v6) {
     const ch = ((v6 - v5) / v5) * 100;
     const e = document.getElementById('h-m5');
     e.textContent = (ch >= 0 ? '+' : '') + Math.round(ch) + '%';
-    e.style.color = ch >= 0 ? 'var(--acc)' : 'var(--dng)';
+    e.style.color = ch >= 0 ? 'var(--up)' : 'var(--down)';
   }
 }
 
@@ -740,17 +741,16 @@ function _seasonalRender({ avgFm, counts, cells }, ids, yearRange) {
     ? `<strong>Núna (${MON_IS[now]}):</strong> Meðalverð ${MON_IS[now]} er ${fmtInt(nowAvg)} þ.kr/m². ${nowAvg <= best.v * 1.1 ? 'Þetta er <strong>góður tími</strong> til að kaupa — verð er nálægt lægstu gildum.' : 'Verð er <strong>yfir meðallagi</strong> núna. Hagstæðustu mánuðirnir eru ' + cheapMonths + '.'}`
     : 'Ekki nóg gögn til að meta núverandi mánuð.';
 
-  const barCols = avgFm.map(v => {
-    if (v <= best.v * 1.1) return 'rgba(45,106,79,.55)';
-    if (v >= worst.v * .9) return 'rgba(193,18,31,.4)';
-    return 'rgba(184,110,0,.4)';
-  });
-
   // For hofud view, destroy existing charts before creating
   const c5el = document.getElementById(ids.c5);
   const c6el = document.getElementById(ids.c6);
 
   const isHofud = ids.c5.startsWith('h-');
+  // Svæðislitur: ódýrustu mánuðirnir í fullum lit, aðrir ljósir (áhersla, ekki rautt/gult/grænt)
+  const RC = isHofud ? { full: '#9a4a24', light: '#e2c3b2', lo: [246, 230, 220], hi: [122, 53, 24] }
+                     : { full: '#1f5f5b', light: '#bcd5d2', lo: [223, 236, 235], hi: [22, 63, 60] };
+  const cheap3 = valid.slice().sort((a, b) => a.v - b.v).slice(0, 3).map(x => x.i);
+  const barCols = avgFm.map((v, i) => cheap3.includes(i) ? RC.full : RC.light);
   if (isHofud) {
     if (H_CHARTS.c5) { H_CHARTS.c5.destroy(); H_CHARTS.c5 = null; }
     if (H_CHARTS.c6) { H_CHARTS.c6.destroy(); H_CHARTS.c6 = null; }
@@ -762,10 +762,10 @@ function _seasonalRender({ avgFm, counts, cells }, ids, yearRange) {
   const c5 = new Chart(c5el, {
     type: 'bar',
     data: { labels: MON, datasets: [
-      { label: 'Fm.verð', data: avgFm, backgroundColor: barCols, borderRadius: 6, barPercentage: .6, yAxisID: 'y', order: 2 },
-      { label: 'Fjöldi',  data: counts, type: 'line', borderColor: 'rgba(58,124,165,.7)', backgroundColor: 'rgba(58,124,165,.06)', borderWidth: 2, pointRadius: 4, pointHoverRadius: 7, tension: .4, yAxisID: 'y1', fill: true, order: 1 }
+      { label: 'Fm.verð', data: avgFm, backgroundColor: barCols, borderRadius: 4, barPercentage: .7 }
     ]},
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => c.dataset.label === 'Fm.verð' ? fmtInt(c.parsed.y) + ' þ.kr/m²' : c.parsed.y + ' sölur' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 12 }, autoSkip: false } }, y: { position: 'left', grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true, title: { display: true, text: 'þ.kr/m²', color: CHART_TICK, font: { size: 11 } } }, y1: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(58,124,165,.6)', font: { size: 11 } }, beginAtZero: true, title: { display: true, text: 'fjöldi', color: 'rgba(58,124,165,.6)', font: { size: 11 } } } } }
+    // Einn ás – fjöldi sölna í tooltip (tveir y-ásar á sama grafi búa til tengsl sem eru ekki í gögnunum)
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => fmtInt(c.parsed.y) + ' þ.kr/m²', afterLabel: c => fmtInt(counts[c.dataIndex] || 0) + ' sölur' } } }, scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 12 }, autoSkip: false } }, y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
   });
   if (isHofud) H_CHARTS.c5 = c5; else SUMAR_CHARTS.c5 = c5;
 
@@ -781,8 +781,8 @@ function _seasonalRender({ avgFm, counts, cells }, ids, yearRange) {
 
   const c6 = new Chart(c6el, {
     type: 'scatter',
-    data: { datasets: [{ data: hmData.map(d => ({ x: d.x, y: d.y })), pointRadius: hmData.map(() => 18), pointStyle: 'rectRounded', pointHoverRadius: 22, backgroundColor: hmData.map(d => { const t = (d.v - minV) / (maxV - minV); const r = Math.round(230 - t * 190), g = Math.round(240 - t * 130), b = Math.round(225 - t * 150); return `rgb(${r},${g},${b})`; }) }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => { const d = hmData[c.dataIndex]; return `${MON[d.x]} ${years[d.y]}: ${d.v} þ.kr/m²`; } } } }, scales: { x: { type: 'linear', min: -.5, max: 11.5, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => MON[v] || '', autoSkip: false } }, y: { type: 'linear', min: -.5, max: years.length - .5, reverse: true, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => years[v] || '' } } } }
+    data: { datasets: [{ data: hmData.map(d => ({ x: d.x, y: d.y })), pointRadius: hmData.map(() => 18), pointStyle: 'rectRounded', pointHoverRadius: 22, backgroundColor: hmData.map(d => { const t = maxV > minV ? (d.v - minV) / (maxV - minV) : .5; const [r, g, b] = RC.lo.map((lo, i) => Math.round(lo + t * (RC.hi[i] - lo))); return `rgb(${r},${g},${b})`; }) }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: { label: c => { const d = hmData[c.dataIndex]; return `${MON[d.x]} ${years[d.y]}: ${fmtInt(d.v)} þ.kr/m²`; } } } }, scales: { x: { type: 'linear', min: -.5, max: 11.5, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => MON[v] || '', autoSkip: false } }, y: { type: 'linear', min: -.5, max: years.length - .5, reverse: true, grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 }, stepSize: 1, callback: v => years[v] || '' } } } }
   });
   if (isHofud) H_CHARTS.c6 = c6; else SUMAR_CHARTS.c6 = c6;
 }
@@ -1046,6 +1046,10 @@ function loadSumarData() {
         postnr: 'eq.311', tegund: 'eq.Sumarhús', kaupverd: 'gt.500', order: 'thinglystdags.asc'
       }),
       fetchFastinnSumar(POSTNR)
+    ]).then(([k, ls]) => [
+      // Ónothæfir samningar (gjafir, innan fjölskyldu o.þ.h.) skekkja meðaltöl – t.d. 2 m.kr. bústaður í Fitjahlíð 2022.
+      // Síað hér svo Skorradals-flipinn og forsíðan fái sömu tölur.
+      { ...k, data: k.data ? k.data.filter(r => r.onothaefur_samningur !== '1') : k.data }, ls
     ]);
   }
   return _sumarDataPromise;
@@ -1057,8 +1061,8 @@ async function initSumar() {
   try {
     const [kaupskraResult, ls] = await loadSumarData();
 
-    const rows = kaupskraResult.data;
-    if (!rows || !rows.length) {
+    const rows = kaupskraResult.data || [];
+    if (!rows.length) {
       document.getElementById('lw').innerHTML = '<div class="err">Ekki tókst að sækja gögn. Reyndu aftur síðar.</div>';
       return;
     }

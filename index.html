@@ -8,7 +8,7 @@
 <script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 <header class="site-hd">
@@ -156,12 +156,12 @@
       <div class="cbox">
         <div class="cbt">Meðal fermetraverð (þ.kr/m²)</div>
         <div class="cw"><canvas id="c1"></canvas></div>
-        <div class="cleg"><span><span class="ld" style="background:#6b4c9a"></span>Dagverðarnes</span><span><span class="ld" style="background:#2d6a4f"></span>Fitjahlíð</span><span><span class="ld" style="background:#3a7ca5"></span>Vatnsendahlíð</span></div>
+        <div class="cleg"><span><span class="ld" style="background:#b5761b"></span>Dagverðarnes</span><span><span class="ld" style="background:#00897b"></span>Fitjahlíð</span><span><span class="ld" style="background:#6b5ea8"></span>Vatnsendahlíð</span></div>
       </div>
       <div class="cbox">
         <div class="cbt">Fjöldi sölufærslna</div>
         <div class="cw"><canvas id="c2"></canvas></div>
-        <div class="cleg"><span><span class="ld" style="background:rgba(107,76,154,.6)"></span>Dagverðarnes</span><span><span class="ld" style="background:rgba(45,106,79,.6)"></span>Fitjahlíð</span><span><span class="ld" style="background:rgba(58,124,165,.6)"></span>Vatnsendahlíð</span></div>
+        <div class="cleg"><span><span class="ld" style="background:#b5761b"></span>Dagverðarnes</span><span><span class="ld" style="background:#00897b"></span>Fitjahlíð</span><span><span class="ld" style="background:#6b5ea8"></span>Vatnsendahlíð</span></div>
       </div>
     </div>
 
@@ -169,7 +169,7 @@
       <div class="cbox">
         <div class="cbt">Raunverðsþróun — verðbólguleiðrétt (VNV grunnur 2024)</div>
         <div class="cw"><canvas id="c3"></canvas></div>
-        <div class="cleg"><span><span class="ld" style="background:#6b4c9a"></span>Dagverðarnes (raunverð)</span><span><span class="ld" style="background:#2d6a4f"></span>Fitjahlíð (raunverð)</span><span><span class="ld" style="background:#3a7ca5"></span>Vatnsendahlíð (raunverð)</span></div>
+        <div class="cleg"><span><span class="ld" style="background:#b5761b"></span>Dagverðarnes (raunverð)</span><span><span class="ld" style="background:#00897b"></span>Fitjahlíð (raunverð)</span><span><span class="ld" style="background:#6b5ea8"></span>Vatnsendahlíð (raunverð)</span></div>
       </div>
     </div>
 
@@ -177,7 +177,7 @@
       <div class="cbox">
         <div class="cbt">Kaupverð vs fasteignamat — hlutfall (%)</div>
         <div class="cw" style="height:260px"><canvas id="c4"></canvas></div>
-        <div class="cleg"><span><span class="ld" style="background:#6b4c9a"></span>Dagverðarnes</span><span><span class="ld" style="background:#2d6a4f"></span>Fitjahlíð</span><span><span class="ld" style="background:#3a7ca5"></span>Vatnsendahlíð</span><span><span class="ld" style="background:rgba(0,0,0,.15)"></span>100% = mat</span></div>
+        <div class="cleg"><span><span class="ld" style="background:#b5761b"></span>Dagverðarnes</span><span><span class="ld" style="background:#00897b"></span>Fitjahlíð</span><span><span class="ld" style="background:#6b5ea8"></span>Vatnsendahlíð</span><span><span class="ld" style="background:rgba(0,0,0,.15)"></span>100% = mat</span></div>
       </div>
     </div>
 
@@ -187,15 +187,15 @@
         <div class="cbox" style="display:flex;flex-direction:column;justify-content:center;padding:1.75rem">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;text-align:center" id="seasonMetrics">
             <div><div class="ml">Hagstæðast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem" id="sBest">—</div><div class="ms" id="sBestSub"></div></div>
-            <div><div class="ml">Dýrast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--dng)" id="sWorst">—</div><div class="ms" id="sWorstSub"></div></div>
-            <div><div class="ml">Munur</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--acc)" id="sDiff">—</div><div class="ms">sparnaður</div></div>
+            <div><div class="ml">Dýrast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--up)" id="sWorst">—</div><div class="ms" id="sWorstSub"></div></div>
+            <div><div class="ml">Munur</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem" id="sDiff">—</div><div class="ms">sparnaður</div></div>
           </div>
-          <div style="margin-top:1.25rem;font-size:.82rem;color:var(--tx2);line-height:1.6;padding:.75rem 1rem;background:var(--bg-alt);border-radius:10px;border-left:3px solid var(--acc)" id="seasonAdvice"></div>
+          <div style="margin-top:1.25rem;font-size:.82rem;color:var(--tx2);line-height:1.6;padding:.75rem 1rem;background:var(--bg-alt);border-radius:10px;border-left:3px solid var(--skorr)" id="seasonAdvice"></div>
         </div>
         <div class="cbox">
-          <div class="cbt">Meðal fm.verð og sölumagn eftir mánuði (2020–26)</div>
+          <div class="cbt">Meðal fm.verð eftir mánuði (2020–26)</div>
           <div class="cw"><canvas id="c5"></canvas></div>
-          <div class="cleg"><span><span class="ld" style="background:#2d6a4f"></span>Fm.verð (þ.kr/m²)</span><span><span class="ld" style="background:rgba(58,124,165,.5)"></span>Fjöldi sölna</span></div>
+          <div class="cleg"><span><span class="ld" style="background:#1f5f5b"></span>3 ódýrustu mánuðirnir</span><span><span class="ld" style="background:#bcd5d2"></span>Aðrir mánuðir</span></div>
         </div>
       </div>
       <div class="cbox" style="margin-bottom:2rem">
@@ -326,15 +326,15 @@
         <div class="cbox" style="display:flex;flex-direction:column;justify-content:center;padding:1.75rem">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;text-align:center">
             <div><div class="ml">Hagstæðast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem" id="h-sBest">—</div><div class="ms" id="h-sBestSub"></div></div>
-            <div><div class="ml">Dýrast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--dng)" id="h-sWorst">—</div><div class="ms" id="h-sWorstSub"></div></div>
-            <div><div class="ml">Munur</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--acc)" id="h-sDiff">—</div><div class="ms">sparnaður</div></div>
+            <div><div class="ml">Dýrast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--up)" id="h-sWorst">—</div><div class="ms" id="h-sWorstSub"></div></div>
+            <div><div class="ml">Munur</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem" id="h-sDiff">—</div><div class="ms">sparnaður</div></div>
           </div>
-          <div style="margin-top:1.25rem;font-size:.82rem;color:var(--tx2);line-height:1.6;padding:.75rem 1rem;background:var(--bg-alt);border-radius:10px;border-left:3px solid var(--acc)" id="h-seasonAdvice"></div>
+          <div style="margin-top:1.25rem;font-size:.82rem;color:var(--tx2);line-height:1.6;padding:.75rem 1rem;background:var(--bg-alt);border-radius:10px;border-left:3px solid var(--hofud)" id="h-seasonAdvice"></div>
         </div>
         <div class="cbox">
-          <div class="cbt">Meðal fm.verð og sölumagn eftir mánuði (2020–26)</div>
+          <div class="cbt">Meðal fm.verð eftir mánuði (2020–26)</div>
           <div class="cw"><canvas id="h-c5"></canvas></div>
-          <div class="cleg"><span><span class="ld" style="background:#2d6a4f"></span>Fm.verð (þ.kr/m²)</span><span><span class="ld" style="background:rgba(58,124,165,.5)"></span>Fjöldi sölna</span></div>
+          <div class="cleg"><span><span class="ld" style="background:#9a4a24"></span>3 ódýrustu mánuðirnir</span><span><span class="ld" style="background:#e2c3b2"></span>Aðrir mánuðir</span></div>
         </div>
       </div>
       <div class="cbox" style="margin-bottom:2rem">
@@ -472,6 +472,6 @@
 </main>
 
 <script src="api.js?v=6"></script>
-<script src="app.js?v=50"></script>
+<script src="app.js?v=53"></script>
 </body>
 </html>
