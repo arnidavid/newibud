@@ -121,9 +121,9 @@ const API = (() => {
 
   // ---- Convenience methods for ibud v2 views ----
 
-  /** Mánaðarleg samantekt sölna (RPC á mv_manadarsolur). postnr 0 = allt höfuðborgarsvæðið (100–230) */
-  function getManadarsolur(postnr, tegund = null) {
-    return rpc('get_manadarsolur', { p_postnr: postnr, p_tegund: tegund });
+  /** Mánaðarleg samantekt sölna (RPC á mv_manadarsolur) fyrir lista af póstnúmerum */
+  function getManadarsolur(postnrs, tegund = null) {
+    return rpc('get_manadarsolur_svaedi', { p_postnrs: postnrs, p_tegund: tegund });
   }
 
   /** Nýjustu sölur (≤25 á götu, frá 2010) á tilteknum götum */

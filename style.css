@@ -210,7 +210,8 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   min-height: 44px; padding: 0; cursor: pointer; white-space: nowrap; }
 .tab-btn:hover { border-bottom-color: var(--k-rule); }
 .tab-btn[aria-current="page"] { font-weight: 700; border-bottom-color: var(--k-ink); }
-.tab-btn[data-view="hofud"][aria-current="page"] { border-bottom-color: var(--k-hofud); }
+.tab-btn[data-view="hofud"][aria-current="page"],
+.tab-btn[data-view="akureyri"][aria-current="page"] { border-bottom-color: var(--k-hofud); }
 .tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-skorr); }
 .tab-btn:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
 

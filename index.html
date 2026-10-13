@@ -7,7 +7,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=30">
+<link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
 <header class="site-hd">
@@ -21,6 +21,7 @@
     <nav class="tabs" aria-label="Aðalvalmynd">
       <button type="button" class="tab-btn active" data-view="yfirlit" aria-current="page">Yfirlit</button>
       <button type="button" class="tab-btn" data-view="hofud">Höfuðborgarsvæðið</button>
+      <button type="button" class="tab-btn" data-view="akureyri">Akureyri</button>
       <button type="button" class="tab-btn" data-view="sumar">Skorradalur</button>
       <button type="button" class="tab-btn" data-view="hiti">Markaðshiti</button>
       <button type="button" class="tab-btn" data-view="verdmat">Verðmat</button>
@@ -48,7 +49,7 @@
           <h2 class="k-h2"><span class="k-sw" style="background:var(--k-hofud);width:18px;height:4px;vertical-align:middle"></span>Höfuðborgarsvæðið</h2>
           <a href="#hofud" data-goto="hofud" style="color:var(--k-hofud-tx)">Opna höfuðborgarsvæðið</a>
         </div>
-        <p style="margin:0 0 16px;color:var(--k-muted);font-size:14px">Íbúðarhúsnæði, póstnúmer 101–230</p>
+        <p style="margin:0 0 16px;color:var(--k-muted);font-size:14px">Íbúðarhúsnæði, allt svæðið</p>
         <dl class="k-stats">
           <div><dt data-k="fm-l">Fermetraverð</dt><dd data-k="fm">—</dd></div>
           <div><dt data-k="chg-l">Frá fyrra ári</dt><dd data-k="chg">—</dd></div>
@@ -176,8 +177,8 @@
   <div id="view-hofud" class="view">
     <div class="k-titlerow">
       <div>
-        <h1 class="k-h1" style="margin-bottom:8px">Höfuðborgarsvæðið</h1>
-        <p class="k-lead" id="kh-sub">Íbúðarhúsnæði í póstnúmerum 101–230</p>
+        <h1 class="k-h1" id="kh-h1" style="margin-bottom:8px">Höfuðborgarsvæðið</h1>
+        <p class="k-lead" id="kh-sub">Íbúðarhúsnæði á öllu höfuðborgarsvæðinu</p>
       </div>
       <form class="k-filters" onsubmit="return false">
         <div><label for="hofud-postnr">Svæði</label>
@@ -211,6 +212,9 @@
             <option value="220">220 Hafnarfjörður</option>
             <option value="221">221 Hafnarfjörður</option>
             <option value="225">225 Hafnarfjörður</option>
+          </optgroup>
+          <optgroup label="Mosfellsbær">
+            <option value="270">270 Mosfellsbær</option>
           </optgroup>
         </select></div>
         <div><label for="hofud-tegund">Tegund</label>
@@ -424,7 +428,7 @@
 
 </main>
 
-<script src="api.js?v=7"></script>
-<script src="app.js?v=69"></script>
+<script src="api.js?v=8"></script>
+<script src="app.js?v=70"></script>
 </body>
 </html>

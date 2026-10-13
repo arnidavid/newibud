@@ -195,10 +195,28 @@ const TEGUND_MAP = {
   raðpar:{ algolia: 'type:raðpar', kaupskra: 'Sérbýli' },
 };
 
-async function fetchFastinnHofud(postnr, tegund = 'all') {
+// Þéttbýlissvæði: postnr 0 í fellilista = allt svæðið (listinn `allt`).
+// 190 Vogar og 230 Reykjanesbær eru ekki á höfuðborgarsvæðinu; 270 Mosfellsbær er það.
+const SVAEDI = {
+  hofud: {
+    nafn: 'Höfuðborgarsvæðið', allt_txt: 'á öllu höfuðborgarsvæðinu',
+    allt: [101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112, 113, 116, 161, 162, 170,
+           200, 201, 202, 203, 206, 210, 212, 220, 221, 222, 225, 270],
+    algolia: '(zip:101 TO 116 OR zip:161 TO 170 OR zip:200 TO 225 OR zip:270 TO 270)'
+  },
+  akureyri: {
+    nafn: 'Akureyri', allt_txt: 'á Akureyri',
+    allt: [600, 603],
+    algolia: '(zip:600 OR zip:603)',
+    valkostir: '<option value="0">Allur bærinn</option><option value="600">600 Akureyri</option><option value="603">603 Akureyri (norðan Glerár)</option>'
+  }
+};
+const svPostnrs = (sv, postnr) => postnr === 0 ? SVAEDI[sv].allt : [postnr];
+
+async function fetchFastinnHofud(sv, postnr, tegund = 'all') {
   try {
     const typeFilter = TEGUND_MAP[tegund]?.algolia || TEGUND_MAP.all.algolia;
-    const zipFilter  = postnr === 0 ? 'zip:100 TO 230' : `zip:${postnr}`;
+    const zipFilter  = postnr === 0 ? SVAEDI[sv].algolia : `zip:${postnr}`;
     const filters = `(${typeFilter}) AND ${zipFilter}`;
     const r = await fetch('https://chmqzsxu3l-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=CHMQZSXU3L&x-algolia-api-key=9bfe0ddf26fdff0dd90dcdfc0e955eb7', {
       method: 'POST',
@@ -413,12 +431,12 @@ const SA_BINS = {
 };
 const SA_MIN_N = 5;   // færri sölur en þetta → dauf súla, ekki notuð í samanburð
 
-async function renderStaerdAldur(postnr, tegund, kaupTegund) {
-  const args = { p_postnr: postnr, p_tegund: kaupTegund };
-  let { data } = await API.rpc('get_verd_staerd_aldur', args);
+async function renderStaerdAldur(sv, postnr, tegund, kaupTegund) {
+  const args = { p_postnrs: svPostnrs(sv, postnr), p_tegund: kaupTegund };
+  let { data } = await API.rpc('get_verd_staerd_aldur_svaedi', args);
   // Fyrsta kall eftir hlé getur runnið út á tíma (gögn ekki í minni); seinna kallið er ~0,3 sek.
-  if (!data && hofudPostnr === postnr && hofudTegund === tegund) ({ data } = await API.rpc('get_verd_staerd_aldur', args));
-  if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
+  if (!data && khCurrent(sv, postnr, tegund)) ({ data } = await API.rpc('get_verd_staerd_aldur_svaedi', args));
+  if (!khCurrent(sv, postnr, tegund)) return;
   document.getElementById('kh-sa-desc').textContent = postnr === 0
     ? 'Sölur síðustu 24 mánuði, leiðrétt fyrir staðsetningu svo hverfið skekki ekki samanburðinn.'
     : `Sölur síðustu 24 mánuði í ${postnr}.`;
@@ -451,7 +469,7 @@ async function renderStaerdAldur(postnr, tegund, kaupTegund) {
 
 // Íbúðarhúsnæði í PostgREST (tegund=in.(...) virkar ekki → or)
 const IBUD_OR = '(tegund.eq.Fjölbýli,tegund.eq.Sérbýli,tegund.eq.Einbýli)';
-async function renderRecentSalesHofud(postnr, tegund = 'all') {
+async function renderRecentSalesHofud(sv, postnr, tegund = 'all') {
   const tb = document.getElementById('kh-sales');
   try {
     const kaupTegund = TEGUND_MAP[tegund]?.kaupskra;
@@ -459,13 +477,13 @@ async function renderRecentSalesHofud(postnr, tegund = 'all') {
       select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
       kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1', order: 'thinglystdags.desc', limit: 30
     };
-    if (postnr === 0) q.and = '(postnr.gte.100,postnr.lte.230)'; else q.postnr = `eq.${postnr}`;
+    q.postnr = `in.(${svPostnrs(sv, postnr)})`;
     if (kaupTegund) q.tegund = `eq.${kaupTegund}`; else q.or = IBUD_OR;
     const { data } = await API.query('kaupskra', q, { paginate: false });
-    if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
+    if (!khCurrent(sv, postnr, tegund)) return;
     const valid = (data || []).filter(r => r.kaupverd / r.einflm >= H_FM_MIN && r.kaupverd / r.einflm <= H_FM_MAX).slice(0, 20);
     const draw = rows => {
-      if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
+      if (!khCurrent(sv, postnr, tegund)) return;
       tb.innerHTML = rows.length ? rows.map(r => kSaleRow(r, 'hofud', { postnrOnly: true })).join('')
         : '<tr><td colspan="6">Engar nýlegar sölur fundust á þessu svæði.</td></tr>';
       kMore(document.getElementById('kh-sales-more'), [...tb.querySelectorAll('tr')], 6, 'sölur');
@@ -559,15 +577,19 @@ function pickListingForSale(sale, listings) {
 
 let sumarReady   = false;
 let hofudReady   = false;
+let hofudSvaedi  = 'hofud';   // 'hofud' eða 'akureyri' – sami flipi, mismunandi svæði
 let hofudPostnr  = null;
 let hofudTegund  = 'all';
+// Á enn við? (notandi gæti hafa skipt um svæði/val á meðan beðið var eftir gögnum)
+const khCurrent = (sv, p, t) => hofudSvaedi === sv && hofudPostnr === p && hofudTegund === t;
 
 const SUB_TEXTS = {
   yfirlit: 'Höfuðborgarsvæðið og Skorradalur',
   hiti: 'Hversu auðvelt er að selja núna?',
   verdmat: 'Hvað er eignin mín virði?',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
-  hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis'
+  hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis',
+  akureyri: 'Akureyri — markaðsgreining íbúðarhúsnæðis'
 };
 
 // Skorradalsgögn sótt einu sinni og samnýtt af forsíðu og Skorradals-flipa
@@ -617,8 +639,9 @@ document.addEventListener('click', e => {
   ksFjall();
 });
 
-async function initHofud(postnr, tegund = hofudTegund) {
-  if (hofudReady && hofudPostnr === postnr && hofudTegund === tegund) return;
+async function initHofud(sv, postnr, tegund = hofudTegund) {
+  if (hofudReady && khCurrent(sv, postnr, tegund)) return;
+  hofudSvaedi = sv;
   hofudPostnr = postnr;
   hofudTegund = tegund;
   hofudReady  = false;
@@ -629,12 +652,13 @@ async function initHofud(postnr, tegund = hofudTegund) {
   // Undirfyrirsögn eftir vali
   const pSel = document.getElementById('hofud-postnr'), tSel = document.getElementById('hofud-tegund');
   const tegTxt = tegund === 'all' ? 'Íbúðarhúsnæði' : tSel.options[tSel.selectedIndex].text;
-  document.getElementById('kh-sub').textContent = postnr === 0 ? `${tegTxt} í póstnúmerum 101–230` : `${tegTxt} í ${pSel.options[pSel.selectedIndex].text}`;
+  document.getElementById('kh-h1').textContent = SVAEDI[sv].nafn;
+  document.getElementById('kh-sub').textContent = postnr === 0 ? `${tegTxt} ${SVAEDI[sv].allt_txt}` : `${tegTxt} í ${pSel.options[pSel.selectedIndex].text}`;
 
   try {
     const kaupTegund = TEGUND_MAP[tegund]?.kaupskra || null;
-    const [aggResult, ls] = await Promise.all([API.getManadarsolur(postnr, kaupTegund), fetchFastinnHofud(postnr, tegund)]);
-    if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
+    const [aggResult, ls] = await Promise.all([API.getManadarsolur(svPostnrs(sv, postnr), kaupTegund), fetchFastinnHofud(sv, postnr, tegund)]);
+    if (!khCurrent(sv, postnr, tegund)) return;
     const agg = aggResult.data;
     if (!agg || !agg.length) {
       document.getElementById('kh-fjall').innerHTML = '<p class="k-sub">Engin gögn fundust fyrir þetta val.</p>';
@@ -644,12 +668,12 @@ async function initHofud(postnr, tegund = hofudTegund) {
     khFjall();
     khKpis(hofudByYear(agg), ls.length);
     khSeason(agg);
-    renderStaerdAldur(postnr, tegund, kaupTegund);
-    renderRecentSalesHofud(postnr, tegund);
+    renderStaerdAldur(sv, postnr, tegund, kaupTegund);
+    renderRecentSalesHofud(sv, postnr, tegund);
     khListings(ls, []);                                   // auglýsingar strax…
     const gotur = [...new Set(ls.map(l => l.heimilisfang.replace(/\s+\d.*$/, '')))];
     if (gotur.length) API.getSolurGotur(gotur).then(({ data }) => {   // …hlutfall af mati þegar það berst
-      if (data?.length && hofudPostnr === postnr && hofudTegund === tegund) khListings(ls, data);
+      if (data?.length && khCurrent(sv, postnr, tegund)) khListings(ls, data);
     });
     hofudReady = true;
   } catch (e) {
@@ -796,15 +820,15 @@ async function initYfirlit() {
   yfirlitReady = true;
   const fail = id => { const e = document.getElementById(id); if (e) e.innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; };
 
-  const hBy = API.getManadarsolur(0, null).then(r => r.data ? hofudByYear(r.data) : null);
+  const hBy = API.getManadarsolur(SVAEDI.hofud.allt, null).then(r => r.data ? hofudByYear(r.data) : null);
   const sum = loadSumarData().then(([k, ls]) => ({ rows: k.data || [], ls }));
-  Promise.all([hBy, fetchFastinnHofud(0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.length); });
+  Promise.all([hBy, fetchFastinnHofud('hofud', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.length); });
   sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.length));
 
   const hSales = API.query('kaupskra', {
     select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
     kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1', or: IBUD_OR,
-    and: '(postnr.gte.100,postnr.lte.230)', order: 'thinglystdags.desc', limit: 5
+    postnr: `in.(${SVAEDI.hofud.allt})`, order: 'thinglystdags.desc', limit: 5
   }, { paginate: false }).then(r => r.data || []);
   const sSales = sum.then(s => s.rows.filter(r => r.einflm > 10).slice(-3).reverse()
     .map(r => ({ ...r, postnr: POSTNR, tegund: 'Sumarhús' })));
@@ -1244,16 +1268,32 @@ document.addEventListener('click', e => {
 });
 
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
+// Akureyri notar sama skjáhluta og höfuðborgarsvæðið (view-hofud)
+const VIEW_DOM = { akureyri: 'hofud' };
+
+// Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, Akureyrar úr SVAEDI
+SVAEDI.hofud.valkostir = document.getElementById('hofud-postnr').innerHTML;
+function khSetSvaedi(sv) {
+  if (hofudSvaedi === sv) return;
+  hofudSvaedi = sv;
+  hofudReady = false;
+  document.getElementById('hofud-postnr').innerHTML = SVAEDI[sv].valkostir;
+}
+function khInitFromForm() {
+  const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
+  initHofud(hofudSvaedi, postnr, document.getElementById('hofud-tegund').value);
+}
 
 function showView(view, { push = true } = {}) {
-  if (!document.getElementById('view-' + view)) view = 'yfirlit';
+  if (!VIEW_HASH[view]) view = 'yfirlit';
+  const dom = VIEW_DOM[view] || view;
   document.querySelectorAll('.tab-btn').forEach(b => {
     const on = b.dataset.view === view;
     b.classList.toggle('active', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + dom));
 
   const subEl = document.getElementById('header-sub');
   if (subEl) subEl.textContent = SUB_TEXTS[view] || '';
@@ -1263,11 +1303,7 @@ function showView(view, { push = true } = {}) {
   else if (view === 'hiti') initHiti();
   else if (view === 'verdmat') initVerdmat();
   else if (view === 'sumar') initSumar();
-  else if (view === 'hofud') {
-    const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
-    const tegund = document.getElementById('hofud-tegund').value;
-    initHofud(postnr, tegund);
-  }
+  else if (dom === 'hofud') { khSetSvaedi(view); khInitFromForm(); }
 }
 
 function viewFromHash() {
@@ -1284,17 +1320,9 @@ document.querySelectorAll('[data-goto]').forEach(a => {
 window.addEventListener('popstate', () => showView(viewFromHash(), { push: false }));
 
 // ---- Postnr dropdown ----
-document.getElementById('hofud-postnr').addEventListener('change', e => {
-  hofudReady = false;
-  initHofud(parseInt(e.target.value, 10), hofudTegund);
-});
-
-// ---- Höfuð tegund filter ----
-document.getElementById('hofud-tegund').addEventListener('change', e => {
-  hofudReady = false;
-  const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
-  initHofud(postnr, e.target.value);
-});
+// ---- Svæði og tegund (höfuðborgarsvæðið / Akureyri) ----
+document.getElementById('hofud-postnr').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
+document.getElementById('hofud-tegund').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 
 // ---- Götuleit í Skorradal ----
 let _streetFilterTimer = null;
