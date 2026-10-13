@@ -1057,31 +1057,6 @@ function yearStatsFromRows(rows, fmMin, fmMax) {
   return by;
 }
 
-function renderRegionCard(el, by, listingsCount) {
-  const avg = y => by[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
-  const since = Object.keys(by).filter(y => y >= 2023).map(y => by[y]);
-  const n = since.reduce((s, b) => s + b.nFm, 0);
-  const set = (k, v) => { const e = el.querySelector(`[data-k="${k}"]`); if (e) e.textContent = v; };
-  set('fm', n ? fmtInt(Math.round(since.reduce((s, b) => s + b.sumFm, 0) / n)) : '—');
-  set('ls', listingsCount != null ? fmtInt(listingsCount) : '—');
-  set('n', `${fmtInt(by[2025]?.nAll || 0)} / ${fmtInt(by[2026]?.nAll || 0)}`);
-
-  const v5 = avg(2025), v6 = avg(2026);
-  const chgEl = el.querySelector('[data-k="chg"]');
-  if (v5 && v6) {
-    const ch = Math.round((v6 - v5) / v5 * 100);
-    chgEl.textContent = (ch > 0 ? '+' : ch < 0 ? '−' : '') + Math.abs(ch) + '%';
-    chgEl.classList.toggle('up', ch > 0);
-    chgEl.classList.toggle('down', ch < 0);
-  }
-
-  const years = []; for (let y = 2016; y <= 2026; y++) years.push(y);
-  const vals = years.map(avg), max = Math.max(...vals.filter(Boolean));
-  el.querySelector('[data-k="bars"]').innerHTML = years.map((y, i) => vals[i]
-    ? `<div class="yf-bar${y === 2026 ? ' now' : ''}" style="height:${Math.round(vals[i] / max * 100)}%" title="${y}: ${fmtInt(Math.round(vals[i]))} þ.kr/m²"></div>`
-    : `<div class="yf-bar" style="height:0"></div>`).join('');
-}
-
 // Finnur auglýsingu á fastinn.is fyrir hverja sölu á forsíðunni (reglan: pickListingForSale).
 async function matchSalesToListings(sales) {
   if (!sales?.length) return sales;
@@ -1122,33 +1097,125 @@ function renderSalesList(id, rows, showPostnr) {
   }).join('');
 }
 
+// ---- Forsíða (kortastefna) ----
+const K_COL = { hofud: { c: '#B8652A', tx: '#8A4519', fill: '#F7EEE6' }, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
+const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
+const kLastYear = by => Math.max(...Object.keys(by).filter(y => by[y].nFm > 0).map(Number));
+
+function kRegion(id, by, lsCount) {
+  const el = document.getElementById(id);
+  const set = (k, v) => { const e = el.querySelector(`[data-k="${k}"]`); if (e) e.textContent = v; };
+  const y = kLastYear(by), v = kAvg(by, y), p = kAvg(by, y - 1);
+  set('fm-l', `Fermetraverð ${y}`);
+  set('fm', v ? fmtInt(v) : '—');
+  set('chg-l', `Frá ${y - 1}`);
+  set('ls', lsCount != null ? fmtInt(lsCount) : '—');
+  const chg = el.querySelector('[data-k="chg"]');
+  if (v && p) {
+    const ch = Math.round((v - p) / p * 100);
+    chg.textContent = (ch > 0 ? '+' : ch < 0 ? '−' : '±') + Math.abs(ch) + '%';
+    chg.className = ch > 0 ? 'k-up' : ch < 0 ? 'k-down' : '';
+  }
+}
+
+// Verðfjallið: fermetraverð á ári sem hæðarsnið; hver lárétt lína í fjallinu = 100 þ.kr/m²
+function kFjall(hBy, sBy, lastDate) {
+  const y1 = Math.max(kLastYear(hBy), kLastYear(sBy)), years = [];
+  for (let y = 2008; y <= y1; y++) years.push(y);
+  const H = years.map(y => kAvg(hBy, y)), S = years.map(y => kAvg(sBy, y));
+  const all = [...H, ...S].filter(Boolean), top = Math.ceil((Math.max(...all) + 60) / 100) * 100;
+  const W = 1000, B = 300, n = years.length;
+  const x = i => +(i * W / (n - 1)).toFixed(1), yv = v => +(B - v / top * B).toFixed(1);
+  const pts = a => a.map((v, i) => v ? [x(i), yv(v)] : null).filter(Boolean);
+  const line = a => pts(a).map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ');
+  const area = a => { const p = pts(a); return line(a) + ` L${p[p.length - 1][0]} ${B} L${p[0][0]} ${B} Z`; };
+  const levels = []; for (let L = 100; L < top; L += 100) levels.push(yv(L));
+  const lv = c => levels.map(y => `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="${c}" stroke-width="1" opacity=".6" vector-effect="non-scaling-stroke"/>`).join('');
+  const grid = [200, 400, 600, 800].filter(v => v < top);
+  // lægsti punktur höfuðborgarsvæðisins (eftir hrun)
+  let lo = 0; H.forEach((v, i) => { if (v && v < H[lo]) lo = i; });
+  const pct = (v, of) => +(v / of * 100).toFixed(1);
+  const hLast = H[n - 1], sLast = S[n - 1];
+  const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}. Skorradalur úr ${fmtInt(S[0])} í ${fmtInt(sLast)}.">
+    <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath><clipPath id="kS"><path d="${area(S)}"/></clipPath></defs>
+    ${grid.map(v => `<line x1="0" x2="${W}" y1="${yv(v)}" y2="${yv(v)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
+    <g clip-path="url(#kH)"><path d="${area(H)}" fill="${K_COL.hofud.fill}"/>${lv(K_COL.hofud.c)}</g>
+    <g clip-path="url(#kS)"><path d="${area(S)}" fill="${K_COL.sumar.fill}"/>${lv(K_COL.sumar.c)}</g>
+    <path d="${line(H)}" fill="none" stroke="${K_COL.hofud.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <path d="${line(S)}" fill="none" stroke="${K_COL.sumar.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <line x1="0" x2="${W}" y1="${B}" y2="${B}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
+  </svg>`;
+  const ticks = [years[0], ...years.filter(y => y % 4 === 0 && y > years[0] && y < y1 - 1), y1];
+  document.getElementById('k-fjall').innerHTML = svg
+    + grid.map(v => `<span class="k-yl" style="top:${pct(yv(v), B)}%">${v}</span>`).join('')
+    + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : ''}" style="left:${pct(x(years.indexOf(y)), W)}%">${y}</span>`).join('')
+    + `<span class="k-note" style="left:${pct(x(lo), W)}%;top:${pct(yv(H[lo]) - 10, B)}%">${years[lo]}: ${fmtInt(H[lo])}</span>`;
+
+  document.getElementById('k-ends').innerHTML =
+    `<div class="k-end"><i style="background:${K_COL.hofud.c}"></i><b style="color:${K_COL.hofud.tx}">${fmtInt(hLast)}</b><span>Höfuðborgarsvæðið, íbúðir</span></div>`
+    + `<div class="k-end"><i style="background:${K_COL.sumar.c}"></i><b style="color:${K_COL.sumar.tx}">${fmtInt(sLast)}</b><span>Skorradalur, sumarhús</span></div>`;
+
+  // Fyrirsögn: hve mikið verðið hefur margfaldast frá lægsta punkti
+  const f = Math.floor(hLast / H[lo]);
+  const ord = { 2: 'tvöfaldast', 3: 'þrefaldast', 4: 'fjórfaldast', 5: 'fimmfaldast' }[f];
+  if (ord) document.getElementById('k-hero-h').textContent = `Fermetraverð hefur meira en ${ord} síðan ${years[lo]}`;
+  if (lastDate) {
+    const d = new Date(lastDate);
+    document.getElementById('k-fjall-cap').textContent = `Þ.kr á fermetra, meðaltal ársins. ${y1} til og með ${d.getDate()}. ${MAN_LANGT[d.getMonth()]}.`;
+  }
+}
+
+function kSalesTable(hofud, sumar) {
+  const row = (r, reg) => {
+    const l = r.listing, c = K_COL[reg];
+    const propUrl = r.fastnum && r.heinum ? `https://fastinn.is/fasteignir/${r.heinum}/${r.fastnum}` : l?.linkur;
+    const askThkr = l?.verd ? l.verd / 1000 : 0;
+    const diff = askThkr ? Math.round((r.kaupverd - askThkr) / askThkr * 100) : null;
+    const ask = askThkr ? `${fmtMkr(askThkr)} <span class="${diff < 0 ? 'k-down' : diff > 0 ? 'k-up' : ''}" style="font-weight:600">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>` : '';
+    const svaedi = reg === 'sumar' ? '311 Skorradal' : vmPostTxt(r.postnr);
+    const addr = vmEsc(r.heimilisfang);
+    return `<tr>
+      <th scope="row" class="c-eign" style="text-align:left;font-weight:600"><span class="k-sw" style="background:${c.c}"></span>${propUrl ? `<a href="${propUrl}" target="_blank" rel="noopener">${addr}</a>` : addr}<span class="k-sub" style="margin-left:14px">${vmEsc(r.tegund)}, ${fmtDag(r.thinglystdags)}</span></th>
+      <td class="c-svaedi" style="color:var(--k-muted)">${svaedi}</td>
+      <td class="c-staerd r">${fmtM2(r.einflm)}</td>
+      <td class="c-ask r" style="color:var(--k-muted)">${ask}</td>
+      <td class="c-selt r" style="font-weight:700">${fmtMkr(r.kaupverd)}</td>
+      <td class="c-fm r">${fmtInt(r.kaupverd / r.einflm)}</td>
+    </tr>`;
+  };
+  const rows = [...hofud.map(r => row(r, 'hofud')), ...sumar.map(r => row(r, 'sumar'))];
+  document.getElementById('k-solur').innerHTML = rows.length ? rows.join('')
+    : '<tr><td colspan="6">Engar sölur fundust.</td></tr>';
+}
+
 async function initYfirlit() {
   if (yfirlitReady) return;
   yfirlitReady = true;
+  const fail = id => { const e = document.getElementById(id); if (e) e.innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; };
 
-  // Höfuðborgarsvæðið: samantekt úr Supabase + fjöldi auglýsinga + nýjustu sölur
-  Promise.all([API.getManadarsolur(0, null), fetchFastinnHofud(0, 'all')]).then(([agg, ls]) => {
-    if (agg.data) renderRegionCard(document.getElementById('yf-hofud'), hofudByYear(agg.data), ls.length);
-  });
-  API.query('kaupskra', {
+  const hBy = API.getManadarsolur(0, null).then(r => r.data ? hofudByYear(r.data) : null);
+  const sum = loadSumarData().then(([k, ls]) => ({ rows: k.data || [], ls }));
+  Promise.all([hBy, fetchFastinnHofud(0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.length); });
+  sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.length));
+
+  const hSales = API.query('kaupskra', {
     select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
     kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1', or: IBUD_OR,
-    and: '(postnr.gte.100,postnr.lte.230)', order: 'thinglystdags.desc', limit: 4
-  }, { paginate: false }).then(async ({ data }) => {
-    renderSalesList('yf-sales-hofud', data, true);
-    renderSalesList('yf-sales-hofud', await matchSalesToListings(data), true);
-    if (data?.[0]) document.getElementById('upd').textContent = 'Sölur til og með ' + fmtDagLangt(data[0].thinglystdags);
-  });
+    and: '(postnr.gte.100,postnr.lte.230)', order: 'thinglystdags.desc', limit: 5
+  }, { paginate: false }).then(r => r.data || []);
+  const sSales = sum.then(s => s.rows.filter(r => r.einflm > 10).slice(-3).reverse()
+    .map(r => ({ ...r, postnr: POSTNR, tegund: 'Sumarhús' })));
 
-  // Skorradalur: sömu gögn og síun og Skorradals-flipinn
-  loadSumarData().then(([k, ls]) => {
-    const rows = k.data || [];
-    renderRegionCard(document.getElementById('yf-sumar'), yearStatsFromRows(rows, 10, 2000), ls.length);
-    const latest = rows.filter(r => r.einflm > 10 && r.onothaefur_samningur !== '1')
-      .slice(-4).reverse().map(r => ({ ...r, postnr: POSTNR, tegund: 'Sumarhús' }));
-    renderSalesList('yf-sales-sumar', latest, false);
-    matchSalesToListings(latest).then(m => renderSalesList('yf-sales-sumar', m, false));
-  });
+  Promise.all([hBy, sum, hSales]).then(([h, s, hs]) => {
+    if (!h) return fail('k-fjall');
+    kFjall(h, yearStatsFromRows(s.rows, 10, 2000), hs[0]?.thinglystdags);
+  }).catch(() => fail('k-fjall'));
+
+  Promise.all([hSales, sSales]).then(async ([h, s]) => {
+    kSalesTable(h, s);                                   // sölur strax…
+    const [hm, sm] = await Promise.all([matchSalesToListings(h), matchSalesToListings(s)]);
+    kSalesTable(hm, sm);                                 // …ásett verð þegar það finnst
+  }).catch(() => fail('k-solur'));
 }
 
 // ============================================================
@@ -1563,7 +1630,7 @@ function showView(view, { push = true } = {}) {
   document.querySelectorAll('.tab-btn').forEach(b => {
     const on = b.dataset.view === view;
     b.classList.toggle('active', on);
-    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
 
