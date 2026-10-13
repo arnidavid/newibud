@@ -411,13 +411,13 @@ function khListings(ls, rows, pre = 'kh', col = 'var(--k-hofud-tx)') {
   ls.sort((a, b) => (b.dags_raw?.getTime() || 0) - (a.dags_raw?.getTime() || 0));
   w.innerHTML = ls.map(l => {
     const mi = rows.length ? getMatInfo(rows, l.heimilisfang, l.staerd) : null;
-    const ratio = mi && mi.mat > 0 && l.verd_kr > 0 ? Math.round(l.verd_kr / mi.mat / 10) : null;
+    const diff = mi && mi.mat > 0 && l.verd_kr > 0 ? Math.round(l.verd_kr / mi.mat / 10) - 100 : null;
     return `<article class="k-lst" data-addr="${vmEsc(l.heimilisfang.toLowerCase())}">
       <div><h3>${vmEsc(l.heimilisfang)}</h3><div class="k-sub">${l.dags ? 'Skráð ' + l.dags : ''}</div></div>
       <div><div class="k-lab">Ásett verð</div><div style="font-weight:700">${l.verd_kr > 0 ? fmtMkr(l.verd_kr / 1000) : 'Tilboð'}</div></div>
       <div><div class="k-lab">Stærð</div><div>${l.staerd ? fmtM2(l.staerd) : '–'}</div></div>
       <div><div class="k-lab">Þ.kr/m²</div><div>${l.fm_thkr > 0 ? fmtInt(l.fm_thkr) : '–'}</div></div>
-      <div><div class="k-lab">Af fasteignamati</div><div class="${ratio > 100 ? 'k-up' : ratio ? 'k-down' : ''}">${ratio ? ratio + '%' : '–'}</div></div>
+      <div><div class="k-lab">${diff < 0 ? 'Undir' : 'Yfir'} fasteignamati</div><div class="${diff > 0 ? 'k-up' : diff < 0 ? 'k-down' : ''}">${diff === null ? '–' : Math.abs(diff) + '%'}</div></div>
       <a href="${l.linkur}" target="_blank" rel="noopener" style="color:${col}">Opna auglýsingu</a>
     </article>`;
   }).join('');
