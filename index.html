@@ -6,8 +6,8 @@
 <title>Fasteignavaktin — Sumarhús &amp; Fjölbýli</title>
 <script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=27">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
 <header class="site-hd">
@@ -346,17 +346,19 @@
 
   <!-- ===================== VERÐMAT ===================== -->
   <div id="view-verdmat" class="view">
-    <div class="vm-intro">
-      <h1 class="yf-h1">Hvað er eignin mín virði?</h1>
-      <p class="yf-lead">Gróf áætlun út frá fasteignamati og því hvað sambærilegar eignir í hverfinu hafa selst á síðustu 12 mánuði. Fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu.</p>
+    <div class="k-titlerow">
+      <div>
+      <h1 class="k-h1" style="margin-bottom:10px">Hvað er eignin mín virði?</h1>
+      <p class="k-lead">Gróf áætlun út frá fasteignamati og því hvað sambærilegar eignir í hverfinu hafa selst á síðustu 12 mánuði. Fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu.</p>
+      </div>
     </div>
 
-    <div class="vm-grid">
-      <section class="vm-card" aria-labelledby="vm-finna">
-        <h2 class="mh-h2" id="vm-finna">1. Finndu eignina</h2>
-        <div class="mh-seg vm-seg" role="group" aria-label="Leið">
-          <button type="button" class="mh-seg-btn vm-mode" data-mode="addr" aria-pressed="true">Leita eftir heimilisfangi</button>
-          <button type="button" class="mh-seg-btn vm-mode" data-mode="manual" aria-pressed="false">Slá inn mat</button>
+    <div class="k-vmgrid">
+      <section class="k-step" aria-labelledby="vm-finna">
+        <h2 class="k-h2" id="vm-finna" style="margin-bottom:14px">Finndu eignina</h2>
+        <div class="k-seg vm-seg" role="group" aria-label="Leið">
+          <button type="button" class="vm-mode" data-mode="addr" aria-pressed="true">Leita eftir heimilisfangi</button>
+          <button type="button" class="vm-mode" data-mode="manual" aria-pressed="false">Slá inn mat</button>
         </div>
 
         <div id="vm-addr">
@@ -396,26 +398,26 @@
         </form>
       </section>
 
-      <section class="vm-result" aria-labelledby="vm-res-title" aria-live="polite">
-        <h2 class="vm-res-title" id="vm-res-title">2. Áætlað söluverð</h2>
+      <section class="k-step" aria-labelledby="vm-res-title" aria-live="polite">
+        <h2 class="k-h2" id="vm-res-title">Áætlað söluverð</h2>
+        <p class="k-sub" id="vm-res-sub" style="font-size:15px;margin:4px 0 18px"></p>
         <div id="vm-res-body">
           <p class="vm-empty">Finndu eignina eða sláðu inn fasteignamat til að sjá áætlað söluverð.</p>
         </div>
       </section>
     </div>
 
-    <section class="vm-card vm-wide" id="vm-comps-box" hidden aria-labelledby="vm-comps-title">
-      <h2 class="mh-h2" id="vm-comps-title">Sambærilegar sölur í hverfinu</h2>
-      <p class="vm-sub" id="vm-comps-sub"></p>
+    <section class="k-vmsec" id="vm-comps-box" hidden aria-labelledby="vm-comps-title">
+      <div class="k-sechd"><h2 class="k-h2" id="vm-comps-title">Sambærilegar sölur í hverfinu</h2><span class="k-sechd-note" id="vm-comps-sub"></span></div>
       <div id="vm-comps"></div>
     </section>
 
-    <section class="vm-card vm-wide" id="vm-saga-box" hidden aria-labelledby="vm-saga-title">
-      <h2 class="mh-h2" id="vm-saga-title">Fyrri sölur þessarar eignar</h2>
+    <section class="k-vmsec" id="vm-saga-box" hidden aria-labelledby="vm-saga-title">
+      <h2 class="k-h2 k-rule" id="vm-saga-title">Fyrri sölur þessarar eignar</h2>
       <ol class="vm-saga" id="vm-saga"></ol>
     </section>
 
-    <aside class="vm-note">
+    <aside class="k-aside">
       <strong>Þetta er gróf áætlun, ekki verðmat.</strong> Hún byggir eingöngu á fasteignamati og nýlegum sölum í hverfinu og veit ekkert um ástand eignarinnar. Fyrir sölu er rétt að fá verðmat hjá löggiltum fasteignasala.
     </aside>
   </div><!-- /view-verdmat -->
@@ -423,6 +425,6 @@
 </main>
 
 <script src="api.js?v=7"></script>
-<script src="app.js?v=66"></script>
+<script src="app.js?v=69"></script>
 </body>
 </html>

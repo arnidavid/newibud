@@ -699,32 +699,6 @@ async function matchSalesToListings(sales) {
   });
 }
 
-function renderSalesList(id, rows, showPostnr) {
-  const el = document.getElementById(id);
-  if (!rows?.length) { el.innerHTML = '<div class="emp" style="padding:1rem 1.25rem">Engar sölur fundust.</div>'; return; }
-  el.innerHTML = rows.map(r => {
-    const l = r.listing;
-    // Eignasíða á fastinn.is eftir fastanúmeri (HMS) – nákvæm tenging fyrir allar sölur
-    const propUrl = r.fastnum && r.heinum ? `https://fastinn.is/fasteignir/${r.heinum}/${r.fastnum}` : l?.linkur;
-    const askThkr = l?.verd ? l.verd / 1000 : 0;
-    const diff = askThkr ? Math.round((r.kaupverd - askThkr) / askThkr * 100) : null;
-    const diffTxt = diff == null ? '' : `<span class="${diff < 0 ? 'down' : diff > 0 ? 'up' : ''}">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>`;
-    return `
-    <div class="yf-row">
-      <div style="min-width:0">
-        <div class="yf-addr">${propUrl ? `<a href="${propUrl}" target="_blank" rel="noopener" title="Skoða eign">${r.heimilisfang}</a>` : r.heimilisfang}</div>
-        <div class="yf-meta">${[showPostnr ? r.postnr : null, r.tegund, String(r.einflm).replace('.', ',') + ' m²', fmtDag(r.thinglystdags)].filter(Boolean).join(' · ')}</div>
-        ${l ? `<a class="yf-ask" href="${l.linkur}" target="_blank" rel="noopener">Auglýst ${askThkr ? fmtMkr(askThkr) : ''} ${diffTxt}
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h7v7M13 3 4 12"/></svg></a>` : ''}
-      </div>
-      <div>
-        <div class="yf-price">${fmtMkr(r.kaupverd)}</div>
-        <div class="yf-fm">${fmtInt(Math.round(r.kaupverd / r.einflm))} þ.kr/m²</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
 // ---- Forsíða (kortastefna) ----
 const K_COL = { hofud: { c: '#B8652A', tx: '#8A4519', fill: '#F7EEE6' }, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
 const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
@@ -1162,8 +1136,8 @@ function vmRenderUnits() {
      <ul class="vm-list">` + VM.units.map((u, i) =>
     `<li><button type="button" class="vm-opt vm-unit-btn" data-i="${i}" aria-pressed="${VM.unit === i}">
       <span class="vm-opt-txt">
-        <span class="vm-opt-main">${VM_TEG[u.tegund]?.[0] || 'Eign'} · ${vmM2(u.einflm)}${u.byggar ? ' · byggt ' + u.byggar : ''}</span>
-        <span class="vm-opt-sub">Fastanúmer F${vmEsc(u.fastnum)}</span>
+        <span class="vm-opt-main">${VM_TEG[u.tegund]?.[0] || 'Eign'}, ${vmM2(u.einflm)}</span>
+        <span class="vm-opt-sub">${u.byggar ? 'Byggt ' + u.byggar + ', f' : 'F'}astanúmer F${vmEsc(u.fastnum)}</span>
       </span>
       <span class="vm-opt-side">Mat ${fmtMkr(u.fasteignamat)}</span>
     </button></li>`).join('') + '</ul>';
@@ -1206,7 +1180,7 @@ function vmManual() {
 
 async function vmCompute(e) {
   const body = document.getElementById('vm-res-body');
-  document.getElementById('vm-res-title').textContent = '2. Áætlað söluverð';
+  document.getElementById('vm-res-sub').textContent = '';
   body.innerHTML = '<p class="vm-empty">Reikna…</p>';
   const seq = ++VM.cseq;
   const { data: d } = await API.rpc('get_verdmat', {
@@ -1223,20 +1197,20 @@ async function vmCompute(e) {
              : `á höfuðborgarsvæðinu (of fáar sölur í ${e.postnr} einu)`;
   const breyt27 = e.mat27 ? (e.mat27 / e.mat - 1) * 100 : null;
 
-  document.getElementById('vm-res-title').textContent = '2. Áætlað söluverð – ' + e.title;
+  document.getElementById('vm-res-sub').textContent = e.title;
   body.innerHTML = `
-    <div class="vm-big">${fmtMkr(mid)}</div>
-    <div class="vm-range-txt">Líklegt bil: <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></div>
-    <div class="vm-range" role="img" aria-label="Áætlað verð ${fmtMkr(mid)}, líklegt bil ${fmtMkr(lo)} til ${fmtMkr(hi)}.">
-      <div class="vm-track"></div><div class="vm-band"></div><div class="vm-mark" style="left:${mark.toFixed(1)}%"></div>
+    <div class="k-vbig">${fmtMkr(mid)}</div>
+    <p class="k-vrange">Líklegt bil: <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></p>
+    <div class="k-vbar" role="img" aria-label="Áætlað verð ${fmtMkr(mid)}, líklegt bil ${fmtMkr(lo)} til ${fmtMkr(hi)}.">
+      <i class="k-vbar-axis"></i><i class="k-vbar-band"></i><i class="k-vbar-mark" style="left:${mark.toFixed(1)}%"></i>
     </div>
-    <div class="vm-range-ends"><span>Lægra: ${fmtMkr(lo)}</span><span>Hærra: ${fmtMkr(hi)}</span></div>
-    <dl class="vm-facts">
+    <div class="k-vbar-ends"><span>${fmtMkr(lo)}</span><span>${fmtMkr(hi)}</span></div>
+    <dl class="k-vfacts">
       <div><dt>Fasteignamat 2026</dt><dd>${fmtMkr(e.mat)}</dd></div>
-      <div><dt>Sölur ${d.svaedi === 'postnr' ? 'í hverfinu' : 'á svæðinu'}, % af mati</dt><dd>${vmPct(d.p50)}</dd></div>
-      ${e.mat27 ? `<div><dt>Fasteignamat 2027</dt><dd>${fmtMkr(e.mat27)} <small>(${breyt27 >= 0 ? '+' : '−'}${Math.abs(breyt27).toFixed(1).replace('.', ',')}%)</small></dd></div>` : ''}
+      <div><dt>Sölur ${d.svaedi === 'postnr' ? 'í ' + e.postnr : 'á svæðinu'}, % af mati</dt><dd>${vmPct(d.p50)}</dd></div>
+      ${e.mat27 ? `<div><dt>Fasteignamat 2027</dt><dd>${fmtMkr(e.mat27)} <small>${breyt27 >= 0 ? '+' : '−'}${Math.abs(breyt27).toFixed(1).replace('.', ',')}%</small></dd></div>` : ''}
     </dl>
-    <p class="vm-expl">${teg.replace(/^./, c => c.toUpperCase())} ${hvar} seldust að jafnaði á ${vmPct(d.p50)} af fasteignamati síðustu 12 mánuði (${fmtInt(d.n)} sölur). Helmingur seldist á ${vmPct(d.p25)}–${vmPct(d.p75)} af mati – það er bilið hér að ofan. Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.</p>`;
+    <p class="k-figp" style="margin-top:18px">${teg.replace(/^./, c => c.toUpperCase())} ${hvar} seldust að jafnaði á ${vmPct(d.p50)} af fasteignamati síðustu 12 mánuði (${fmtInt(d.n)} sölur). Helmingur seldist á ${vmPct(d.p25)}–${vmPct(d.p75)} af mati, og það er bilið. Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.</p>`;
 
   // Sambærilegar sölur
   const cBox = document.getElementById('vm-comps-box');
@@ -1244,20 +1218,20 @@ async function vmCompute(e) {
   document.getElementById('vm-comps-sub').textContent =
     `${teg.replace(/^./, c => c.toUpperCase())} í ${e.postnr}${e.einflm ? `, ${Math.round(e.einflm * 0.8)}–${Math.round(e.einflm * 1.2)} m²` : ''}, nýjustu sölur síðustu 12 mánuði.`;
   document.getElementById('vm-comps').innerHTML = d.samb.length ? `
-    <div class="vm-tablewrap"><table class="vm-table">
+    <table class="k-tbl k-tbl-vm">
       <thead><tr><th scope="col">Gata</th><th scope="col">Þinglýst</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Byggt</th><th scope="col" class="r">Söluverð</th><th scope="col" class="r">% af mati</th></tr></thead>
       <tbody>${d.samb.map(s => `<tr>
-        <th scope="row">${vmEsc(s.gata)}</th><td class="vm-c-dag">${fmtDagLangt(s.thinglystdags)}</td>
-        <td class="r vm-c-m2" data-l="Stærð">${vmM2(s.einflm)}</td><td class="r vm-c-ar" data-l="Byggt">${s.byggar || '—'}</td>
-        <td class="r b vm-c-verd">${fmtMkr(s.kaupverd)}</td><td class="r b vm-c-r ${s.r >= 1 ? 'vm-yfir' : 'vm-undir'}">${vmPct(s.r)} <span class="vm-c-af">af mati</span></td></tr>`).join('')}
-      </tbody></table></div>`
-    : '<p class="vm-help">Engar sambærilegar sölur í þessu póstnúmeri síðustu 12 mánuði.</p>';
+        <th scope="row" class="c-eign" style="text-align:left;font-weight:600">${vmEsc(s.gata)}</th><td class="c-d" style="color:var(--k-muted)">${fmtDagAr(s.thinglystdags)}</td>
+        <td class="c-staerd r">${vmM2(s.einflm)}</td><td class="c-b r">${s.byggar || '–'}</td>
+        <td class="c-selt r" style="font-weight:700">${fmtMkr(s.kaupverd)}</td><td class="c-r r ${s.r >= 1 ? 'k-up' : 'k-down'}" style="font-weight:600">${vmPct(s.r)}</td></tr>`).join('')}
+      </tbody></table>`
+    : '<p class="k-sub">Engar sambærilegar sölur í þessu póstnúmeri síðustu 12 mánuði.</p>';
 
   // Fyrri sölur eignarinnar
   const sBox = document.getElementById('vm-saga-box');
   sBox.hidden = !d.saga.length;
   document.getElementById('vm-saga').innerHTML = d.saga.map(s =>
-    `<li><span>${fmtDagLangt(s.thinglystdags)}</span><span class="b">${fmtMkr(s.kaupverd)}</span></li>`).join('');
+    `<li><span>${fmtDagLangt(s.thinglystdags)}</span><b>${fmtMkr(s.kaupverd)}</b></li>`).join('');
 }
 
 document.addEventListener('click', e => {
