@@ -8,7 +8,7 @@
 <script defer data-domain="sumar.silfran.com" src="https://analytics.silfran.com/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="style.css?v=24">
 </head>
 <body>
 <header class="site-hd">
@@ -172,140 +172,124 @@
 
   <!-- ===================== HÖFUÐBORGARSVÆÐI VIEW ===================== -->
   <div id="view-hofud" class="view">
-
-    <!-- Postnr selector -->
-    <div class="postnr-sel">
-      <span class="pnr-label">Svæði</span>
-      <div class="pnr-wrap">
-        <select id="hofud-postnr" class="pnr-select" aria-label="Veldu póstnúmer">
-          <option value="0">— Öll svæðið —</option>
+    <div class="k-titlerow">
+      <div>
+        <h1 class="k-h1" style="margin-bottom:8px">Höfuðborgarsvæðið</h1>
+        <p class="k-lead" id="kh-sub">Íbúðarhúsnæði í póstnúmerum 101–230</p>
+      </div>
+      <form class="k-filters" onsubmit="return false">
+        <div><label for="hofud-postnr">Svæði</label>
+        <select id="hofud-postnr" class="k-sel">
+          <option value="0">Allt svæðið</option>
           <optgroup label="Reykjavík">
-            <option value="101">101 — Miðborg</option>
-            <option value="103">103 — Hlíðar</option>
-            <option value="104">104 — Laugardalur</option>
-            <option value="105">105 — Hlíðar</option>
-            <option value="107">107 — Ármúli</option>
-            <option value="108">108 — Breiðholt</option>
-            <option value="109">109 — Breiðholt</option>
-            <option value="110">110 — Árbær</option>
-            <option value="111">111 — Grafarvogur</option>
-            <option value="112">112 — Grafarvogur</option>
-            <option value="113">113 — Kjalarnes</option>
-            <option value="116">116 — Grafarvogsreinar</option>
+            <option value="101">101 Miðborg</option>
+            <option value="103">103 Hlíðar</option>
+            <option value="104">104 Laugardalur</option>
+            <option value="105">105 Hlíðar</option>
+            <option value="107">107 Ármúli</option>
+            <option value="108">108 Breiðholt</option>
+            <option value="109">109 Breiðholt</option>
+            <option value="110">110 Árbær</option>
+            <option value="111">111 Grafarvogur</option>
+            <option value="112">112 Grafarvogur</option>
+            <option value="113">113 Kjalarnes</option>
+            <option value="116">116 Grafarvogsreinar</option>
           </optgroup>
           <optgroup label="Kópavogur">
-            <option value="200">200 — Kópavogur</option>
-            <option value="201">201 — Kópavogur (Smárar)</option>
-            <option value="202">202 — Kópavogur</option>
-            <option value="203">203 — Kópavogur (Digranes)</option>
+            <option value="200">200 Kópavogur</option>
+            <option value="201">201 Kópavogur (Smárar)</option>
+            <option value="202">202 Kópavogur</option>
+            <option value="203">203 Kópavogur (Digranes)</option>
           </optgroup>
           <optgroup label="Garðabær">
-            <option value="210">210 — Garðabær</option>
-            <option value="212">212 — Garðabær</option>
+            <option value="210">210 Garðabær</option>
+            <option value="212">212 Garðabær</option>
           </optgroup>
           <optgroup label="Hafnarfjörður">
-            <option value="220">220 — Hafnarfjörður</option>
-            <option value="221">221 — Hafnarfjörður</option>
-            <option value="225">225 — Hafnarfjörður</option>
+            <option value="220">220 Hafnarfjörður</option>
+            <option value="221">221 Hafnarfjörður</option>
+            <option value="225">225 Hafnarfjörður</option>
           </optgroup>
-        </select>
-        <svg class="pnr-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
-      </div>
-      <span class="pnr-label">Tegund</span>
-      <div class="pnr-wrap">
-        <select id="hofud-tegund" class="pnr-select" aria-label="Veldu tegund">
-          <option value="all">— Allar tegundir —</option>
+        </select></div>
+        <div><label for="hofud-tegund">Tegund</label>
+        <select id="hofud-tegund" class="k-sel">
+          <option value="all">Allar tegundir</option>
           <option value="fjolb">Fjölbýlishús</option>
           <option value="einb">Einbýlishús</option>
           <option value="raðpar">Sérbýli / Raðhús</option>
-        </select>
-        <svg class="pnr-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
-      </div>
+        </select></div>
+      </form>
     </div>
 
-    <div class="mets">
-      <div class="met"><div class="ml">Á markaði</div><div class="mv" id="h-m1">—</div><div class="ms" id="h-m1s">íbúðarhúsnæði á svæðinu</div></div>
-      <div class="met"><div class="ml">Meðal fm.verð</div><div class="mv" id="h-m2">—</div><div class="ms">þinglýstar sölur 2023–26</div></div>
-      <div class="met"><div class="ml">Sölur 2025 / 2026</div><div class="mv" id="h-m3">—</div><div class="ms" id="h-m3s">íbúðarhúsnæði á svæðinu</div></div>
-      <div class="met"><div class="ml">Verðbreyting</div><div class="mv" id="h-m4">—</div><div class="ms">2024 → 2025</div></div>
-      <div class="met"><div class="ml">Verðbreyting</div><div class="mv" id="h-m5">—</div><div class="ms">2025 → 2026</div></div>
-    </div>
+    <dl class="k-kpis" id="kh-kpis" aria-label="Lykiltölur" aria-live="polite">
+      <div><dt>Á sölu núna</dt><dd class="k-kv" data-k="ls">—</dd><dd class="k-ks">eignir</dd></div>
+      <div><dt data-k="fm-l">Fermetraverð</dt><dd class="k-kv" data-k="fm">—</dd><dd class="k-ks">þ.kr/m², meðaltal</dd></div>
+      <div><dt data-k="n-l">Sölur</dt><dd class="k-kv" data-k="n">—</dd><dd class="k-ks" data-k="n-s"></dd></div>
+      <div><dt data-k="c1-l">Breyting</dt><dd class="k-kv" data-k="c1">—</dd><dd class="k-ks" data-k="c1-s"></dd></div>
+      <div><dt data-k="c2-l">Breyting</dt><dd class="k-kv" data-k="c2">—</dd><dd class="k-ks" data-k="c2-s"></dd></div>
+    </dl>
 
-    <div class="sh"><div class="st">Nýjustu sölur — auglýst vs selt</div><div class="sl"></div></div>
-    <div class="ns-desc">Samanburður á auglýstu verði og raunverulegu söluverði.</div>
-    <div id="h-recentSalesWrap"><div class="ldw"><div class="ldr"></div>Sæki nýjustu sölur…</div></div>
-
-    <div class="sh" style="margin-top:2.5rem"><div class="st">Eignir á markaði</div><div class="sl"></div></div>
-    <div id="h-lw"><div class="ldw"><div class="ldr"></div>Sæki gögn…</div></div>
-
-    <div class="sh" style="margin-top:2.5rem"><div class="st">Verðþróun</div><div class="sl"></div></div>
-    <div class="cgrid">
-      <div class="cbox">
-        <div class="cbt">Meðal fermetraverð (þ.kr/m²)</div>
-        <div class="cw"><canvas id="h-c1"></canvas></div>
-        <div class="cleg" id="h-cleg1"></div>
-      </div>
-      <div class="cbox">
-        <div class="cbt">Fjöldi sölufærslna</div>
-        <div class="cw"><canvas id="h-c2"></canvas></div>
-        <div class="cleg" id="h-cleg2"></div>
-      </div>
-    </div>
-
-    <div class="chart-full" style="margin-bottom:2rem">
-      <div class="cbox">
-        <div class="cbt">Raunverðsþróun — verðbólguleiðrétt (VNV grunnur 2024)</div>
-        <div class="cw"><canvas id="h-c3"></canvas></div>
-        <div class="cleg" id="h-cleg3"></div>
-      </div>
-    </div>
-
-    <div class="chart-full" style="margin-bottom:2rem">
-      <div class="cbox">
-        <div class="cbt">Kaupverð vs fasteignamat — hlutfall (%)</div>
-        <div class="cw" style="height:260px"><canvas id="h-c4"></canvas></div>
-        <div class="cleg" id="h-cleg4"></div>
-      </div>
-    </div>
-
-    <div class="sh"><div class="st">Verð eftir stærð og aldri</div><div class="sl"></div></div>
-    <div class="ns-desc" id="h-sa-desc">Miðgildi fermetraverðs í sölum síðustu 24 mánuði.</div>
-    <div class="cgrid" style="margin-bottom:2rem">
-      <div class="cbox">
-        <div class="cbt">Fermetraverð eftir stærð (þ.kr/m²)</div>
-        <div class="cw sa-cw"><canvas id="h-c7" role="img" aria-label="Fermetraverð eftir stærð"></canvas></div>
-        <p class="sa-note" id="h-sa-staerd"></p>
-      </div>
-      <div class="cbox">
-        <div class="cbt">Fermetraverð eftir byggingarári (þ.kr/m²)</div>
-        <div class="cw sa-cw"><canvas id="h-c8" role="img" aria-label="Fermetraverð eftir byggingarári"></canvas></div>
-        <p class="sa-note" id="h-sa-aldur"></p>
-      </div>
-    </div>
-
-    <div class="sh"><div class="st">Árstíðagreining</div><div class="sl"></div></div>
-    <div id="h-seasonWrap">
-      <div class="cgrid" style="margin-bottom:1.25rem">
-        <div class="cbox" style="display:flex;flex-direction:column;justify-content:center;padding:1.75rem">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;text-align:center">
-            <div><div class="ml">Hagstæðast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem" id="h-sBest">—</div><div class="ms" id="h-sBestSub"></div></div>
-            <div><div class="ml">Dýrast</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem;color:var(--up)" id="h-sWorst">—</div><div class="ms" id="h-sWorstSub"></div></div>
-            <div><div class="ml">Munur</div><div style="font-family:'Instrument Serif',serif;font-size:1.8rem;margin-top:.2rem" id="h-sDiff">—</div><div class="ms">sparnaður</div></div>
-          </div>
-          <div style="margin-top:1.25rem;font-size:.82rem;color:var(--tx2);line-height:1.6;padding:.75rem 1rem;background:var(--bg-alt);border-radius:10px;border-left:3px solid var(--hofud)" id="h-seasonAdvice"></div>
-        </div>
-        <div class="cbox">
-          <div class="cbt">Meðal fm.verð eftir mánuði (2020–26)</div>
-          <div class="cw"><canvas id="h-c5"></canvas></div>
-          <div class="cleg"><span><span class="ld" style="background:#9a4a24"></span>3 ódýrustu mánuðirnir</span><span><span class="ld" style="background:#e2c3b2"></span>Aðrir mánuðir</span></div>
+    <section aria-labelledby="kh-throun-h" style="margin-top:48px">
+      <div class="k-sechd" style="border-bottom:0;padding-bottom:0">
+        <h2 id="kh-throun-h" class="k-h2">Verðþróun</h2>
+        <div class="k-seg" role="group" aria-label="Verðlag">
+          <button type="button" data-verdlag="nom" aria-pressed="true">Krónur hvers árs</button>
+          <button type="button" data-verdlag="real" aria-pressed="false">Á verðlagi 2024</button>
         </div>
       </div>
-      <div class="cbox" style="margin-bottom:2rem">
-        <div class="cbt">Hitakort — fm.verð eftir mánuði og ári</div>
-        <div class="cw" style="height:260px"><canvas id="h-c6"></canvas></div>
-        <div style="font-size:.72rem;color:var(--tx3);margin-top:.5rem">Dekkri litur = hærra fermetraverð · Hover til að sjá nákvæmt verð</div>
+      <p class="k-now" id="kh-now"></p>
+      <figure style="margin:0">
+        <div class="k-chart k-tall" id="kh-fjall"><div class="ldw"><div class="ldr"></div>Sæki gögn…</div></div>
+      </figure>
+      <div class="k-two" style="margin-top:56px">
+        <figure style="margin:0">
+          <figcaption class="k-figt">Sölur á ári <span id="kh-bars-t"></span></figcaption>
+          <div class="k-chart" id="kh-bars"></div>
+        </figure>
+        <figure style="margin:0">
+          <figcaption class="k-figt">Söluverð sem hlutfall af fasteignamati <span id="kh-mat-t"></span></figcaption>
+          <div class="k-chart" id="kh-mat"></div>
+        </figure>
       </div>
-    </div>
+    </section>
+
+    <section aria-labelledby="kh-solur-h" style="margin-top:72px">
+      <div class="k-sechd">
+        <h2 id="kh-solur-h" class="k-h2">Nýjustu sölur</h2>
+        <span class="k-sechd-note">Ásett verð þar sem auglýsing fannst</span>
+      </div>
+      <table class="k-tbl">
+        <thead><tr><th scope="col">Eign</th><th scope="col">Póstnúmer</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Ásett</th><th scope="col" class="r">Selt</th><th scope="col" class="r">Þ.kr/m²</th></tr></thead>
+        <tbody id="kh-sales"><tr><td colspan="6"><div class="ldw"><div class="ldr"></div>Sæki sölur…</div></td></tr></tbody>
+      </table>
+      <button type="button" class="k-more" id="kh-sales-more" hidden></button>
+    </section>
+
+    <section aria-labelledby="kh-sa-h" style="margin-top:52px">
+      <h2 id="kh-sa-h" class="k-h2 k-rule">Fermetraverð eftir stærð og aldri</h2>
+      <p class="k-intro" id="kh-sa-desc">Sölur síðustu 24 mánuði.</p>
+      <div class="k-two">
+        <figure style="margin:0"><figcaption class="k-figt">Eftir stærð</figcaption><div id="kh-sa-staerd"></div><p class="k-figp" id="kh-sa-staerd-n"></p></figure>
+        <figure style="margin:0"><figcaption class="k-figt">Eftir byggingarári</figcaption><div id="kh-sa-aldur"></div><p class="k-figp" id="kh-sa-aldur-n"></p></figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="kh-man-h" style="margin-top:52px">
+      <h2 id="kh-man-h" class="k-h2 k-rule">Fermetraverð eftir mánuðum</h2>
+      <p class="k-intro" id="kh-man-txt"></p>
+      <div class="k-heatbox" role="region" aria-label="Fermetraverð eftir mánuðum, tafla sem má skruna til hliðar" tabindex="0" id="kh-heat"></div>
+    </section>
+
+    <section aria-labelledby="kh-ls-h" style="margin-top:52px">
+      <div class="k-sechd">
+        <h2 id="kh-ls-h" class="k-h2">Á sölu núna</h2>
+        <span class="k-sechd-note" id="kh-ls-n"></span>
+      </div>
+      <div id="kh-ls"><div class="ldw"><div class="ldr"></div>Sæki gögn…</div></div>
+      <button type="button" class="k-more" id="kh-ls-more" hidden></button>
+    </section>
+
+    <footer class="k-foot">Fermetraverð í þúsundum króna, óleiðrétt fyrir verðbólgu nema annað sé tekið fram.</footer>
   </div><!-- /view-hofud -->
 
   <!-- ===================== MARKAÐSHITI ===================== -->
@@ -435,6 +419,6 @@
 </main>
 
 <script src="api.js?v=7"></script>
-<script src="app.js?v=57"></script>
+<script src="app.js?v=60"></script>
 </body>
 </html>

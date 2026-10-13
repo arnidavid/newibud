@@ -651,3 +651,64 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-tbl .c-ask:not(:empty)::before { content: "Ásett "; }
   .k-tbl .c-svaedi { display: none; }
 }
+
+/* ---- Höfuðborgarsvæðið (og síðar Skorradalur) ---- */
+.k-titlerow { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 40px; padding: 40px 0 22px; }
+.k-filters { display: flex; flex-wrap: wrap; gap: 12px; flex: 0 1 440px; }
+.k-filters > div { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; }
+.k-filters label { font-size: 13px; color: var(--k-muted); }
+.k-sel { font: inherit; font-size: 15px; min-height: 44px; padding: 0 12px; border: 1px solid #857F74; border-radius: 0; background: #fff; color: var(--k-ink); }
+.k-sel:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+.k-kpis { margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 2px solid var(--k-ink); border-bottom: 1px solid var(--k-rule); }
+.k-kpis > div { padding: 16px 18px 18px 0; }
+.k-kpis dt { font-size: 13px; color: var(--k-muted); }
+.k-kpis dd { margin: 4px 0 0; }
+.k-kv { font-size: 34px; font-weight: 800; letter-spacing: -.6px; }
+.k-ks { font-size: 13px; color: var(--k-muted); }
+.k-seg { display: inline-flex; border: 1px solid #857F74; }
+.k-seg button { font: inherit; font-size: 14px; min-height: 44px; padding: 0 14px; border: 0; background: #fff; color: var(--k-ink); cursor: pointer; }
+.k-seg button[aria-pressed="true"] { background: var(--k-ink); color: var(--k-paper); font-weight: 700; }
+.k-seg button:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+.k-now { margin: 14px 0 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.k-now b { font-size: 34px; font-weight: 800; letter-spacing: -.6px; }
+.k-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 56px; margin-top: 20px; }
+.k-figt { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.k-figt span { font-weight: 400; font-size: 14px; color: var(--k-muted); }
+.k-figp { margin: 10px 0 0; font-size: 15px; line-height: 1.5; }
+.k-rule { border-bottom: 2px solid var(--k-ink); padding-bottom: 10px; }
+.k-intro { margin: 12px 0 16px; font-size: 15px; color: var(--k-muted); max-width: 700px; line-height: 1.5; }
+.k-more { font: inherit; font-size: 15px; font-weight: 700; min-height: 48px; width: 100%; border: 0; border-top: 1px solid var(--k-hair);
+  background: transparent; color: var(--k-hofud-tx); text-align: left; padding: 0; cursor: pointer; }
+.k-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.k-more:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+.k-bar { display: grid; grid-template-columns: 96px 1fr 52px; align-items: center; gap: 12px; padding: 5px 0; }
+.k-bar-l { font-size: 14px; color: var(--k-muted); }
+.k-bar-t { display: block; height: 14px; background: #ECE4DD; }
+.k-bar-t > span { display: block; height: 14px; }
+.k-bar-v { font-size: 15px; font-weight: 700; text-align: right; }
+.k-bar.faint .k-bar-v, .k-bar.faint .k-bar-l { color: #8B98A0; }
+.k-heatbox { overflow-x: auto; }
+.k-heatbox:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+.k-heat { border-collapse: separate; border-spacing: 3px; font-size: 13px; min-width: 720px; width: 100%; }
+.k-heat th { font-weight: 500; color: var(--k-muted); padding: 4px; }
+.k-heat tbody th { text-align: left; font-weight: 600; color: var(--k-ink); padding: 4px 8px 4px 4px; }
+.k-heat td { text-align: center; padding: 9px 2px; font-weight: 600; }
+.k-lst { display: grid; grid-template-columns: minmax(200px, 2fr) repeat(4, minmax(80px, 1fr)) auto; align-items: center; gap: 8px 20px; padding: 16px 0; border-bottom: 1px solid var(--k-hair); }
+.k-lst h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.k-lab { font-size: 12px; color: var(--k-muted); }
+.k-lst a { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 10px 0; }
+.k-lst[hidden], .k-tbl tr[hidden] { display: none !important; }
+.k-mob { display: none; }
+
+@media (max-width: 640px) {
+  .k-titlerow { padding: 28px 0 18px; }
+  .k-kpis { grid-template-columns: 1fr 1fr; }
+  .k-kpis > div:first-child { grid-column: 1 / -1; }
+  .k-kv, .k-now b { font-size: 28px; }
+  .k-two { grid-template-columns: 1fr; gap: 40px; }
+  .k-bar { grid-template-columns: 84px 1fr 44px; gap: 10px; }
+  .k-lst { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+  .k-lst > :first-child, .k-lst > :last-child { grid-column: 1 / -1; }
+  .k-seg { width: 100%; } .k-seg button { flex: 1 1 0; padding: 0 8px; }
+  .k-mob { display: inline; }
+}
