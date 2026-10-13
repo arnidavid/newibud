@@ -299,7 +299,7 @@ let sumarListings = [];
 let _streetFilterTimer = null;
 
 function destroyHofudCharts() {
-  ['c1','c2','c3','c4','c5','c6'].forEach(k => {
+  ['c1','c2','c3','c4','c5','c6','c7','c8'].forEach(k => {
     if (H_CHARTS[k]) { H_CHARTS[k].destroy(); H_CHARTS[k] = null; }
   });
 }
@@ -410,6 +410,71 @@ function seasonalAnalysisHofud(agg) {
     best: 'h-sBest', bestSub: 'h-sBestSub', worst: 'h-sWorst', worstSub: 'h-sWorstSub',
     diff: 'h-sDiff', advice: 'h-seasonAdvice', c5: 'h-c5', c6: 'h-c6'
   }, [2020, 2026]);
+}
+
+// ---- Verð eftir stærð og aldri (RPC get_verd_staerd_aldur) ----
+const SA_BINS = {
+  staerd: ['<50 m²', '50–69', '70–89', '90–109', '110–139', '140–199', '200+ m²'],
+  aldur:  ['fyrir 1950', '1950–69', '1970–89', '1990–2009', '2010–19', '2020+']
+};
+const SA_MIN_N = 5;   // færri sölur en þetta → dauf súla, ekki notuð í samanburð
+
+async function renderStaerdAldur(postnr, tegund, kaupTegund) {
+  const { data } = await API.rpc('get_verd_staerd_aldur', { p_postnr: postnr, p_tegund: kaupTegund });
+  if (hofudPostnr !== postnr || hofudTegund !== tegund) return;
+  ['c7', 'c8'].forEach(k => { if (H_CHARTS[k]) { H_CHARTS[k].destroy(); H_CHARTS[k] = null; } });
+  const noteS = document.getElementById('h-sa-staerd'), noteA = document.getElementById('h-sa-aldur');
+  if (!data?.length) { noteS.textContent = noteA.textContent = 'Of fáar sölur til að sýna.'; return; }
+
+  document.getElementById('h-sa-desc').textContent = postnr === 0
+    ? 'Miðgildi fermetraverðs í sölum síðustu 24 mánuði, leiðrétt fyrir staðsetningu svo samanburðurinn sýni áhrif stærðar og aldurs en ekki hverfis.'
+    : `Miðgildi fermetraverðs í sölum síðustu 24 mánuði í ${postnr}.`;
+
+  const pct = (a, b) => Math.round((a / b - 1) * 100);
+  for (const [flokkur, key, note] of [['staerd', 'c7', noteS], ['aldur', 'c8', noteA]]) {
+    const labels = SA_BINS[flokkur];
+    const rows = labels.map((_, i) => data.find(r => r.flokkur === flokkur && r.bil === i + 1) || null);
+    const ok = rows.filter(r => r && r.n >= SA_MIN_N);
+
+    H_CHARTS[key] = new Chart(document.getElementById('h-' + key), {
+      type: 'bar',
+      data: { labels, datasets: [{
+        data: rows.map(r => r ? Number(r.fm) : null),
+        backgroundColor: rows.map(r => r && r.n >= SA_MIN_N ? H_COLOR_BAR : 'rgba(26,90,138,.18)'),
+        borderRadius: 4, barPercentage: .75
+      }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { ...CHART_TT, callbacks: {
+          label: c => fmtInt(c.parsed.y) + ' þ.kr/m²',
+          afterLabel: c => { const r = rows[c.dataIndex]; if (!r) return '';
+            return [`${fmtInt(r.n)} ${r.n === 1 ? 'sala' : 'sölur'}${r.n < SA_MIN_N ? ' – of fáar til að treysta' : ''}`,
+                    `Söluverð (miðgildi): ${fmtMkr(r.verd)}`, `Stærð (miðgildi): ${fmtInt(r.m2)} m²`]; }
+        } } },
+        scales: { x: { grid: { display: false }, ticks: { color: CHART_TICK, font: { size: 11 } } },
+                  y: { grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, font: { size: 11 }, callback: v => fmtInt(v) }, beginAtZero: true } } }
+    });
+    document.getElementById('h-' + key).setAttribute('aria-label',
+      `${flokkur === 'staerd' ? 'Fermetraverð eftir stærð' : 'Fermetraverð eftir byggingarári'}: ` +
+      rows.map((r, i) => r ? `${labels[i]} ${fmtInt(r.fm)} þ.kr/m² (${r.n} sölur)` : `${labels[i]} engar sölur`).join(', '));
+
+    // Ein setning sem dregur saman muninn
+    if (ok.length < 2) { note.textContent = 'Of fáar sölur í flestum flokkum til að bera saman.'; continue; }
+    if (flokkur === 'staerd') {
+      const a = ok[0], b = ok[ok.length - 1];
+      const d = pct(a.fm, b.fm);
+      const m2 = r => SA_BINS.staerd[r.bil - 1].replace(/^(\d+–\d+)$/, '$1 m²');
+      note.textContent = d > 0
+        ? `Fermetrinn í minnstu eignunum (${m2(a)}) er um ${d}% dýrari en í þeim stærstu (${m2(b)}).`
+        : `Fermetraverð er svipað óháð stærð hér.`;
+    } else {
+      const hi = ok.reduce((x, y) => Number(y.fm) > Number(x.fm) ? y : x);
+      const lo = ok.reduce((x, y) => Number(y.fm) < Number(x.fm) ? y : x);
+      const d = pct(hi.fm, lo.fm);
+      note.textContent = d >= 3
+        ? `Dýrast á fermetra: byggt ${SA_BINS.aldur[hi.bil - 1]}. Ódýrast: byggt ${SA_BINS.aldur[lo.bil - 1]} – munurinn er um ${d}%.`
+        : `Byggingarár skiptir litlu um fermetraverð hér.`;
+    }
+  }
 }
 
 function updateMetricsHofud(agg, ls, postnr) {
@@ -1041,6 +1106,7 @@ async function initHofud(postnr, tegund = hofudTegund) {
     }
 
     buildChartsHofud(agg, postnr);
+    renderStaerdAldur(postnr, tegund, kaupTegund);
     seasonalAnalysisHofud(agg);
     updateMetricsHofud(agg, ls, postnr);
 

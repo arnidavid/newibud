@@ -602,3 +602,7 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   .vm-c-af { display: inline; }
   .vm-table td[data-l]::before { content: attr(data-l) ' '; }
 }
+
+/* ---- Verð eftir stærð og aldri (Höfuðborgarsvæðið) ---- */
+.sa-cw { height: 260px; }
+.sa-note { margin-top: .75rem; font-size: .88rem; line-height: 1.5; color: var(--tx2); }
