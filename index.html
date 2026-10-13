@@ -7,7 +7,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=31">
+<link rel="stylesheet" href="style.css?v=32">
 </head>
 <body>
 <header class="site-hd">
@@ -43,13 +43,25 @@
       </figure>
     </section>
 
-    <section class="k-cols" aria-label="Svæðin">
+    <section class="k-cols k-cols-3" aria-label="Svæðin">
       <div class="k-col" id="k-reg-hofud">
         <div class="k-reg-hd">
           <h2 class="k-h2"><span class="k-sw" style="background:var(--k-hofud);width:18px;height:4px;vertical-align:middle"></span>Höfuðborgarsvæðið</h2>
           <a href="#hofud" data-goto="hofud" style="color:var(--k-hofud-tx)">Opna höfuðborgarsvæðið</a>
         </div>
         <p style="margin:0 0 16px;color:var(--k-muted);font-size:14px">Íbúðarhúsnæði, allt svæðið</p>
+        <dl class="k-stats">
+          <div><dt data-k="fm-l">Fermetraverð</dt><dd data-k="fm">—</dd></div>
+          <div><dt data-k="chg-l">Frá fyrra ári</dt><dd data-k="chg">—</dd></div>
+          <div><dt>Á sölu núna</dt><dd data-k="ls">—</dd></div>
+        </dl>
+      </div>
+      <div class="k-col" id="k-reg-aku">
+        <div class="k-reg-hd">
+          <h2 class="k-h2"><span class="k-sw" style="background:var(--k-aku);width:18px;height:4px;vertical-align:middle"></span>Akureyri</h2>
+          <a href="#akureyri" data-goto="akureyri" style="color:var(--k-aku-tx)">Opna Akureyri</a>
+        </div>
+        <p style="margin:0 0 16px;color:var(--k-muted);font-size:14px">Íbúðarhúsnæði, póstnúmer 600 og 603</p>
         <dl class="k-stats">
           <div><dt data-k="fm-l">Fermetraverð</dt><dd data-k="fm">—</dd></div>
           <div><dt data-k="chg-l">Frá fyrra ári</dt><dd data-k="chg">—</dd></div>
@@ -431,6 +443,6 @@
 </main>
 
 <script src="api.js?v=8"></script>
-<script src="app.js?v=72"></script>
+<script src="app.js?v=73"></script>
 </body>
 </html>

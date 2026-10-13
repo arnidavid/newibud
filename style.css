@@ -196,7 +196,10 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   --k-rule: #C9D2D3;   --k-hair: #D5DCDC;
   --k-hofud: #B8652A;  --k-hofud-tx: #8A4519;  --k-hofud-fill: #F7EEE6;   /* hæðarlína */
   --k-skorr: #00897b;  --k-skorr-tx: #00695E;  --k-skorr-fill: #E4F2EF;   /* skógur og vatn */
+  --k-aku: #5E4FA2;    --k-aku-tx: #433880;    --k-aku-fill: #EEEBF6;     /* Akureyri */
 }
+/* Akureyri notar skjáhluta höfuðborgarsvæðisins → sömu breytur, annar litur */
+#view-hofud[data-svaedi="akureyri"] { --k-hofud: var(--k-aku); --k-hofud-tx: var(--k-aku-tx); --k-hofud-fill: var(--k-aku-fill); }
 
 /* ---- Haus ---- */
 .site-hd { border-bottom: 1px solid var(--k-rule); background: var(--k-paper); color: var(--k-ink); }
@@ -210,8 +213,8 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   min-height: 44px; padding: 0; cursor: pointer; white-space: nowrap; }
 .tab-btn:hover { border-bottom-color: var(--k-rule); }
 .tab-btn[aria-current="page"] { font-weight: 700; border-bottom-color: var(--k-ink); }
-.tab-btn[data-view="hofud"][aria-current="page"],
-.tab-btn[data-view="akureyri"][aria-current="page"] { border-bottom-color: var(--k-hofud); }
+.tab-btn[data-view="hofud"][aria-current="page"] { border-bottom-color: var(--k-hofud); }
+.tab-btn[data-view="akureyri"][aria-current="page"] { border-bottom-color: var(--k-aku); }
 .tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-skorr); }
 .tab-btn:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
 
@@ -234,6 +237,7 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .k-note { position: absolute; transform: translate(-50%, -100%); font-size: 12px; white-space: nowrap; padding-bottom: 18px; }
 .k-note::after { content: ""; position: absolute; left: 50%; bottom: 2px; height: 14px; border-left: 1px solid var(--k-ink); }
 .k-cols { display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid var(--k-ink); }
+.k-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
 .k-col { padding: 22px 28px 24px 0; display: block; color: var(--k-ink); text-decoration: none; }
 .k-col + .k-col { padding-left: 28px; border-left: 1px solid var(--k-rule); }
 a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px; }
@@ -261,6 +265,8 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-figcap { font-size: 13px; color: var(--k-muted); margin-top: 34px; }
 .k-reg-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
 .k-reg-hd a { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 10px 0; background: none; border: 0; font-family: inherit; cursor: pointer; }
+/* Þrír dálkar: tengill alltaf undir fyrirsögn svo dálkarnir standist á (í síma aftur við hliðina) */
+@media (min-width: 641px) { .k-cols-3 .k-reg-hd { flex-direction: column; align-items: flex-start; gap: 0; } }
 .k-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .k-stats dt { font-size: 13px; color: var(--k-muted); }
 .k-stats dd { margin: 2px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.5px; }
