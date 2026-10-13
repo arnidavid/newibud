@@ -26,13 +26,18 @@ function toReal(thkr, year) {
   return Math.round(thkr * b / v);
 }
 
+// Mat eignarinnar sjálfrar ef hún finnst (sama heimilisfang, næst að stærð),
+// annars nýjasta sala af svipaðri stærð í sömu götu.
 function getMatInfo(rows, addr, sqm) {
+  const hus = addr.replace(/\s*\(.*\)\s*$/, '').trim().toLowerCase();
   const b = addr.replace(/\s+\d+.*$/, '');
   const matches = rows
-    .filter(r => r.heimilisfang.startsWith(b) && Math.abs(Number(r.einflm) - sqm) < 20 && (r.fasteignamat_gildandi || r.fasteignamat) > 0)
-    .sort((a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags));
+    .filter(r => r.heimilisfang.startsWith(b) && Math.abs(Number(r.einflm) - sqm) < 20 && (r.fasteignamat_gildandi || r.fasteignamat) > 0);
   if (!matches.length) return null;
-  const m = matches[0];
+  const eigin = matches.filter(r => r.heimilisfang.trim().toLowerCase() === hus);
+  const m = eigin.length
+    ? eigin.sort((a, b) => Math.abs(a.einflm - sqm) - Math.abs(b.einflm - sqm) || new Date(b.thinglystdags) - new Date(a.thinglystdags))[0]
+    : matches.sort((a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags))[0];
   return { mat: Number(m.fasteignamat_gildandi || m.fasteignamat), addr: m.heimilisfang };
 }
 
