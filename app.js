@@ -1105,7 +1105,8 @@ const VM_POSTNR = [
   [107, 'Reykjavík'], [108, 'Reykjavík'], [109, 'Reykjavík'], [110, 'Reykjavík'], [111, 'Reykjavík'],
   [112, 'Reykjavík'], [113, 'Reykjavík'], [116, 'Reykjavík'], [170, 'Seltjarnarnes'],
   [200, 'Kópavogur'], [201, 'Kópavogur'], [203, 'Kópavogur'], [210, 'Garðabær'], [225, 'Garðabær'],
-  [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær']
+  [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær'],
+  [600, 'Akureyri'], [603, 'Akureyri']
 ];
 const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'] };
 const VM = { mode: 'addr', addr: null, units: [], unit: null, qseq: 0, cseq: 0, ready: false };
@@ -1233,7 +1234,7 @@ async function vmCompute(e) {
   const teg = VM_TEG[e.tegund][1];
   const hvar = d.svaedi === 'postnr' ? `í ${e.postnr}`
              : d.svaedi === 'sveitarfelag' ? `í sama sveitarfélagi (of fáar sölur í ${e.postnr} einu)`
-             : `á höfuðborgarsvæðinu (of fáar sölur í ${e.postnr} einu)`;
+             : `${d.svaedi === 'akureyri' ? 'á Akureyri' : 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
   const breyt27 = e.mat27 ? (e.mat27 / e.mat - 1) * 100 : null;
 
   document.getElementById('vm-res-sub').textContent = e.title;
