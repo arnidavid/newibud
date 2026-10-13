@@ -55,3 +55,11 @@ grant execute on function public.get_verd_staerd_aldur(int, text) to anon, authe
 
 -- Bakka:
 --   drop function public.get_verd_staerd_aldur(int, text);
+
+-- Vísir sem geymir dálkana sem fallið les (index-only scan): þegar síðustu 2 ár
+-- voru ekki í minni tók heildarlestur töflunnar >3 sek. og fallið rann út á tíma.
+-- Eftir: les ~220 blokkir af vísinum í stað ~3.950 af töflunni.
+create index if not exists idx_kaupskra_dags_cover on public.kaupskra
+  (thinglystdags) include (postnr, tegund, onothaefur_samningur, einflm, kaupverd, byggar);
+-- vacuum (analyze) public.kaupskra;  -- keyrt sér (ekki innan færslu)
+-- Bakka: drop index public.idx_kaupskra_dags_cover;
