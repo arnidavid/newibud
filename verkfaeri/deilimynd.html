@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  Deilingarmynd (og:image) fyrir sumar.silfran.com – 1200×630.
+  Verðfjallið er teiknað úr árlegu meðalfermetraverði 2008–2026 (íbúðarhúsnæði;
+  sumarhús í Skorradal), sótt 13. okt. 2026. Engar líðandi tölur á myndinni svo hún úreldist ekki.
+  Endurgera: opna síðuna í vafra í 1200×630 og vista skjámynd (eða teikna á canvas eins og
+  gert var 13. okt.: texti með ctx.fillText í sama letri, fjallið sem SVG-mynd). Snertitáknið
+  (apple-touch-icon.png, 180×180) er merkið einungis, 128 px á pappírslit.
+-->
+<html lang="is">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;800&display=block" rel="stylesheet">
+<style>
+  :root { --paper: #F2F4F1; --ink: #1C2B33; --muted: #56656B; --hofud: #B8652A; --aku: #5E4FA2; --skorr: #00897b; }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; background: var(--paper); color: var(--ink);
+    font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
+  .mynd { position: relative; width: 1200px; height: 630px; padding: 64px 72px 0; }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 800; letter-spacing: -.3px; }
+  .brand svg { width: 44px; height: 44px; }
+  h1 { margin-top: 46px; font-size: 84px; font-weight: 800; letter-spacing: -2.4px; line-height: .98; }
+  p { margin-top: 18px; font-size: 30px; font-weight: 500; color: var(--muted); }
+  #fjall { position: absolute; left: 0; right: 0; bottom: 0; width: 1200px; height: 300px; display: block; }
+  /* Snertitákn: aðeins merkið á pappír */
+  .takn { display: none; }
+  :target.takn { display: grid; place-items: center; position: fixed; inset: 0; background: var(--paper); }
+  :target.takn svg { width: 128px; height: 128px; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="mynd">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <path d="M3 24c4-1 6-6 10-7s6 3 9 2 5-5 7-7"/><path d="M3 28c4-1 7-4 11-4.5s6 2.5 9 1.5 5-3 6-4" opacity=".55"/><path d="M3 20c4-2 5-9 10-11s7 5 10 3 4-5 6-7" opacity=".55"/>
+    </svg>
+    Fasteignavaktin
+  </div>
+  <h1>Fasteignaverð í tölum</h1>
+  <p>Höfuðborgarsvæðið, Akureyri og Skorradalur</p>
+  <svg id="fjall" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true"></svg>
+</div>
+<div class="takn" id="takn">
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+    <path d="M3 24c4-1 6-6 10-7s6 3 9 2 5-5 7-7"/><path d="M3 28c4-1 7-4 11-4.5s6 2.5 9 1.5 5-3 6-4" opacity=".55"/><path d="M3 20c4-2 5-9 10-11s7 5 10 3 4-5 6-7" opacity=".55"/>
+  </svg>
+</div>
+<script>
+  // Meðalfermetraverð (þ.kr/m²) 2008–2026
+  const H = [258,234,224,235,251,270,297,323,355,423,449,464,500,566,689,725,773,808,827];  // höfuðborgarsvæðið
+  const A = [182,163,176,185,195,200,212,230,256,299,339,359,364,400,505,544,599,640,691];  // Akureyri
+  const S = [133,210,215,245,174,232,200,241,262,256,306,259,331,395,461,444,533,500,471];  // Skorradalur
+  const W = 1200, B = 300, TOPP = 900, n = H.length, pad = 0;
+  const x = i => pad + i * (W - 2 * pad) / (n - 1), y = v => B - v / TOPP * B;
+  const line = a => a.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+  const area = a => line(a) + ` L${x(n - 1)} ${B} L${x(0)} ${B} Z`;
+  let lv = ''; for (let L = 100; L < TOPP; L += 100) lv += `<line x1="0" x2="${W}" y1="${y(L)}" y2="${y(L)}" stroke="#B8652A" stroke-width="1.5" opacity=".55"/>`;
+  document.getElementById('fjall').innerHTML = `
+    <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath></defs>
+    <g clip-path="url(#kH)"><path d="${area(H)}" fill="#F7EEE6"/>${lv}</g>
+    <path d="${line(S)}" fill="none" stroke="#00897b" stroke-width="4" stroke-linejoin="round"/>
+    <path d="${line(A)}" fill="none" stroke="#5E4FA2" stroke-width="4" stroke-linejoin="round"/>
+    <path d="${line(H)}" fill="none" stroke="#B8652A" stroke-width="5" stroke-linejoin="round"/>
+    <line x1="0" x2="${W}" y1="${B - 1}" y2="${B - 1}" stroke="#1C2B33" stroke-width="2"/>`;
+</script>
+</body>
+</html>

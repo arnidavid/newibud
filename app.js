@@ -1296,6 +1296,8 @@ document.addEventListener('click', e => {
 
 // ---- Tab switching ----
 const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
+// Titill vafraflipa (og sögu) eftir flipa; forsíðan heldur aðaltitlinum
+const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
 // Akureyri notar sama skjáhluta og höfuðborgarsvæðið (view-hofud)
 const VIEW_DOM = { akureyri: 'hofud' };
 
@@ -1322,6 +1324,8 @@ function showView(view, { push = true } = {}) {
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + dom));
+
+  document.title = VIEW_TITLE[view] ? `${VIEW_TITLE[view]} – Fasteignavaktin` : 'Fasteignavaktin – fasteignaverð í tölum';
 
   const subEl = document.getElementById('header-sub');
   if (subEl) subEl.textContent = SUB_TEXTS[view] || '';
