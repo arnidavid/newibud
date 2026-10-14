@@ -1251,9 +1251,14 @@ async function vmCompute(e) {
   document.getElementById('vm-res-sub').textContent = '';
   body.innerHTML = '<p class="vm-empty">Reikna…</p>';
   const seq = ++VM.cseq;
-  const { data: d } = await API.rpc('get_verdmat', {
-    p_postnr: e.postnr, p_tegund: e.tegund, p_einflm: e.einflm ?? null, p_fastnum: e.fastnum ?? null
-  });
+  const args = { p_postnr: e.postnr, p_tegund: e.tegund, p_einflm: e.einflm ?? null, p_fastnum: e.fastnum ?? null };
+  let { data: d, error } = await API.rpc('get_verdmat', args);
+  // Fyrsta kall eftir hlé getur runnið á tímamörk; annað kall er yfirleitt hratt
+  if (error && seq === VM.cseq) {
+    await new Promise(r => setTimeout(r, 800));
+    if (seq !== VM.cseq) return;
+    ({ data: d } = await API.rpc('get_verdmat', args));
+  }
   if (seq !== VM.cseq) return;
   if (!d || !d.p50) { body.innerHTML = '<p class="vm-empty">Ekki tókst að reikna verðmat. Reyndu aftur síðar.</p>'; return; }
 
