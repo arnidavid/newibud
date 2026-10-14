@@ -728,13 +728,17 @@ function yearStatsFromRows(rows, fmMin, fmMax) {
   return by;
 }
 
-// Finnur auglýsingu á fastinn.is fyrir hverja sölu á forsíðunni (reglan: pickListingForSale).
+// Finnur auglýsingu fyrir hverja sölu (reglan: pickListingForSale). Supabase keyrir sömu reglu
+// og skilar mest einni auglýsingu á sölu – annars fóru þúsundir raða yfir 1.000 raða þakið.
 async function matchSalesToListings(sales) {
   if (!sales?.length) return sales;
-  const { data } = await API.rpc('get_auglysingar_fyrir_solur', {
+  const { data } = await API.rpc('auglysing_fyrir_solu', {
     p_postnr: sales.map(s => s.postnr),
     p_heimilisfong: sales.map(s => s.heimilisfang),
-    p_fastnum: sales.map(s => s.fastnum).filter(Boolean).map(String)
+    p_fastnum: sales.map(s => s.fastnum ? String(s.fastnum) : null),
+    p_dags: sales.map(s => String(s.thinglystdags).slice(0, 10)),
+    p_einflm: sales.map(s => Number(s.einflm) || null),
+    p_kaupverd: sales.map(s => Number(s.kaupverd))
   });
   return sales.map(s => {
     const hit = pickListingForSale(s, (data || []).filter(l => l.postnr === s.postnr));
