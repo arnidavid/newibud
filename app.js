@@ -216,6 +216,13 @@ const SVAEDI = {
     algolia: '(zip:600 OR zip:603)',
     col: { c: '#5E4FA2', tx: '#433880', fill: '#EEEBF6', fill2: '#C3BADF', faint: '#DAD5EA', lo: [238, 235, 246], hi: [52, 40, 110] },
     valkostir: '<option value="0">Allur bærinn</option><option value="600">600 Akureyri</option><option value="603">603 Akureyri (norðan Glerár)</option>'
+  },
+  reykjanesbaer: {
+    nafn: 'Reykjanesbær', allt_txt: 'í Reykjanesbæ',
+    allt: [230, 233, 260, 262],
+    algolia: '(zip:230 OR zip:233 OR zip:260 OR zip:262)',
+    col: { c: '#2E6DA4', tx: '#1F4F7A', fill: '#E6EEF6', fill2: '#A9C3DC', faint: '#D2DEE9', lo: [230, 238, 246], hi: [22, 58, 98] },
+    valkostir: '<option value="0">Allur bærinn</option><option value="230">230 Keflavík</option><option value="260">260 Njarðvík</option><option value="262">262 Ásbrú</option><option value="233">233 Hafnir</option>'
   }
 };
 const svPostnrs = (sv, postnr) => postnr === 0 ? SVAEDI[sv].allt : [postnr];
@@ -357,7 +364,7 @@ function kMore(btn, items, show, noun) {
 
 // ---- Höfuðborgarsvæðið ----
 const KH = { agg: null, real: false };
-const khCol = () => SVAEDI[hofudSvaedi].col;   // litir valins svæðis (höfuðborgarsvæðið / Akureyri)
+const khCol = () => SVAEDI[hofudSvaedi].col;   // litir valins svæðis (höfuðborgarsvæðið / Akureyri / Reykjanesbær)
 
 function khFjall() {
   const by = hofudByYear(KH.agg);
@@ -588,7 +595,7 @@ function pickListingForSale(sale, listings) {
 
 let sumarReady   = false;
 let hofudReady   = false;
-let hofudSvaedi  = 'hofud';   // 'hofud' eða 'akureyri' – sami flipi, mismunandi svæði
+let hofudSvaedi  = 'hofud';   // lykill í SVAEDI ('hofud', 'akureyri', 'reykjanesbaer') – sami flipi, mismunandi svæði
 let hofudPostnr  = null;
 let hofudTegund  = 'all';
 // Á enn við? (notandi gæti hafa skipt um svæði/val á meðan beðið var eftir gögnum)
@@ -600,7 +607,8 @@ const SUB_TEXTS = {
   verdmat: 'Hvað er eignin mín virði?',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis',
-  akureyri: 'Akureyri — markaðsgreining íbúðarhúsnæðis'
+  akureyri: 'Akureyri — markaðsgreining íbúðarhúsnæðis',
+  reykjanesbaer: 'Reykjanesbær — markaðsgreining íbúðarhúsnæðis'
 };
 
 // Skorradalsgögn sótt einu sinni og samnýtt af forsíðu og Skorradals-flipa
@@ -1295,13 +1303,13 @@ document.addEventListener('click', e => {
 });
 
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
 // Titill vafraflipa (og sögu) eftir flipa; forsíðan heldur aðaltitlinum
-const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
-// Akureyri notar sama skjáhluta og höfuðborgarsvæðið (view-hofud)
-const VIEW_DOM = { akureyri: 'hofud' };
+const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
+// Akureyri og Reykjanesbær nota sama skjáhluta og höfuðborgarsvæðið (view-hofud)
+const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud' };
 
-// Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, Akureyrar úr SVAEDI
+// Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, annarra svæða úr SVAEDI
 SVAEDI.hofud.valkostir = document.getElementById('hofud-postnr').innerHTML;
 function khSetSvaedi(sv) {
   if (hofudSvaedi === sv) return;
@@ -1364,7 +1372,7 @@ document.getElementById('k-vm-form').addEventListener('submit', e => {
   if (q) vmSearch(q);
 });
 
-// ---- Svæði og tegund (höfuðborgarsvæðið / Akureyri) ----
+// ---- Svæði og tegund (höfuðborgarsvæðið / Akureyri / Reykjanesbær) ----
 document.getElementById('hofud-postnr').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 document.getElementById('hofud-tegund').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 

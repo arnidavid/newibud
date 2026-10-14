@@ -197,9 +197,11 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   --k-hofud: #B8652A;  --k-hofud-tx: #8A4519;  --k-hofud-fill: #F7EEE6;   /* hæðarlína */
   --k-skorr: #00897b;  --k-skorr-tx: #00695E;  --k-skorr-fill: #E4F2EF;   /* skógur og vatn */
   --k-aku: #5E4FA2;    --k-aku-tx: #433880;    --k-aku-fill: #EEEBF6;     /* Akureyri */
+  --k-rnb: #2E6DA4;    --k-rnb-tx: #1F4F7A;    --k-rnb-fill: #E6EEF6;     /* Reykjanesbær */
 }
-/* Akureyri notar skjáhluta höfuðborgarsvæðisins → sömu breytur, annar litur */
+/* Akureyri og Reykjanesbær nota skjáhluta höfuðborgarsvæðisins → sömu breytur, annar litur */
 #view-hofud[data-svaedi="akureyri"] { --k-hofud: var(--k-aku); --k-hofud-tx: var(--k-aku-tx); --k-hofud-fill: var(--k-aku-fill); }
+#view-hofud[data-svaedi="reykjanesbaer"] { --k-hofud: var(--k-rnb); --k-hofud-tx: var(--k-rnb-tx); --k-hofud-fill: var(--k-rnb-fill); }
 
 /* ---- Haus ---- */
 .site-hd { border-bottom: 1px solid var(--k-rule); background: var(--k-paper); color: var(--k-ink); }
@@ -215,6 +217,7 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .tab-btn[aria-current="page"] { font-weight: 700; border-bottom-color: var(--k-ink); }
 .tab-btn[data-view="hofud"][aria-current="page"] { border-bottom-color: var(--k-hofud); }
 .tab-btn[data-view="akureyri"][aria-current="page"] { border-bottom-color: var(--k-aku); }
+.tab-btn[data-view="reykjanesbaer"][aria-current="page"] { border-bottom-color: var(--k-rnb); }
 .tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-skorr); }
 .tab-btn:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
 
