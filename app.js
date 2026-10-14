@@ -125,7 +125,7 @@ async function ksAvs() {
     const a = vmEsc(sale.heimilisfang);
     return `<tr data-addr="${a.toLowerCase()}">
       <th scope="row" class="c-eign" style="text-align:left;font-weight:600">${url ? `<a href="${url}" target="_blank" rel="noopener">${a}</a>` : a}<span class="k-sub">${fmtM2(sale.einflm)}, þinglýst ${fmtDagAr(sale.thinglystdags)}</span></th>
-      <td class="c-ask r" style="color:var(--k-muted)">${ask ? fmtMkr(ask) : ''}</td>
+      <td class="c-ask r" style="color:var(--k-muted)">${!ask ? '' : l.linkur ? `<a href="${l.linkur}" target="_blank" rel="noopener" title="Opna auglýsingu">${fmtMkr(ask)}</a>` : fmtMkr(ask)}</td>
       <td class="c-selt r" style="font-weight:700">${fmtMkr(sale.kaupverd)}</td>
       <td class="c-mun r ${d > 0 ? 'k-up' : d < 0 ? 'k-down' : ''}" style="font-weight:700">${d == null ? '' : (d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d) + '%'}</td>
       <td class="c-fm r">${fmtInt(sale.kaupverd / sale.einflm)}</td>
@@ -827,7 +827,9 @@ function kSaleRow(r, reg, { postnrOnly = false } = {}) {
   const propUrl = r.fastnum && r.heinum ? `https://fastinn.is/fasteignir/${r.heinum}/${r.fastnum}` : l?.linkur;
   const askThkr = l?.verd ? l.verd / 1000 : 0;
   const diff = askThkr ? Math.round((r.kaupverd - askThkr) / askThkr * 100) : null;
-  const ask = askThkr ? `${fmtMkr(askThkr)} <span class="${diff < 0 ? 'k-down' : diff > 0 ? 'k-up' : ''}" style="font-weight:600">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>` : '';
+  // Ásett verð vísar á auglýsinguna sjálfa (heimilisfangið á eignasíðuna)
+  const askTxt = askThkr && l.linkur ? `<a href="${l.linkur}" target="_blank" rel="noopener" title="Opna auglýsingu">${fmtMkr(askThkr)}</a>` : fmtMkr(askThkr);
+  const ask = askThkr ? `${askTxt} <span class="${diff < 0 ? 'k-down' : diff > 0 ? 'k-up' : ''}" style="font-weight:600">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>` : '';
   const svaedi = reg === 'sumar' ? '311 Skorradal' : postnrOnly ? r.postnr : reg === 'akureyri' ? r.postnr + ' Akureyri' : vmPostTxt(r.postnr);
   const addr = vmEsc(r.heimilisfang);
   return `<tr>
