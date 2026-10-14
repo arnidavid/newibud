@@ -13,7 +13,6 @@
 -- app.js keyrir sömu reglu aftur á niðurstöðuna.
 --
 -- Gamla fallið rann líka oft út á tíma (sama breiða bilið).
--- Gamla fallið stendur áfram þar til nýja app.js er komið í loftið.
 -- ============================================================
 
 create or replace function public.auglysing_fyrir_solu(
@@ -51,8 +50,8 @@ $$;
 
 grant execute on function public.auglysing_fyrir_solu(int[], text[], text[], date[], numeric[], numeric[]) to anon, authenticated;
 
--- Eftir deploy (þegar ekkert kallar lengur á gamla fallið):
---   drop function public.get_auglysingar_fyrir_solur(int[], text[], text[]);
+-- Eftir deploy 14. okt. (ekkert kallar lengur á gamla fallið):
+drop function public.get_auglysingar_fyrir_solur(int[], text[], text[]);
 --
 -- Bakka:
 --   drop function public.auglysing_fyrir_solu(int[], text[], text[], date[], numeric[], numeric[]);
