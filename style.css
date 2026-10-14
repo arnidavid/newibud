@@ -244,7 +244,6 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .k-note { position: absolute; transform: translate(-50%, -100%); font-size: 12px; white-space: nowrap; padding-bottom: 18px; }
 .k-note::after { content: ""; position: absolute; left: 50%; bottom: 2px; height: 14px; border-left: 1px solid currentColor; }
 .k-cols { display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid var(--k-ink); }
-.k-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
 .k-col { padding: 22px 28px 24px 0; display: block; color: var(--k-ink); text-decoration: none; }
 .k-col + .k-col { padding-left: 28px; border-left: 1px solid var(--k-rule); }
 a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px; }
@@ -272,8 +271,11 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-figcap { font-size: 13px; color: var(--k-muted); margin-top: 34px; }
 .k-reg-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
 .k-reg-hd a { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 10px 0; background: none; border: 0; font-family: inherit; cursor: pointer; }
-/* Þrír dálkar: tengill alltaf undir fyrirsögn svo dálkarnir standist á (í síma aftur við hliðina) */
-@media (min-width: 641px) { .k-cols-3 .k-reg-hd { flex-direction: column; align-items: flex-start; gap: 0; } }
+/* Fjögur svæði: 2 × 2 (fjórir dálkar hlið við hlið yrðu of þröngir fyrir tölurnar); í síma einn dálkur */
+@media (min-width: 641px) {
+  .k-cols-4 .k-col:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .k-cols-4 .k-col:nth-child(n+3) { border-top: 1px solid var(--k-rule); }
+}
 .k-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .k-stats > div { display: flex; flex-direction: column; justify-content: space-between; }   /* tölur standast á þótt merki brotni */
 .k-stats dt { font-size: 13px; color: var(--k-muted); }
@@ -439,6 +441,9 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-kvrow b { font-size: 30px; }
   .k-defs { grid-template-columns: 1fr; }
   #view-hiti .k-seg { width: 100%; }
+  /* Fjögur svæði komast ekki í eina röð í síma → 2 × 2 */
+  #view-hiti .k-seg:not(:has(button[hidden])) { flex-wrap: wrap; }
+  #view-hiti .k-seg:not(:has(button[hidden])) button { flex: 1 1 50%; }
 }
 
 /* ---- Verðmat ---- */

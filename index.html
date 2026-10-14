@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fasteignavaktin – fasteignaverð í tölum</title>
-<meta name="description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu og Akureyri, og sumarhúsa í Skorradal.">
+<meta name="description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu, Akureyri og í Reykjanesbæ, og sumarhúsa í Skorradal.">
 <link rel="canonical" href="https://sumar.silfran.com/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -12,7 +12,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Fasteignavaktin">
 <meta property="og:title" content="Fasteignavaktin – fasteignaverð í tölum">
-<meta property="og:description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu og Akureyri, og sumarhúsa í Skorradal.">
+<meta property="og:description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu, Akureyri og í Reykjanesbæ, og sumarhúsa í Skorradal.">
 <meta property="og:url" content="https://sumar.silfran.com/">
 <meta property="og:image" content="https://sumar.silfran.com/deilimynd.png">
 <meta property="og:image:width" content="1200">
@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=34">
+<link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
 <header class="site-hd">
@@ -60,7 +60,7 @@
       </figure>
     </section>
 
-    <section class="k-cols k-cols-3" aria-label="Svæðin">
+    <section class="k-cols k-cols-4" aria-label="Svæðin">
       <div class="k-col" id="k-reg-hofud">
         <div class="k-reg-hd">
           <h2 class="k-h2"><span class="k-sw" style="background:var(--k-hofud);width:18px;height:4px;vertical-align:middle"></span>Höfuðborgarsvæðið</h2>
@@ -85,6 +85,18 @@
           <div><dt>Á sölu núna</dt><dd data-k="ls">—</dd></div>
         </dl>
       </div>
+      <div class="k-col" id="k-reg-rnb">
+        <div class="k-reg-hd">
+          <h2 class="k-h2"><span class="k-sw" style="background:var(--k-rnb);width:18px;height:4px;vertical-align:middle"></span>Reykjanesbær</h2>
+          <a href="#reykjanesbaer" data-goto="reykjanesbaer" style="color:var(--k-rnb-tx)">Opna Reykjanesbæ</a>
+        </div>
+        <p style="margin:0 0 16px;color:var(--k-muted);font-size:14px">Íbúðarhúsnæði, póstnúmer 230, 233, 260 og 262</p>
+        <dl class="k-stats">
+          <div><dt data-k="fm-l">Fermetraverð</dt><dd data-k="fm">—</dd></div>
+          <div><dt data-k="chg-l">Frá fyrra ári</dt><dd data-k="chg">—</dd></div>
+          <div><dt>Á sölu núna</dt><dd data-k="ls">—</dd></div>
+        </dl>
+      </div>
       <div class="k-col" id="k-reg-sumar">
         <div class="k-reg-hd">
           <h2 class="k-h2"><span class="k-sw" style="background:var(--k-skorr);width:18px;height:4px;vertical-align:middle"></span>Skorradalur</h2>
@@ -102,7 +114,7 @@
     <section class="k-vmf" aria-labelledby="k-vm-h">
       <div>
         <h2 id="k-vm-h" class="k-h2">Hvað er eignin mín virði?</h2>
-        <p>Áætlað söluverð út frá fasteignamati og nýlegum sölum í hverfinu. Íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu og Akureyri.</p>
+        <p>Áætlað söluverð út frá fasteignamati og nýlegum sölum í hverfinu. Íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu, Akureyri og í Reykjanesbæ.</p>
       </div>
       <form id="k-vm-form" role="search" aria-label="Verðmat eftir heimilisfangi">
         <label for="k-vm-q" class="sr-only">Heimilisfang</label>
@@ -347,6 +359,7 @@
       <div class="k-seg" role="group" aria-label="Veldu svæði">
         <button type="button" class="mh-seg-btn" data-svaedi="hofud" aria-pressed="true">Höfuðborgarsvæðið</button>
         <button type="button" class="mh-seg-btn" data-svaedi="akureyri" aria-pressed="false" hidden>Akureyri</button>
+        <button type="button" class="mh-seg-btn" data-svaedi="reykjanesbaer" aria-pressed="false" hidden>Reykjanesbær</button>
         <button type="button" class="mh-seg-btn" data-svaedi="skorr" aria-pressed="false">Skorradalur</button>
       </div>
     </div>
@@ -393,7 +406,7 @@
     <div class="k-titlerow">
       <div>
       <h1 class="k-h1" style="margin-bottom:10px">Hvað er eignin mín virði?</h1>
-      <p class="k-lead">Gróf áætlun út frá fasteignamati og því hvað sambærilegar eignir í hverfinu hafa selst á síðustu 12 mánuði. Fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu og Akureyri.</p>
+      <p class="k-lead">Gróf áætlun út frá fasteignamati og því hvað sambærilegar eignir í hverfinu hafa selst á síðustu 12 mánuði. Fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu, Akureyri og í Reykjanesbæ.</p>
       </div>
     </div>
 
@@ -469,6 +482,6 @@
 </main>
 
 <script src="api.js?v=8"></script>
-<script src="app.js?v=78"></script>
+<script src="app.js?v=79"></script>
 </body>
 </html>

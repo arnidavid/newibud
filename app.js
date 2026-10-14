@@ -602,7 +602,7 @@ let hofudTegund  = 'all';
 const khCurrent = (sv, p, t) => hofudSvaedi === sv && hofudPostnr === p && hofudTegund === t;
 
 const SUB_TEXTS = {
-  yfirlit: 'Höfuðborgarsvæðið, Akureyri og Skorradalur',
+  yfirlit: 'Höfuðborgarsvæðið, Akureyri, Reykjanesbær og Skorradalur',
   hiti: 'Hversu auðvelt er að selja núna?',
   verdmat: 'Hvað er eignin mín virði?',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
@@ -743,7 +743,7 @@ async function matchSalesToListings(sales) {
 }
 
 // ---- Forsíða (kortastefna) ----
-const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
+const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
 const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
 const kLastYear = by => Math.max(...Object.keys(by).filter(y => by[y].nFm > 0).map(Number));
 
@@ -764,12 +764,13 @@ function kRegion(id, by, lsCount) {
 }
 
 // Verðfjallið: fermetraverð á ári sem hæðarsnið; hver lárétt lína í fjallinu = 100 þ.kr/m²
-function kFjall(hBy, sBy, aBy, lastDate) {
+function kFjall(hBy, sBy, aBy, rBy, lastDate) {
   const y1 = Math.max(kLastYear(hBy), kLastYear(sBy)), years = [];
   for (let y = 2008; y <= y1; y++) years.push(y);
   const H = years.map(y => kAvg(hBy, y)), S = years.map(y => kAvg(sBy, y));
   const A = aBy ? years.map(y => kAvg(aBy, y)) : null;   // Akureyri (má vanta ef sókn mistókst)
-  const all = [...H, ...S, ...(A || [])].filter(Boolean), top = Math.ceil((Math.max(...all) + 60) / 100) * 100;
+  const R = rBy ? years.map(y => kAvg(rBy, y)) : null;   // Reykjanesbær (sama)
+  const all = [...H, ...S, ...(A || []), ...(R || [])].filter(Boolean), top = Math.ceil((Math.max(...all) + 60) / 100) * 100;
   const W = 1000, B = 300, n = years.length;
   const x = i => +(i * W / (n - 1)).toFixed(1), yv = v => +(B - v / top * B).toFixed(1);
   const pts = a => a.map((v, i) => v ? [x(i), yv(v)] : null).filter(Boolean);
@@ -781,18 +782,19 @@ function kFjall(hBy, sBy, aBy, lastDate) {
   // lægsti punktur höfuðborgarsvæðisins (eftir hrun)
   let lo = 0; H.forEach((v, i) => { if (v && v < H[lo]) lo = i; });
   const pct = (v, of) => +(v / of * 100).toFixed(1);
-  const hLast = H[n - 1], sLast = S[n - 1], aLast = A?.[n - 1];
-  const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}. ${A ? ` Akureyri úr ${fmtInt(A[0])} í ${fmtInt(aLast)}.` : ''} Skorradalur úr ${fmtInt(S[0])} í ${fmtInt(sLast)}.">
+  const hLast = H[n - 1], sLast = S[n - 1], aLast = A?.[n - 1], rLast = R?.[n - 1];
+  const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}. ${A ? ` Akureyri úr ${fmtInt(A[0])} í ${fmtInt(aLast)}.` : ''}${R ? ` Reykjanesbær úr ${fmtInt(R[0])} í ${fmtInt(rLast)}.` : ''} Skorradalur úr ${fmtInt(S[0])} í ${fmtInt(sLast)}.">
     <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath></defs>
     ${grid.map(v => `<line x1="0" x2="${W}" y1="${yv(v)}" y2="${yv(v)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
     <g clip-path="url(#kH)"><path d="${area(H)}" fill="${K_COL.hofud.fill}"/>${lv(K_COL.hofud.c)}</g>
     <path d="${line(H)}" fill="none" stroke="${K_COL.hofud.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     ${A ? `<path d="${line(A)}" fill="none" stroke="${K_COL.akureyri.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` : ''}
+    ${R ? `<path d="${line(R)}" fill="none" stroke="${K_COL.reykjanesbaer.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` : ''}
     <path d="${line(S)}" fill="none" stroke="${K_COL.sumar.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     <line x1="0" x2="${W}" y1="${B}" y2="${B}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
   </svg>`;
   const ticks = [years[0], ...years.filter(y => y % 4 === 0 && y > years[0] && y < y1 - 1), y1];
-  // Aðeins höfuðborgarsvæðið er fyllt „fjall“ með hæðarlínum; Akureyri og Skorradalur eru línur ofan á
+  // Aðeins höfuðborgarsvæðið er fyllt „fjall“ með hæðarlínum; hin svæðin eru línur ofan á
   const fjall = document.getElementById('k-fjall');
   fjall.classList.add('k-gut');
   fjall.innerHTML = svg
@@ -803,6 +805,7 @@ function kFjall(hBy, sBy, aBy, lastDate) {
   document.getElementById('k-ends').innerHTML =
     `<div class="k-end"><i style="background:${K_COL.hofud.c}"></i><b style="color:${K_COL.hofud.tx}">${fmtInt(hLast)}</b><span>Höfuðborgarsvæðið, íbúðir</span></div>`
     + (aLast ? `<div class="k-end"><i style="background:${K_COL.akureyri.c}"></i><b style="color:${K_COL.akureyri.tx}">${fmtInt(aLast)}</b><span>Akureyri, íbúðir</span></div>` : '')
+    + (rLast ? `<div class="k-end"><i style="background:${K_COL.reykjanesbaer.c}"></i><b style="color:${K_COL.reykjanesbaer.tx}">${fmtInt(rLast)}</b><span>Reykjanesbær, íbúðir</span></div>` : '')
     + `<div class="k-end"><i style="background:${K_COL.sumar.c}"></i><b style="color:${K_COL.sumar.tx}">${fmtInt(sLast)}</b><span>Skorradalur, sumarhús</span></div>`;
 
   // Fyrirsögn: hve mikið verðið hefur margfaldast frá lægsta punkti
@@ -833,8 +836,9 @@ function kSaleRow(r, reg, { postnrOnly = false } = {}) {
   </tr>`;
 }
 
-function kSalesTable(hofud, akureyri, sumar) {
-  const rows = [...hofud.map(r => kSaleRow(r, 'hofud')), ...akureyri.map(r => kSaleRow(r, 'akureyri')), ...sumar.map(r => kSaleRow(r, 'sumar'))];
+function kSalesTable(hofud, akureyri, rnb, sumar) {
+  const rows = [...hofud.map(r => kSaleRow(r, 'hofud')), ...akureyri.map(r => kSaleRow(r, 'akureyri')),
+                ...rnb.map(r => kSaleRow(r, 'reykjanesbaer')), ...sumar.map(r => kSaleRow(r, 'sumar'))];
   document.getElementById('k-solur').innerHTML = rows.length ? rows.join('')
     : '<tr><td colspan="6">Engar sölur fundust.</td></tr>';
 }
@@ -850,6 +854,8 @@ async function initYfirlit() {
   sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.length));
   const aBy = API.getManadarsolur(SVAEDI.akureyri.allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
   Promise.all([aBy, fetchFastinnHofud('akureyri', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-aku', by, ls.length); });
+  const rBy = API.getManadarsolur(SVAEDI.reykjanesbaer.allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
+  Promise.all([rBy, fetchFastinnHofud('reykjanesbaer', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-rnb', by, ls.length); });
 
   const ibudSales = (sv, limit) => API.query('kaupskra', {
     select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
@@ -858,25 +864,26 @@ async function initYfirlit() {
   }, { paginate: false }).then(r => r.data || []);
   const hSales = ibudSales('hofud', 5);
   const aSales = ibudSales('akureyri', 3).catch(() => []);
+  const rSales = ibudSales('reykjanesbaer', 3).catch(() => []);
   const sSales = sum.then(s => s.rows.filter(r => r.einflm > 10).slice(-3).reverse()
     .map(r => ({ ...r, postnr: POSTNR, tegund: 'Sumarhús' })));
 
-  Promise.all([hBy, sum, aBy, hSales]).then(([h, s, a, hs]) => {
+  Promise.all([hBy, sum, aBy, rBy, hSales]).then(([h, s, a, r, hs]) => {
     if (!h) return fail('k-fjall');
-    kFjall(h, yearStatsFromRows(s.rows, 10, 2000), a, hs[0]?.thinglystdags);
+    kFjall(h, yearStatsFromRows(s.rows, 10, 2000), a, r, hs[0]?.thinglystdags);
   }).catch(() => fail('k-fjall'));
 
-  Promise.all([hSales, aSales, sSales]).then(async ([h, a, s]) => {
-    kSalesTable(h, a, s);                                // sölur strax…
-    const [hm, am, sm] = await Promise.all([matchSalesToListings(h), matchSalesToListings(a), matchSalesToListings(s)]);
-    kSalesTable(hm, am, sm);                             // …ásett verð þegar það finnst
+  Promise.all([hSales, aSales, rSales, sSales]).then(async ([h, a, r, s]) => {
+    kSalesTable(h, a, r, s);                             // sölur strax…
+    const [hm, am, rm, sm] = await Promise.all([h, a, r, s].map(matchSalesToListings));
+    kSalesTable(hm, am, rm, sm);                         // …ásett verð þegar það finnst
   }).catch(() => fail('k-solur'));
 }
 
 // ============================================================
 // ====  MARKAÐSHITI  =========================================
 // ============================================================
-// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Höfuðborgarsvæðið og Akureyri eftir mánuðum,
+// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Höfuðborgarsvæðið, Akureyri og Reykjanesbær eftir mánuðum,
 // Skorradalur eftir hálfum árum (of fáar sölur á mánuði) + staða eigna á sölu núna.
 const MH = { data: null, svaedi: 'hofud', metric: 'yfir_asettu', table: false };
 const MH_COOL = '#2f5f8a', MH_WARM = '#a3312a';
@@ -916,7 +923,7 @@ function mhLevel(hlut) {
 function mhCompute(svaedi) {
   const rows = MH.data.filter(r => r.svaedi === svaedi);
   const today = new Date(), curYm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-  if (svaedi !== 'skorr') {                          // höfuðborgarsvæðið, Akureyri: eftir mánuðum
+  if (svaedi !== 'skorr') {                          // höfuðborgarsvæðið, Akureyri, Reykjanesbær: eftir mánuðum
     const months = rows.filter(r => r.gerd === 'manudur').sort((a, b) => a.timabil.localeCompare(b.timabil));
     const full = months.filter(r => mhYm(r.timabil) < curYm);       // aðeins heilir mánuðir
     const last = full.slice(-3).map(r => mhYm(r.timabil));
@@ -1051,7 +1058,7 @@ function mhRenderChart(c) {
     const both = a1.map((v, i) => v != null && a0[i] != null ? Math.sign(v - a0[i]) : null).filter(v => v != null);
     const lower = both.filter(v => v < 0).length;
     note = both.length ? `Í ${lower} af ${both.length} mánuðum ${y1} var gildið lægra en sama mánuð ${y0}.` : '';
-    if (MH.svaedi === 'akureyri') {
+    if (MH.svaedi === 'akureyri' || MH.svaedi === 'reykjanesbaer') {
       const ns = cur.map(r => r.n);
       note += ` Fáar sölur á mánuði (${Math.min(...ns)}–${Math.max(...ns)}), svo einstakir mánuðir sveiflast meira en á höfuðborgarsvæðinu.`;
     }
@@ -1099,8 +1106,9 @@ async function initHiti() {
     return;
   }
   MH.data = data;
-  // Akureyrarhnappur aðeins ef tölur eru komnar (n8n reiknar á nóttunni)
-  document.querySelector('.mh-seg-btn[data-svaedi="akureyri"]').hidden = !data.some(r => r.svaedi === 'akureyri');
+  // Hnappar Akureyrar og Reykjanesbæjar aðeins ef tölur eru komnar (n8n reiknar á nóttunni)
+  for (const sv of ['akureyri', 'reykjanesbaer'])
+    document.querySelector(`.mh-seg-btn[data-svaedi="${sv}"]`).hidden = !data.some(r => r.svaedi === sv);
   mhRender();
 }
 
@@ -1125,6 +1133,7 @@ const VM_POSTNR = [
   [112, 'Reykjavík'], [113, 'Reykjavík'], [116, 'Reykjavík'], [170, 'Seltjarnarnes'],
   [200, 'Kópavogur'], [201, 'Kópavogur'], [203, 'Kópavogur'], [210, 'Garðabær'], [225, 'Garðabær'],
   [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær'],
+  [230, 'Reykjanesbær'], [233, 'Reykjanesbær'], [260, 'Reykjanesbær'], [262, 'Reykjanesbær'],
   [600, 'Akureyri'], [603, 'Akureyri']
 ];
 const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'] };
@@ -1253,7 +1262,7 @@ async function vmCompute(e) {
   const teg = VM_TEG[e.tegund][1];
   const hvar = d.svaedi === 'postnr' ? `í ${e.postnr}`
              : d.svaedi === 'sveitarfelag' ? `í sama sveitarfélagi (of fáar sölur í ${e.postnr} einu)`
-             : `${d.svaedi === 'akureyri' ? 'á Akureyri' : 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
+             : `${{ akureyri: 'á Akureyri', reykjanesbaer: 'í Reykjanesbæ' }[d.svaedi] || 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
   const breyt27 = e.mat27 ? (e.mat27 / e.mat - 1) * 100 : null;
 
   document.getElementById('vm-res-sub').textContent = e.title;

@@ -1,5 +1,5 @@
 // Markaðshiti: reiknar mælikvarða úr söluferlum seldra eigna og eignum á sölu.
-// Höfuðborgarsvæðið og Akureyri eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
+// Höfuðborgarsvæðið, Akureyri og Reykjanesbær eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
 // og „staðan núna“ fyrir Skorradal (eignir á sölu). Niðurstaðan er vistuð í public.markadshiti.
 const URL = 'https://chmqzsxu3l-dsn.algolia.net/1/indexes/listing_index/query';
 const QS = { 'x-algolia-application-id': 'CHMQZSXU3L', 'x-algolia-api-key': '9bfe0ddf26fdff0dd90dcdfc0e955eb7' };
@@ -46,7 +46,8 @@ const curY = now.getUTCFullYear(), curM = now.getUTCMonth() + 1;
 //    (ekki 190 Vogar né 230 Reykjanesbær) – sama skilgreining og á síðunni (SVAEDI í app.js).
 const MAN_SVAEDI = {
   hofud:    ['100 TO 108', '109 TO 113', '114 TO 170', '200 TO 205', '206 TO 225', '270 TO 270'],
-  akureyri: ['600 TO 600', '603 TO 603']
+  akureyri: ['600 TO 600', '603 TO 603'],
+  reykjanesbaer: ['230 TO 233', '260 TO 262']   // 230 Keflavík, 233 Hafnir, 260 Njarðvík, 262 Ásbrú
 };
 for (const [svaedi, zips] of Object.entries(MAN_SVAEDI)) {
   for (let y = 2025, m = 1; y < curY || (y === curY && m <= curM); m === 12 ? (y++, m = 1) : m++) {
