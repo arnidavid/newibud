@@ -240,18 +240,19 @@ async function fetchFastinnHofud(sv, postnr, tegund = 'all') {
   try {
     const typeFilter = TEGUND_MAP[tegund]?.algolia || TEGUND_MAP.all.algolia;
     const zipFilter  = postnr === 0 ? SVAEDI[sv].algolia : `zip:${postnr}`;
-    const filters = `(${typeFilter}) AND ${zipFilter}`;
+    // Aðeins virkar auglýsingar (áður voru 500 fyrstu sóttar með fjarlægðum og síaðar á eftir → allt of lágar tölur)
+    const filters = `(${typeFilter}) AND ${zipFilter} AND removed:false`;
     const r = await fetch('https://chmqzsxu3l-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=CHMQZSXU3L&x-algolia-api-key=9bfe0ddf26fdff0dd90dcdfc0e955eb7', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters, hitsPerPage: 500, page: 0 }] })
+      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters, hitsPerPage: 1000, page: 0 }] })
     });
     const d = await r.json();
     const hits = d.results?.[0]?.hits || [];
+    // Ein færsla á söluferil (endurbirt auglýsing sömu eignar), ekki á heimilisfang: íbúðir í sama húsi eru ólíkar eignir
     const seen = new Set();
-    return hits
-      .filter(h => h.removed === false)
-      .filter(h => { const k = h.address || h.street_name; if (seen.has(k)) return false; seen.add(k); return true; })
+    const ls = hits
+      .filter(h => { const k = h.journeyId || h.objectID; if (seen.has(k)) return false; seen.add(k); return true; })
       .map(h => {
         const sqm = h.sqm || h.size || 0, price = h.price || 0;
         return {
@@ -264,6 +265,9 @@ async function fetchFastinnHofud(sv, postnr, tegund = 'all') {
           dags_raw: h.dateadded ? new Date(h.dateadded) : null
         };
       });
+    // Heildarfjöldi á sölu: leitin skilar mest 1000 færslum, en nbHits telur allar
+    ls.total = Math.max(d.results?.[0]?.nbHits || 0, ls.length);
+    return ls;
   } catch (e) { console.error('Fastinn.is (hofud) error:', e); return []; }
 }
 
@@ -433,7 +437,10 @@ function khSeason(agg) {
 
 function khListings(ls, rows, pre = 'kh', col = 'var(--k-hofud-tx)') {
   const w = document.getElementById(pre + '-ls');
-  document.getElementById(pre + '-ls-n').textContent = ls.length ? `${fmtInt(ls.length)} ${ls.length === 1 ? 'eign' : 'eignir'}, nýjast fyrst` : '';
+  const tot = ls.total ?? ls.length;   // leitin skilar mest 1000 nýjustu; heildarfjöldi getur verið meiri
+  document.getElementById(pre + '-ls-n').textContent = !ls.length ? ''
+    : tot > ls.length ? `${fmtInt(tot)} eignir, ${fmtInt(ls.length)} nýjustu sýndar`
+    : `${fmtInt(ls.length)} ${ls.length === 1 ? 'eign' : 'eignir'}, nýjast fyrst`;
   if (!ls.length) { w.innerHTML = '<p class="k-sub" style="padding:16px 0">Engar eignir á sölu á þessu svæði.</p>'; document.getElementById(pre + '-ls-more').hidden = true; return; }
   ls.sort((a, b) => (b.dags_raw?.getTime() || 0) - (a.dags_raw?.getTime() || 0));
   w.innerHTML = ls.map(l => {
@@ -492,6 +499,77 @@ async function renderStaerdAldur(sv, postnr, tegund, kaupTegund) {
       note.textContent = d >= 3 ? `Dýrast á fermetra: byggt ${SA_BINS.aldur[hi.bil - 1]}. Ódýrast: byggt ${SA_BINS.aldur[lo.bil - 1]}, um ${d}% munur.` : 'Byggingarár skiptir litlu um fermetraverð hér.';
     }
   }
+}
+
+// ---- Nýbyggingar: fjöldi á ári (kaupskrá, mv_nybyggingar) og söluhraði (auglýsingar, reiknað í n8n) ----
+// Nýbygging = fyrsta sala eignar sem var byggð sama ár eða árið áður.
+// Markaðshitataflan er sótt einu sinni og samnýtt af þessum kafla og Markaðshita-flipanum.
+const mhLoad = () => (mhLoad.p ||= API.query('markadshiti', { select: '*', order: 'timabil.asc' }, { paginate: false })
+  .then(r => r.data?.length ? r.data : null));
+const NY_MIN_N = 5;   // færri nýbyggingar en þetta → ekkert fermetraverð sýnt
+
+async function renderNybyggingar(sv, postnr, tegund, kaupTegund) {
+  const [{ data }, mh] = await Promise.all([
+    API.rpc('get_nybyggingar_svaedi', { p_postnrs: svPostnrs(sv, postnr), p_tegund: kaupTegund }),
+    mhLoad().catch(() => null)
+  ]);
+  if (!khCurrent(sv, postnr, tegund)) return;
+  const sec = document.getElementById('kh-ny');
+  const rows = (data || []).filter(r => r.ar >= 2010).map(r => ({ ...r, n_allt: +r.n_allt, n_ny: +r.n_ny, n_fm: +r.n_fm, n_fm_ny: +r.n_fm_ny }));
+  sec.hidden = !rows.length;
+  if (!rows.length) return;
+
+  const years = rows.map(r => r.ar), last = years[years.length - 1], cur = rows[rows.length - 1];
+  const nNy = rows.map(r => r.n_ny), pctNy = rows.map(r => r.n_allt ? Math.round(100 * r.n_ny / r.n_allt) : null);
+  const fmNy = r => r.n_fm_ny >= NY_MIN_N ? r.sum_fm_ny / r.n_fm_ny : null;
+  const fmEldra = r => r.n_fm - r.n_fm_ny > 0 ? (r.sum_fm - (r.sum_fm_ny || 0)) / (r.n_fm - r.n_fm_ny) : null;
+
+  let imax = 0; nNy.forEach((v, i) => { if (v > nNy[imax]) imax = i; });
+  document.getElementById('kh-ny-bars-t').textContent = `flestar ${fmtInt(nNy[imax])} árið ${years[imax]}, ${fmtInt(cur.n_ny)} það sem af er ${last}`;
+  kBars(document.getElementById('kh-ny-bars'), years, nNy, khCol(),
+    `Seldar nýbyggingar á ári ${years[0]} til ${last}, flestar ${fmtInt(nNy[imax])} árið ${years[imax]}.`);
+  let pmax = 0; pctNy.forEach((v, i) => { if (v > pctNy[pmax]) pmax = i; });
+  document.getElementById('kh-ny-pct-t').textContent = `${pctNy[pctNy.length - 1]}% árið ${last}, mest ${pctNy[pmax]}% árið ${years[pmax]}`;
+  kLine(document.getElementById('kh-ny-pct'), years, pctNy, khCol(), { fmt: v => v + '%',
+    ariaLabel: `Hlutfall nýbygginga af sölum ${years[0]} til ${last}: ${pctNy.map((v, i) => `${years[i]} ${v}%`).join(', ')}.` });
+
+  // Söluhraði: aðeins til fyrir svæðið allt og allar tegundir (reiknað úr auglýsingum)
+  const mhSv = (mh || []).filter(r => r.svaedi === sv);
+  const arNy = mhSv.filter(r => r.gerd === 'ar_ny'), arEl = mhSv.filter(r => r.gerd === 'ar_eldra');
+  const latest = g => mhSv.filter(r => r.gerd === g).sort((a, b) => b.timabil.localeCompare(a.timabil))[0];
+  const nunaNy = latest('nuna_ny'), nunaEl = latest('nuna_eldra');
+  const hNy = arNy[arNy.length - 1], hEl = hNy && arEl.find(r => r.timabil === hNy.timabil);
+  const hYr = hNy?.timabil.slice(0, 4);
+
+  const fN = fmNy(cur), fE = fmEldra(cur), dFm = fN && fE ? Math.round((fN / fE - 1) * 100) : null;
+  const card = (dt, kv, ks) => `<div><dt>${dt}</dt><dd class="k-kv">${kv}</dd><dd class="k-ks">${ks}</dd></div>`;
+  const cards = [
+    card(`Nýbyggingar ${last}`, `${pctNy[pctNy.length - 1]}%`, `af sölum, ${fmtInt(cur.n_ny)} ${cur.n_ny === 1 ? 'eign' : 'eignir'}`),
+    card(`Fermetraverð nýbygginga ${last}`, fN ? fmtInt(fN) : '—',
+      dFm != null ? `${dFm > 0 ? '+' : dFm < 0 ? '−' : '±'}${Math.abs(dFm)}% miðað við eldri (${fmtInt(fE)})` : 'of fáar sölur')
+  ];
+  if (hNy) cards.push(card(`Dagar á sölu ${hYr}`, fmtInt(hNy.dagar), `nýbyggingar; eldri eignir ${hEl ? fmtInt(hEl.dagar) : '—'}`));
+  if (nunaNy) cards.push(card('Nýbyggingar á sölu núna', fmtInt(nunaNy.n), `miðgildi ${fmtInt(nunaNy.dagar)} daga á sölu`));
+  const kpis = document.getElementById('kh-ny-kpis');
+  kpis.innerHTML = cards.join('');
+  kpis.style.setProperty('--mh-n', cards.length);
+
+  const box = document.getElementById('kh-ny-hradi-box');
+  box.hidden = !arNy.length;
+  if (!arNy.length) return;
+  const pair = (a, b, fmt) => `<b>${a != null ? fmt(a) : '–'}</b> <span class="k-sub">/ ${b != null ? fmt(b) : '–'}</span>`;
+  const dg = v => fmtInt(v), pc = v => String(Math.round(Number(v) * 10) / 10).replace('.', ',') + '%';
+  const tr = (lbl, n, e, soluverd) => `<tr><th scope="row">${lbl}</th>
+    <td class="r">${pair(n?.dagar, e?.dagar, dg)}</td>
+    <td class="r">${soluverd ? pair(n?.soluhlutfall, e?.soluhlutfall, pc) : '<span class="k-sub">–</span>'}</td>
+    <td class="r">${pair(n?.laekkad, e?.laekkad, pc)}</td></tr>`;
+  document.getElementById('kh-ny-hradi').innerHTML = arNy.map(n => tr(n.timabil.slice(0, 4) + (n.timabil.slice(0, 4) === String(new Date().getFullYear()) ? ' (það sem af er)' : ''),
+      n, arEl.find(e => e.timabil === n.timabil), true)).join('')
+    + (nunaNy ? tr('Á sölu núna', nunaNy, nunaEl, false) : '');
+  const svNafn = SVAEDI[sv].nafn;
+  document.getElementById('kh-ny-hradi-n').textContent =
+    (hEl ? `Árið ${hYr} voru nýbyggingar að jafnaði ${fmtInt(hNy.dagar)} daga á sölu en eldri eignir ${fmtInt(hEl.dagar)}. ` : '')
+    + (postnr !== 0 || tegund !== 'all' ? `Söluhraðinn á við ${svNafn} allt og allar tegundir íbúðarhúsnæðis.` : '');
 }
 
 // Íbúðarhúsnæði í PostgREST (tegund=in.(...) virkar ekki → or)
@@ -695,9 +773,10 @@ async function initHofud(sv, postnr, tegund = hofudTegund) {
     }
     KH.agg = agg;
     khFjall();
-    khKpis(hofudByYear(agg), ls.length);
+    khKpis(hofudByYear(agg), ls.total ?? ls.length);
     khSeason(agg);
     renderStaerdAldur(sv, postnr, tegund, kaupTegund);
+    renderNybyggingar(sv, postnr, tegund, kaupTegund);
     renderRecentSalesHofud(sv, postnr, tegund);
     khListings(ls, []);                                   // auglýsingar strax…
     const gotur = [...new Set(ls.map(l => l.heimilisfang.replace(/\s+\d.*$/, '')))];
@@ -866,11 +945,11 @@ async function initYfirlit() {
 
   const hBy = API.getManadarsolur(SVAEDI.hofud.allt, null).then(r => r.data ? hofudByYear(r.data) : null);
   const sum = loadSumarData().then(([k, ls]) => ({ rows: k.data || [], ls }));
-  Promise.all([hBy, fetchFastinnHofud('hofud', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.length); });
+  Promise.all([hBy, fetchFastinnHofud('hofud', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.total ?? ls.length); });
   sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.length));
   const aukaBy = K_AUKA.map(({ sv, id }) => {
     const by = API.getManadarsolur(SVAEDI[sv].allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
-    Promise.all([by, fetchFastinnHofud(sv, 0, 'all')]).then(([b, ls]) => { if (b) kRegion(id, b, ls.length); });
+    Promise.all([by, fetchFastinnHofud(sv, 0, 'all')]).then(([b, ls]) => { if (b) kRegion(id, b, ls.total ?? ls.length); });
     return by;
   });
 
@@ -1117,7 +1196,7 @@ function mhRenderChart(c) {
 
 async function initHiti() {
   if (MH.data) return mhRender();
-  const { data } = await API.query('markadshiti', { select: '*', order: 'timabil.asc' }, { paginate: false });
+  const data = await mhLoad().catch(() => null);
   if (!data?.length) {
     document.getElementById('mh-headline').textContent = 'Ekki tókst að sækja gögn. Reyndu aftur síðar.';
     return;

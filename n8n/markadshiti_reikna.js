@@ -1,6 +1,8 @@
 // Markaðshiti: reiknar mælikvarða úr söluferlum seldra eigna og eignum á sölu.
 // Höfuðborgarsvæðið, Akureyri, Reykjanesbær og Selfoss eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
 // og „staðan núna“ fyrir Skorradal (eignir á sölu). Niðurstaðan er vistuð í public.markadshiti.
+// Auk þess nýbyggingar á móti eldri eignum í þéttbýli: á ári frá 2023 (gerd 'ar_ny' / 'ar_eldra')
+// og eignir á sölu núna (gerd 'nuna_ny' / 'nuna_eldra').
 const URL = 'https://chmqzsxu3l-dsn.algolia.net/1/indexes/listing_index/query';
 const QS = { 'x-algolia-application-id': 'CHMQZSXU3L', 'x-algolia-api-key': '9bfe0ddf26fdff0dd90dcdfc0e955eb7' };
 
@@ -13,6 +15,16 @@ async function hitsFor(filters) {
     if (page + 1 >= (r.nbPages || 1)) break;
   }
   return out;
+}
+// Leitin skilar mest 1000 færslum á fyrirspurn: ef fleiri passa er verðbilinu skipt í tvennt þar til hver hluti
+// er undir mörkunum (auglýsingar án verðs falla út, en þær nýtast hvort eð er ekki í útreikningum)
+async function hitsSplit(filters, lo = 0, hi = 2e9) {
+  const f = `${filters} AND price:${lo} TO ${hi}`;
+  const r = await helpers.httpRequest({ method: 'POST', url: URL, qs: QS, json: true,
+    body: { query: '', filters: f, hitsPerPage: 1000, page: 0 } });
+  if ((r.nbHits || 0) <= 1000 || hi - lo < 1e6) return r.hits || [];
+  const mid = Math.floor((lo + hi) / 2);
+  return [...await hitsSplit(filters, lo, mid), ...await hitsSplit(filters, mid + 1, hi)];
 }
 const median = a => { const s = [...a].sort((x, y) => x - y), n = s.length;
   return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null; };
@@ -50,13 +62,31 @@ const MAN_SVAEDI = {
   reykjanesbaer: ['230 TO 233', '260 TO 262'],  // 230 Keflavík, 233 Hafnir, 260 Njarðvík, 262 Ásbrú
   selfoss:  ['800 TO 801']                      // ekki Eyrarbakki (820) né Stokkseyri (825)
 };
+// Nýbygging: byggingarár sama eða árinu fyrr en söluárið (sama regla og mv_nybyggingar í Supabase).
+// Byggingarár vantar (0) í ~6 % auglýsinga; þær teljast hvorki nýjar né eldri.
+const ARA_FRA = 2023, MAN_FRA = 2025;   // nýbyggingar á ári frá 2023; mánaðartölur Markaðshita frá 2025
+// Aðeins íbúðarhúsnæði (í auglýsingum á sölu er ~¼ atvinnuhúsnæði, lóðir og hesthús)
+const IBUD = ['fjolb', 'einb', 'raðpar', 'einbýlishús', 'parhús'];
+const IBUD_F = '(' + IBUD.map(t => `type:"${t}"`).join(' OR ') + ')';
+const erNy    = (h, ar) => IBUD.includes(h.type) && h.byggingarar >= ar - 1;
+const erEldri = (h, ar) => IBUD.includes(h.type) && h.byggingarar > 1800 && h.byggingarar < ar - 1;
 for (const [svaedi, zips] of Object.entries(MAN_SVAEDI)) {
-  for (let y = 2025, m = 1; y < curY || (y === curY && m <= curM); m === 12 ? (y++, m = 1) : m++) {
+  const ny = {}, eldri = {};               // ár → sölur
+  for (let y = ARA_FRA, m = 1; y < curY || (y === curY && m <= curM); m === 12 ? (y++, m = 1) : m++) {
     const a = ms(y, m), b = m === 12 ? ms(y + 1, 1) : ms(y, m + 1);
     let hits = [];
     for (const z of zips) hits = hits.concat(await hitsFor(`journeyStatus:SOLD AND zip:${z} AND journeySoldAt_timestamp:${a} TO ${b - 1}`));
-    const s = soldStats(hits);
-    if (s) rows.push({ svaedi, gerd: 'manudur', timabil: iso(y, m), ...s });
+    if (y >= MAN_FRA) {
+      const s = soldStats(hits);
+      if (s) rows.push({ svaedi, gerd: 'manudur', timabil: iso(y, m), ...s });
+    }
+    (ny[y] = ny[y] || []).push(...hits.filter(h => erNy(h, y)));
+    (eldri[y] = eldri[y] || []).push(...hits.filter(h => erEldri(h, y)));
+  }
+  for (const y of Object.keys(ny)) {
+    const sn = soldStats(ny[y]), se = soldStats(eldri[y]);
+    if (sn) rows.push({ svaedi, gerd: 'ar_ny',    timabil: iso(y, 1), ...sn });
+    if (se) rows.push({ svaedi, gerd: 'ar_eldra', timabil: iso(y, 1), ...se });
   }
 }
 
@@ -78,6 +108,26 @@ for (let y = 2024, h = 2; y < curY || (y === curY && (h === 1 || curM >= 7)); h 
     yfir_asettu: null, soluhlutfall: null,
     dagar: age.length ? Math.round(median(age)) : null,
     laekkad: act.length ? Math.round(100 * act.filter(h => h.price < h.journeyMaxPrice).length / act.length) : null });
+}
+
+// 4) Þéttbýli: íbúðir á sölu núna, nýbyggingar og eldri – tími á sölu og hlutfall sem hefur lækkað
+function activeStats(hits) {
+  const J = {};
+  for (const h of hits) J[h.journeyId || h.objectID] = h;
+  const act = Object.values(J).filter(h => h.price && h.journeyMaxPrice);
+  if (!act.length) return null;
+  const age = act.map(h => h.journeyFirstListedAt_timestamp).filter(Boolean).map(t => (Date.now() - t) / 864e5);
+  return { n: act.length, yfir_asettu: null, soluhlutfall: null,
+    dagar: age.length ? Math.round(median(age)) : null,
+    laekkad: Math.round(100 * act.filter(h => h.price < h.journeyMaxPrice).length / act.length) };
+}
+for (const [svaedi, zips] of Object.entries(MAN_SVAEDI)) {
+  let hits = [];
+  for (const z of zips) hits = hits.concat(await hitsSplit(`removed:false AND zip:${z} AND ${IBUD_F}`));
+  const sn = activeStats(hits.filter(h => erNy(h, curY))), se = activeStats(hits.filter(h => erEldri(h, curY)));
+  const dags = now.toISOString().slice(0, 10);
+  if (sn) rows.push({ svaedi, gerd: 'nuna_ny',    timabil: dags, ...sn });
+  if (se) rows.push({ svaedi, gerd: 'nuna_eldra', timabil: dags, ...se });
 }
 
 const uppfaert = now.toISOString();

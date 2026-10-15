@@ -439,6 +439,15 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-defs dt { font-weight: 700; font-size: 16px; }
 .k-defs dd { margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: #3D4A50; }
 .k-tblbox { overflow-x: auto; margin-top: 16px; }
+/* Söluhraði nýbygginga: lítil tafla sem helst tafla í síma (ekki spjöld eins og sölulistarnir) */
+@media (max-width: 640px) {
+  .k-tbl.k-tbl-ny { display: table; font-size: 13px; }
+  .k-tbl-ny thead { display: table-header-group; }
+  .k-tbl-ny tbody { display: table-row-group; }
+  .k-tbl-ny tbody tr { display: table-row; }
+  .k-tbl-ny th, .k-tbl-ny td { padding: 10px 0 10px 8px !important; text-align: right; }
+  .k-tbl-ny th:first-child { padding-left: 0 !important; text-align: left; }
+}
 @media (max-width: 640px) {
   .k-state { grid-template-columns: 1fr; }
   .k-state-h { font-size: 28px; }

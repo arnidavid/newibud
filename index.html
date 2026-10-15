@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=36">
+<link rel="stylesheet" href="style.css?v=37">
 </head>
 <body>
 <header class="site-hd">
@@ -344,6 +344,31 @@
       </div>
     </section>
 
+    <section aria-labelledby="kh-ny-h" style="margin-top:52px" id="kh-ny" hidden>
+      <h2 id="kh-ny-h" class="k-h2 k-rule">Nýbyggingar</h2>
+      <p class="k-intro">Fyrsta sala eignar sem var byggð sama ár eða árið áður.</p>
+      <dl class="k-kpis k-kpis4" id="kh-ny-kpis" aria-label="Nýbyggingar, lykiltölur"></dl>
+      <div class="k-two" style="margin-top:36px">
+        <figure style="margin:0">
+          <figcaption class="k-figt">Seldar nýbyggingar á ári <span id="kh-ny-bars-t"></span></figcaption>
+          <div class="k-chart" id="kh-ny-bars"></div>
+        </figure>
+        <figure style="margin:0">
+          <figcaption class="k-figt">Hlutfall nýbygginga af sölum <span id="kh-ny-pct-t"></span></figcaption>
+          <div class="k-chart" id="kh-ny-pct"></div>
+        </figure>
+      </div>
+      <div id="kh-ny-hradi-box" hidden style="margin-top:44px">
+        <h3 class="k-figt">Söluhraði: nýbyggingar / eldri eignir</h3>
+        <p class="k-figp" id="kh-ny-hradi-n" style="margin:4px 0 12px"></p>
+        <div class="k-tblbox"><table class="k-tbl k-tbl-ny">
+          <thead><tr><th scope="col">Ár</th><th scope="col" class="r">Dagar á sölu</th><th scope="col" class="r">Söluverð af ásettu</th><th scope="col" class="r">Lækkuðu ásett verð</th></tr></thead>
+          <tbody id="kh-ny-hradi"></tbody>
+        </table></div>
+        <p class="k-figp" style="margin-top:8px">Miðgildi. Fyrri talan er nýbyggingar, sú seinni eldri eignir. „Á sölu núna“ sýnir hve lengi eignir hafa verið á sölu.</p>
+      </div>
+    </section>
+
     <section aria-labelledby="kh-man-h" style="margin-top:52px">
       <h2 id="kh-man-h" class="k-h2 k-rule">Fermetraverð eftir mánuðum</h2>
       <p class="k-intro" id="kh-man-txt"></p>
@@ -496,6 +521,6 @@
 </main>
 
 <script src="api.js?v=8"></script>
-<script src="app.js?v=83"></script>
+<script src="app.js?v=84"></script>
 </body>
 </html>
