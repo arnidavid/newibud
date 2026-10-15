@@ -219,17 +219,14 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   min-height: 44px; padding: 0; cursor: pointer; white-space: nowrap; }
 .tab-btn:hover { border-bottom-color: var(--k-rule); }
 .tab-btn[aria-current="page"] { font-weight: 700; border-bottom-color: var(--k-ink); }
-.tab-btn[data-view="hofud"][aria-current="page"] { border-bottom-color: var(--k-hofud); }
-.tab-btn[data-view="akureyri"][aria-current="page"] { border-bottom-color: var(--k-aku); }
-.tab-btn[data-view="reykjanesbaer"][aria-current="page"] { border-bottom-color: var(--k-rnb); }
-.tab-btn[data-view="selfoss"][aria-current="page"] { border-bottom-color: var(--k-sel); }
-.tab-btn[data-view="akranes"][aria-current="page"] { border-bottom-color: var(--k-akr); }
+/* Svæði-flipinn fær lit valins svæðis (stilltur í khSetSvaedi) */
+.tab-btn[data-view="svaedi"][aria-current="page"] { border-bottom-color: var(--k-svaedi, var(--k-ink)); }
 .tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-skorr); }
 .tab-btn:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
 
 @media (max-width: 640px) {
   .hd-in { padding: 10px 16px; }
-  .tabs { gap: 0 16px; }
+  .tabs { gap: 0 12px; width: 100%; justify-content: space-between; }   /* fimm flipar í einni línu (375 px) */
   .tab-btn { font-size: 14px; }
 }
 
@@ -317,6 +314,13 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 }
 
 /* ---- Höfuðborgarsvæðið (og síðar Skorradalur) ---- */
+/* Svæðaval efst í Svæði-flipanum (sama útlit og svæðaval Markaðshita) */
+.kh-seg { margin-top: 32px; flex-wrap: wrap; }
+#view-hofud .kh-seg button[aria-pressed="true"] { background: var(--k-hofud-tx); }
+@media (max-width: 640px) {
+  .kh-seg { margin-top: 20px; }
+  .kh-seg button { flex: 1 1 auto; }
+}
 .k-titlerow { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 40px; padding: 40px 0 22px; }
 .k-filters { display: flex; flex-wrap: wrap; gap: 12px; flex: 0 1 440px; }
 .k-filters > div { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; }
@@ -442,6 +446,7 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-defs dt { font-weight: 700; font-size: 16px; }
 .k-defs dd { margin: 6px 0 0; font-size: 15px; line-height: 1.55; color: #3D4A50; }
 .k-tblbox { overflow-x: auto; margin-top: 16px; }
+.k-tbl-ny tbody th { text-align: left; font-weight: 600; }
 /* Söluhraði nýbygginga: lítil tafla sem helst tafla í síma (ekki spjöld eins og sölulistarnir) */
 @media (max-width: 640px) {
   .k-tbl.k-tbl-ny { display: table; font-size: 13px; }

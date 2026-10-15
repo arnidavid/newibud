@@ -273,8 +273,10 @@ async function fetchFastinnHofud(sv, postnr, tegund = 'all') {
           dags_raw: h.dateadded ? new Date(h.dateadded) : null
         };
       });
-    // Heildarfjöldi á sölu: leitin skilar mest 1000 færslum, en nbHits telur allar
-    ls.total = Math.max(d.results?.[0]?.nbHits || 0, ls.length);
+    // Heildarfjöldi á sölu: leitin skilar mest 1000 færslum. Aðeins ef listinn er styttur er nbHits notað
+    // (það telur endurbirtar auglýsingar sömu eignar oftar en einu sinni, svo það er ekki rétt annars)
+    const nb = d.results?.[0]?.nbHits || 0;
+    ls.total = nb > hits.length ? nb : ls.length;
     return ls;
   } catch (e) { console.error('Fastinn.is (hofud) error:', e); return []; }
 }
@@ -1431,12 +1433,15 @@ const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', 
 
 // Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, annarra svæða úr SVAEDI
 SVAEDI.hofud.valkostir = document.getElementById('hofud-postnr').innerHTML;
+document.querySelector('.tab-btn[data-view="svaedi"]').style.setProperty('--k-svaedi', SVAEDI.hofud.col.c);
 function khSetSvaedi(sv) {
   if (hofudSvaedi === sv) return;
   hofudSvaedi = sv;
   hofudReady = false;
   document.getElementById('hofud-postnr').innerHTML = SVAEDI[sv].valkostir;
   document.getElementById('view-hofud').dataset.svaedi = sv;   // CSS skiptir um lit
+  document.querySelectorAll('.kh-seg [data-sv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sv === sv)));
+  document.querySelector('.tab-btn[data-view="svaedi"]').style.setProperty('--k-svaedi', SVAEDI[sv].col.c);
 }
 function khInitFromForm() {
   const postnr = parseInt(document.getElementById('hofud-postnr').value, 10);
@@ -1447,7 +1452,7 @@ function showView(view, { push = true } = {}) {
   if (!VIEW_HASH[view]) view = 'yfirlit';
   const dom = VIEW_DOM[view] || view;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const on = b.dataset.view === view;
+    const on = b.dataset.view === (dom === 'hofud' ? 'svaedi' : view);   // öll þéttbýlissvæðin undir „Svæði“
     b.classList.toggle('active', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
@@ -1471,8 +1476,12 @@ function viewFromHash() {
   return Object.keys(VIEW_HASH).find(k => VIEW_HASH[k] === h) || 'yfirlit';
 }
 
+// „Svæði“ opnar síðasta valda svæðið (höfuðborgarsvæðið í byrjun); hvert svæði hefur áfram eigin slóð (#selfoss o.s.frv.)
 document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => showView(btn.dataset.view));
+  btn.addEventListener('click', () => showView(btn.dataset.view === 'svaedi' ? hofudSvaedi : btn.dataset.view));
+});
+document.querySelectorAll('.kh-seg [data-sv]').forEach(btn => {
+  btn.addEventListener('click', () => { if (btn.dataset.sv !== hofudSvaedi) showView(btn.dataset.sv); });
 });
 document.querySelectorAll('[data-goto]').forEach(a => {
   a.addEventListener('click', e => { e.preventDefault(); showView(a.dataset.goto); window.scrollTo({ top: 0, behavior: 'smooth' }); });

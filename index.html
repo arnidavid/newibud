@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=38">
+<link rel="stylesheet" href="style.css?v=39">
 </head>
 <body>
 <header class="site-hd">
@@ -36,11 +36,7 @@
     </a>
     <nav class="tabs" aria-label="Aðalvalmynd">
       <button type="button" class="tab-btn active" data-view="yfirlit" aria-current="page">Yfirlit</button>
-      <button type="button" class="tab-btn" data-view="hofud">Höfuðborgarsvæðið</button>
-      <button type="button" class="tab-btn" data-view="akureyri">Akureyri</button>
-      <button type="button" class="tab-btn" data-view="reykjanesbaer">Reykjanesbær</button>
-      <button type="button" class="tab-btn" data-view="selfoss">Selfoss</button>
-      <button type="button" class="tab-btn" data-view="akranes">Akranes</button>
+      <button type="button" class="tab-btn" data-view="svaedi">Svæði</button>
       <button type="button" class="tab-btn" data-view="sumar">Skorradalur</button>
       <button type="button" class="tab-btn" data-view="hiti">Markaðshiti</button>
       <button type="button" class="tab-btn" data-view="verdmat">Verðmat</button>
@@ -250,6 +246,13 @@
 
   <!-- ===================== HÖFUÐBORGARSVÆÐI VIEW ===================== -->
   <div id="view-hofud" class="view">
+    <div class="k-seg kh-seg" role="group" aria-label="Veldu svæði">
+      <button type="button" data-sv="hofud" aria-pressed="true">Höfuðborgarsvæðið</button>
+      <button type="button" data-sv="akureyri" aria-pressed="false">Akureyri</button>
+      <button type="button" data-sv="reykjanesbaer" aria-pressed="false">Reykjanesbær</button>
+      <button type="button" data-sv="selfoss" aria-pressed="false">Selfoss</button>
+      <button type="button" data-sv="akranes" aria-pressed="false">Akranes</button>
+    </div>
     <div class="k-titlerow">
       <div>
         <h1 class="k-h1" id="kh-h1" style="margin-bottom:8px">Höfuðborgarsvæðið</h1>
@@ -535,6 +538,6 @@
 </main>
 
 <script src="api.js?v=8"></script>
-<script src="app.js?v=85"></script>
+<script src="app.js?v=86"></script>
 </body>
 </html>
