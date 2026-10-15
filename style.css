@@ -241,6 +241,8 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .k-yl { position: absolute; left: 0; transform: translateY(-120%); font-size: 12px; color: var(--k-muted); }
 /* Graf með ás-dálki: ás-tölurnar standa vinstra megin við grafið, ekki ofan á línunum */
 .k-gut { --gut: 34px; }
+.k-gutr { --gutr: 40px; }
+.k-gutr svg { width: calc(100% - var(--gutr)); }
 .k-gut svg { margin-left: var(--gut); width: calc(100% - var(--gut)); }
 .k-gut .k-yl { width: calc(var(--gut) - 8px); text-align: right; transform: translateY(-50%); }
 .k-xl { position: absolute; bottom: -22px; transform: translateX(-50%); font-size: 12px; color: var(--k-muted); }
@@ -268,12 +270,20 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 /* ---- Forsíða ---- */
 .k-hero { padding: 40px 0 34px; }
 .k-ends { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 20px 0 6px; }
-.k-end { display: flex; align-items: baseline; gap: 8px; }
+.k-end { display: flex; align-items: baseline; gap: 8px; font: inherit; color: var(--k-ink); background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left; }
+.k-end:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+.k-end[aria-pressed="true"] span { text-decoration: underline; text-underline-offset: 3px; }
+/* Auðkenning: önnur svæði dofna (línur, punktar og skýringar) */
+.k-dim { opacity: .18; transition: opacity .15s; }
+.k-end.k-dim { opacity: .4; }
+.k-dot { position: absolute; width: 9px; height: 9px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid var(--k-paper); }
+@media (prefers-reduced-motion: reduce) { .k-dim { transition: none; } }
 .k-end i { width: 22px; height: 4px; display: inline-block; align-self: center; }
 .k-end b { font-size: 34px; font-weight: 800; letter-spacing: -.6px; }
 .k-figcap { font-size: 13px; color: var(--k-muted); margin-top: 34px; }
-.k-reg-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
-.k-reg-hd a { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 10px 0; background: none; border: 0; font-family: inherit; cursor: pointer; }
+/* Tengillinn alltaf undir fyrirsögn svo spjöldin standist á, hvað sem nafnið er langt */
+.k-reg-hd { display: flex; flex-direction: column; align-items: flex-start; }
+.k-reg-hd a { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 4px 0 10px; background: none; border: 0; font-family: inherit; cursor: pointer; }
 /* Svæðin tvö og tvö saman (fleiri dálkar hlið við hlið yrðu of þröngir fyrir tölurnar); í síma einn dálkur.
    Standi síðasta svæðið eitt (oddatala) nær það yfir alla breiddina en tölurnar halda dálkbreidd. */
 @media (min-width: 641px) {
@@ -294,7 +304,11 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-h2 { font-size: 22px; }
   .k-xl.mid { display: none; }
   .k-chart.k-tall svg { height: 200px; }   /* viewBox er teygður (preserveAspectRatio=none) svo grafið verði ekki 100 px lágt */
-  .k-end b { font-size: 28px; }
+  .k-end b { font-size: 24px; }
+  /* Sex svæði: tveir þéttir dálkar svo grafið sjáist á fyrsta skjá */
+  .k-ends { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .k-end { gap: 6px; font-size: 13px; line-height: 1.2; }
+  .k-end i { width: 14px; }
   .k-cols { grid-template-columns: 1fr; }
   .k-col + .k-col { padding-left: 0; border-left: 0; border-top: 1px solid var(--k-rule); }
   .k-stats dd { font-size: 24px; }

@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=39">
+<link rel="stylesheet" href="style.css?v=40">
 </head>
 <body>
 <header class="site-hd">
@@ -51,7 +51,7 @@
     <section class="k-hero" aria-labelledby="k-hero-h">
       <h1 id="k-hero-h" class="k-h1">Fasteignaverð í tölum</h1>
       <p class="k-lead">Meðalverð á fermetra í þinglýstum sölum á hverju ári. Hver lína í fjallinu er 100 þúsund krónur á fermetra, eins og hæðarlína á korti.</p>
-      <div class="k-ends" id="k-ends" aria-hidden="true"></div>
+      <div class="k-ends" id="k-ends" role="group" aria-label="Svæði í grafinu"></div>
       <figure style="margin:0">
         <div class="k-chart k-tall" id="k-fjall"><div class="ldw"><div class="ldr"></div>Sæki gögn…</div></div>
         <figcaption class="k-figcap" id="k-fjall-cap">Þ.kr á fermetra, meðaltal ársins.</figcaption>
@@ -154,6 +154,7 @@
         <thead><tr><th scope="col">Eign</th><th scope="col">Svæði</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Ásett</th><th scope="col" class="r">Selt</th><th scope="col" class="r">Þ.kr/m²</th></tr></thead>
         <tbody id="k-solur"><tr><td colspan="6"><div class="ldw"><div class="ldr"></div>Sæki sölur…</div></td></tr></tbody>
       </table>
+      <button type="button" class="k-more" id="k-solur-more" aria-controls="k-solur" hidden></button>
     </section>
 
     <section class="k-cols" aria-label="Meira" style="margin-top:52px;grid-template-columns:1fr">
@@ -538,6 +539,6 @@
 </main>
 
 <script src="api.js?v=8"></script>
-<script src="app.js?v=86"></script>
+<script src="app.js?v=87"></script>
 </body>
 </html>
