@@ -198,10 +198,12 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   --k-skorr: #00897b;  --k-skorr-tx: #00695E;  --k-skorr-fill: #E4F2EF;   /* skógur og vatn */
   --k-aku: #5E4FA2;    --k-aku-tx: #433880;    --k-aku-fill: #EEEBF6;     /* Akureyri */
   --k-rnb: #2E6DA4;    --k-rnb-tx: #1F4F7A;    --k-rnb-fill: #E6EEF6;     /* Reykjanesbær */
+  --k-sel: #A23B63;    --k-sel-tx: #7A2547;    --k-sel-fill: #F6E8EE;     /* Selfoss */
 }
 /* Akureyri og Reykjanesbær nota skjáhluta höfuðborgarsvæðisins → sömu breytur, annar litur */
 #view-hofud[data-svaedi="akureyri"] { --k-hofud: var(--k-aku); --k-hofud-tx: var(--k-aku-tx); --k-hofud-fill: var(--k-aku-fill); }
 #view-hofud[data-svaedi="reykjanesbaer"] { --k-hofud: var(--k-rnb); --k-hofud-tx: var(--k-rnb-tx); --k-hofud-fill: var(--k-rnb-fill); }
+#view-hofud[data-svaedi="selfoss"] { --k-hofud: var(--k-sel); --k-hofud-tx: var(--k-sel-tx); --k-hofud-fill: var(--k-sel-fill); }
 
 /* ---- Haus ---- */
 .site-hd { border-bottom: 1px solid var(--k-rule); background: var(--k-paper); color: var(--k-ink); }
@@ -218,6 +220,7 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .tab-btn[data-view="hofud"][aria-current="page"] { border-bottom-color: var(--k-hofud); }
 .tab-btn[data-view="akureyri"][aria-current="page"] { border-bottom-color: var(--k-aku); }
 .tab-btn[data-view="reykjanesbaer"][aria-current="page"] { border-bottom-color: var(--k-rnb); }
+.tab-btn[data-view="selfoss"][aria-current="page"] { border-bottom-color: var(--k-sel); }
 .tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-skorr); }
 .tab-btn:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
 
@@ -271,10 +274,13 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-figcap { font-size: 13px; color: var(--k-muted); margin-top: 34px; }
 .k-reg-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
 .k-reg-hd a { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 10px 0; background: none; border: 0; font-family: inherit; cursor: pointer; }
-/* Fjögur svæði: 2 × 2 (fjórir dálkar hlið við hlið yrðu of þröngir fyrir tölurnar); í síma einn dálkur */
+/* Svæðin tvö og tvö saman (fleiri dálkar hlið við hlið yrðu of þröngir fyrir tölurnar); í síma einn dálkur.
+   Standi síðasta svæðið eitt (oddatala) nær það yfir alla breiddina en tölurnar halda dálkbreidd. */
 @media (min-width: 641px) {
   .k-cols-4 .k-col:nth-child(odd) { padding-left: 0; border-left: 0; }
   .k-cols-4 .k-col:nth-child(n+3) { border-top: 1px solid var(--k-rule); }
+  .k-cols-4 .k-col:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .k-cols-4 .k-col:last-child:nth-child(odd) > * { max-width: calc(50% - 28px); }
 }
 .k-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .k-stats > div { display: flex; flex-direction: column; justify-content: space-between; }   /* tölur standast á þótt merki brotni */
@@ -441,9 +447,9 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-kvrow b { font-size: 30px; }
   .k-defs { grid-template-columns: 1fr; }
   #view-hiti .k-seg { width: 100%; }
-  /* Fjögur svæði komast ekki í eina röð í síma → 2 × 2 */
-  #view-hiti .k-seg:not(:has(button[hidden])) { flex-wrap: wrap; }
-  #view-hiti .k-seg:not(:has(button[hidden])) button { flex: 1 1 50%; }
+  /* Fjögur eða fleiri sýnileg svæði komast ekki í eina röð í síma → tvö í röð */
+  #view-hiti .k-seg:has(> button:not([hidden]) ~ button:not([hidden]) ~ button:not([hidden]) ~ button:not([hidden])) { flex-wrap: wrap; }
+  #view-hiti .k-seg:has(> button:not([hidden]) ~ button:not([hidden]) ~ button:not([hidden]) ~ button:not([hidden])) button { flex: 1 1 50%; }
 }
 
 /* ---- Verðmat ---- */

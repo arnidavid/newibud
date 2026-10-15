@@ -223,6 +223,15 @@ const SVAEDI = {
     algolia: '(zip:230 OR zip:233 OR zip:260 OR zip:262)',
     col: { c: '#2E6DA4', tx: '#1F4F7A', fill: '#E6EEF6', fill2: '#A9C3DC', faint: '#D2DEE9', lo: [230, 238, 246], hi: [22, 58, 98] },
     valkostir: '<option value="0">Allur bærinn</option><option value="230">230 Keflavík</option><option value="260">260 Njarðvík</option><option value="262">262 Ásbrú</option><option value="233">233 Hafnir</option>'
+  },
+  // Aðeins Selfoss (800 bærinn, 801 dreifbýlið í kring). Eyrarbakki (820) og Stokkseyri (825) eru
+  // ~25 % ódýrari á fermetra og eldri hús, svo þau eru höfð utan svo þau skekki ekki meðaltölin.
+  selfoss: {
+    nafn: 'Selfoss', allt_txt: 'á Selfossi',
+    allt: [800, 801],
+    algolia: '(zip:800 OR zip:801)',
+    col: { c: '#A23B63', tx: '#7A2547', fill: '#F6E8EE', fill2: '#D9A9BD', faint: '#E8D3DC', lo: [246, 232, 238], hi: [110, 28, 62] },
+    valkostir: '<option value="0">Allur Selfoss</option><option value="800">800 Selfoss</option><option value="801">801 Selfoss (dreifbýli)</option>'
   }
 };
 const svPostnrs = (sv, postnr) => postnr === 0 ? SVAEDI[sv].allt : [postnr];
@@ -364,7 +373,7 @@ function kMore(btn, items, show, noun) {
 
 // ---- Höfuðborgarsvæðið ----
 const KH = { agg: null, real: false };
-const khCol = () => SVAEDI[hofudSvaedi].col;   // litir valins svæðis (höfuðborgarsvæðið / Akureyri / Reykjanesbær)
+const khCol = () => SVAEDI[hofudSvaedi].col;   // litir valins svæðis
 
 function khFjall() {
   const by = hofudByYear(KH.agg);
@@ -595,20 +604,21 @@ function pickListingForSale(sale, listings) {
 
 let sumarReady   = false;
 let hofudReady   = false;
-let hofudSvaedi  = 'hofud';   // lykill í SVAEDI ('hofud', 'akureyri', 'reykjanesbaer') – sami flipi, mismunandi svæði
+let hofudSvaedi  = 'hofud';   // lykill í SVAEDI ('hofud', 'akureyri', 'reykjanesbaer', 'selfoss') – sami flipi, mismunandi svæði
 let hofudPostnr  = null;
 let hofudTegund  = 'all';
 // Á enn við? (notandi gæti hafa skipt um svæði/val á meðan beðið var eftir gögnum)
 const khCurrent = (sv, p, t) => hofudSvaedi === sv && hofudPostnr === p && hofudTegund === t;
 
 const SUB_TEXTS = {
-  yfirlit: 'Höfuðborgarsvæðið, Akureyri, Reykjanesbær og Skorradalur',
+  yfirlit: 'Höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss og Skorradalur',
   hiti: 'Hversu auðvelt er að selja núna?',
   verdmat: 'Hvað er eignin mín virði?',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis',
   akureyri: 'Akureyri — markaðsgreining íbúðarhúsnæðis',
-  reykjanesbaer: 'Reykjanesbær — markaðsgreining íbúðarhúsnæðis'
+  reykjanesbaer: 'Reykjanesbær — markaðsgreining íbúðarhúsnæðis',
+  selfoss: 'Selfoss — markaðsgreining íbúðarhúsnæðis'
 };
 
 // Skorradalsgögn sótt einu sinni og samnýtt af forsíðu og Skorradals-flipa
@@ -747,7 +757,9 @@ async function matchSalesToListings(sales) {
 }
 
 // ---- Forsíða (kortastefna) ----
-const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
+const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, selfoss: SVAEDI.selfoss.col, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
+// Önnur þéttbýlissvæði á forsíðu: línur í verðfjalli, dálkur (id) og nýjustu sölur
+const K_AUKA = [{ sv: 'akureyri', id: 'k-reg-aku' }, { sv: 'reykjanesbaer', id: 'k-reg-rnb' }, { sv: 'selfoss', id: 'k-reg-sel' }];
 const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
 const kLastYear = by => Math.max(...Object.keys(by).filter(y => by[y].nFm > 0).map(Number));
 
@@ -768,13 +780,13 @@ function kRegion(id, by, lsCount) {
 }
 
 // Verðfjallið: fermetraverð á ári sem hæðarsnið; hver lárétt lína í fjallinu = 100 þ.kr/m²
-function kFjall(hBy, sBy, aBy, rBy, lastDate) {
+// auka: [{ sv, by }] fyrir önnur þéttbýlissvæði (by má vanta ef sókn mistókst)
+function kFjall(hBy, sBy, auka, lastDate) {
   const y1 = Math.max(kLastYear(hBy), kLastYear(sBy)), years = [];
   for (let y = 2008; y <= y1; y++) years.push(y);
   const H = years.map(y => kAvg(hBy, y)), S = years.map(y => kAvg(sBy, y));
-  const A = aBy ? years.map(y => kAvg(aBy, y)) : null;   // Akureyri (má vanta ef sókn mistókst)
-  const R = rBy ? years.map(y => kAvg(rBy, y)) : null;   // Reykjanesbær (sama)
-  const all = [...H, ...S, ...(A || []), ...(R || [])].filter(Boolean), top = Math.ceil((Math.max(...all) + 60) / 100) * 100;
+  const L = auka.filter(a => a.by).map(a => ({ sv: a.sv, v: years.map(y => kAvg(a.by, y)) }));
+  const all = [...H, ...S, ...L.flatMap(l => l.v)].filter(Boolean), top = Math.ceil((Math.max(...all) + 60) / 100) * 100;
   const W = 1000, B = 300, n = years.length;
   const x = i => +(i * W / (n - 1)).toFixed(1), yv = v => +(B - v / top * B).toFixed(1);
   const pts = a => a.map((v, i) => v ? [x(i), yv(v)] : null).filter(Boolean);
@@ -786,14 +798,13 @@ function kFjall(hBy, sBy, aBy, rBy, lastDate) {
   // lægsti punktur höfuðborgarsvæðisins (eftir hrun)
   let lo = 0; H.forEach((v, i) => { if (v && v < H[lo]) lo = i; });
   const pct = (v, of) => +(v / of * 100).toFixed(1);
-  const hLast = H[n - 1], sLast = S[n - 1], aLast = A?.[n - 1], rLast = R?.[n - 1];
-  const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}. ${A ? ` Akureyri úr ${fmtInt(A[0])} í ${fmtInt(aLast)}.` : ''}${R ? ` Reykjanesbær úr ${fmtInt(R[0])} í ${fmtInt(rLast)}.` : ''} Skorradalur úr ${fmtInt(S[0])} í ${fmtInt(sLast)}.">
+  const hLast = H[n - 1], sLast = S[n - 1];
+  const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}.${L.map(l => ` ${SVAEDI[l.sv].nafn} úr ${fmtInt(l.v[0])} í ${fmtInt(l.v[n - 1])}.`).join('')} Skorradalur úr ${fmtInt(S[0])} í ${fmtInt(sLast)}.">
     <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath></defs>
     ${grid.map(v => `<line x1="0" x2="${W}" y1="${yv(v)}" y2="${yv(v)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
     <g clip-path="url(#kH)"><path d="${area(H)}" fill="${K_COL.hofud.fill}"/>${lv(K_COL.hofud.c)}</g>
     <path d="${line(H)}" fill="none" stroke="${K_COL.hofud.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-    ${A ? `<path d="${line(A)}" fill="none" stroke="${K_COL.akureyri.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` : ''}
-    ${R ? `<path d="${line(R)}" fill="none" stroke="${K_COL.reykjanesbaer.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` : ''}
+    ${L.map(l => `<path d="${line(l.v)}" fill="none" stroke="${K_COL[l.sv].c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join('')}
     <path d="${line(S)}" fill="none" stroke="${K_COL.sumar.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     <line x1="0" x2="${W}" y1="${B}" y2="${B}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
   </svg>`;
@@ -808,8 +819,7 @@ function kFjall(hBy, sBy, aBy, rBy, lastDate) {
 
   document.getElementById('k-ends').innerHTML =
     `<div class="k-end"><i style="background:${K_COL.hofud.c}"></i><b style="color:${K_COL.hofud.tx}">${fmtInt(hLast)}</b><span>Höfuðborgarsvæðið, íbúðir</span></div>`
-    + (aLast ? `<div class="k-end"><i style="background:${K_COL.akureyri.c}"></i><b style="color:${K_COL.akureyri.tx}">${fmtInt(aLast)}</b><span>Akureyri, íbúðir</span></div>` : '')
-    + (rLast ? `<div class="k-end"><i style="background:${K_COL.reykjanesbaer.c}"></i><b style="color:${K_COL.reykjanesbaer.tx}">${fmtInt(rLast)}</b><span>Reykjanesbær, íbúðir</span></div>` : '')
+    + L.filter(l => l.v[n - 1]).map(l => `<div class="k-end"><i style="background:${K_COL[l.sv].c}"></i><b style="color:${K_COL[l.sv].tx}">${fmtInt(l.v[n - 1])}</b><span>${SVAEDI[l.sv].nafn}, íbúðir</span></div>`).join('')
     + `<div class="k-end"><i style="background:${K_COL.sumar.c}"></i><b style="color:${K_COL.sumar.tx}">${fmtInt(sLast)}</b><span>Skorradalur, sumarhús</span></div>`;
 
   // Fyrirsögn: hve mikið verðið hefur margfaldast frá lægsta punkti
@@ -842,9 +852,9 @@ function kSaleRow(r, reg, { postnrOnly = false } = {}) {
   </tr>`;
 }
 
-function kSalesTable(hofud, akureyri, rnb, sumar) {
-  const rows = [...hofud.map(r => kSaleRow(r, 'hofud')), ...akureyri.map(r => kSaleRow(r, 'akureyri')),
-                ...rnb.map(r => kSaleRow(r, 'reykjanesbaer')), ...sumar.map(r => kSaleRow(r, 'sumar'))];
+// hopar: [[svæðislykill, sölur], …] í birtingarröð
+function kSalesTable(hopar) {
+  const rows = hopar.flatMap(([reg, sales]) => sales.map(r => kSaleRow(r, reg)));
   document.getElementById('k-solur').innerHTML = rows.length ? rows.join('')
     : '<tr><td colspan="6">Engar sölur fundust.</td></tr>';
 }
@@ -858,10 +868,11 @@ async function initYfirlit() {
   const sum = loadSumarData().then(([k, ls]) => ({ rows: k.data || [], ls }));
   Promise.all([hBy, fetchFastinnHofud('hofud', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.length); });
   sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.length));
-  const aBy = API.getManadarsolur(SVAEDI.akureyri.allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
-  Promise.all([aBy, fetchFastinnHofud('akureyri', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-aku', by, ls.length); });
-  const rBy = API.getManadarsolur(SVAEDI.reykjanesbaer.allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
-  Promise.all([rBy, fetchFastinnHofud('reykjanesbaer', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-rnb', by, ls.length); });
+  const aukaBy = K_AUKA.map(({ sv, id }) => {
+    const by = API.getManadarsolur(SVAEDI[sv].allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
+    Promise.all([by, fetchFastinnHofud(sv, 0, 'all')]).then(([b, ls]) => { if (b) kRegion(id, b, ls.length); });
+    return by;
+  });
 
   const ibudSales = (sv, limit) => API.query('kaupskra', {
     select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
@@ -869,27 +880,27 @@ async function initYfirlit() {
     postnr: `in.(${SVAEDI[sv].allt})`, order: 'thinglystdags.desc', limit
   }, { paginate: false }).then(r => r.data || []);
   const hSales = ibudSales('hofud', 5);
-  const aSales = ibudSales('akureyri', 3).catch(() => []);
-  const rSales = ibudSales('reykjanesbaer', 3).catch(() => []);
+  const aukaSales = K_AUKA.map(({ sv }) => ibudSales(sv, 3).catch(() => []));
   const sSales = sum.then(s => s.rows.filter(r => r.einflm > 10).slice(-3).reverse()
     .map(r => ({ ...r, postnr: POSTNR, tegund: 'Sumarhús' })));
 
-  Promise.all([hBy, sum, aBy, rBy, hSales]).then(([h, s, a, r, hs]) => {
+  Promise.all([hBy, sum, hSales, ...aukaBy]).then(([h, s, hs, ...auka]) => {
     if (!h) return fail('k-fjall');
-    kFjall(h, yearStatsFromRows(s.rows, 10, 2000), a, r, hs[0]?.thinglystdags);
+    kFjall(h, yearStatsFromRows(s.rows, 10, 2000), auka.map((by, i) => ({ sv: K_AUKA[i].sv, by })), hs[0]?.thinglystdags);
   }).catch(() => fail('k-fjall'));
 
-  Promise.all([hSales, aSales, rSales, sSales]).then(async ([h, a, r, s]) => {
-    kSalesTable(h, a, r, s);                             // sölur strax…
-    const [hm, am, rm, sm] = await Promise.all([h, a, r, s].map(matchSalesToListings));
-    kSalesTable(hm, am, rm, sm);                         // …ásett verð þegar það finnst
+  const regs = ['hofud', ...K_AUKA.map(a => a.sv), 'sumar'];
+  Promise.all([hSales, ...aukaSales, sSales]).then(async lists => {
+    kSalesTable(lists.map((l, i) => [regs[i], l]));     // sölur strax…
+    const matched = await Promise.all(lists.map(matchSalesToListings));
+    kSalesTable(matched.map((l, i) => [regs[i], l]));   // …ásett verð þegar það finnst
   }).catch(() => fail('k-solur'));
 }
 
 // ============================================================
 // ====  MARKAÐSHITI  =========================================
 // ============================================================
-// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Höfuðborgarsvæðið, Akureyri og Reykjanesbær eftir mánuðum,
+// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Þéttbýlissvæðin (höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss) eftir mánuðum,
 // Skorradalur eftir hálfum árum (of fáar sölur á mánuði) + staða eigna á sölu núna.
 const MH = { data: null, svaedi: 'hofud', metric: 'yfir_asettu', table: false };
 const MH_COOL = '#2f5f8a', MH_WARM = '#a3312a';
@@ -929,7 +940,7 @@ function mhLevel(hlut) {
 function mhCompute(svaedi) {
   const rows = MH.data.filter(r => r.svaedi === svaedi);
   const today = new Date(), curYm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-  if (svaedi !== 'skorr') {                          // höfuðborgarsvæðið, Akureyri, Reykjanesbær: eftir mánuðum
+  if (svaedi !== 'skorr') {                          // þéttbýlissvæðin: eftir mánuðum
     const months = rows.filter(r => r.gerd === 'manudur').sort((a, b) => a.timabil.localeCompare(b.timabil));
     const full = months.filter(r => mhYm(r.timabil) < curYm);       // aðeins heilir mánuðir
     const last = full.slice(-3).map(r => mhYm(r.timabil));
@@ -1064,7 +1075,7 @@ function mhRenderChart(c) {
     const both = a1.map((v, i) => v != null && a0[i] != null ? Math.sign(v - a0[i]) : null).filter(v => v != null);
     const lower = both.filter(v => v < 0).length;
     note = both.length ? `Í ${lower} af ${both.length} mánuðum ${y1} var gildið lægra en sama mánuð ${y0}.` : '';
-    if (MH.svaedi === 'akureyri' || MH.svaedi === 'reykjanesbaer') {
+    if (MH.svaedi !== 'hofud') {
       const ns = cur.map(r => r.n);
       note += ` Fáar sölur á mánuði (${Math.min(...ns)}–${Math.max(...ns)}), svo einstakir mánuðir sveiflast meira en á höfuðborgarsvæðinu.`;
     }
@@ -1112,8 +1123,8 @@ async function initHiti() {
     return;
   }
   MH.data = data;
-  // Hnappar Akureyrar og Reykjanesbæjar aðeins ef tölur eru komnar (n8n reiknar á nóttunni)
-  for (const sv of ['akureyri', 'reykjanesbaer'])
+  // Hnappar annarra svæða en höfuðborgarsvæðisins aðeins ef tölur eru komnar (n8n reiknar á nóttunni)
+  for (const sv of ['akureyri', 'reykjanesbaer', 'selfoss'])
     document.querySelector(`.mh-seg-btn[data-svaedi="${sv}"]`).hidden = !data.some(r => r.svaedi === sv);
   mhRender();
 }
@@ -1140,6 +1151,7 @@ const VM_POSTNR = [
   [200, 'Kópavogur'], [201, 'Kópavogur'], [203, 'Kópavogur'], [210, 'Garðabær'], [225, 'Garðabær'],
   [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær'],
   [230, 'Reykjanesbær'], [233, 'Reykjanesbær'], [260, 'Reykjanesbær'], [262, 'Reykjanesbær'],
+  [800, 'Selfoss'], [801, 'Selfoss'],
   [600, 'Akureyri'], [603, 'Akureyri']
 ];
 const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'] };
@@ -1273,7 +1285,7 @@ async function vmCompute(e) {
   const teg = VM_TEG[e.tegund][1];
   const hvar = d.svaedi === 'postnr' ? `í ${e.postnr}`
              : d.svaedi === 'sveitarfelag' ? `í sama sveitarfélagi (of fáar sölur í ${e.postnr} einu)`
-             : `${{ akureyri: 'á Akureyri', reykjanesbaer: 'í Reykjanesbæ' }[d.svaedi] || 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
+             : `${{ akureyri: 'á Akureyri', reykjanesbaer: 'í Reykjanesbæ', selfoss: 'á Selfossi' }[d.svaedi] || 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
   const breyt27 = e.mat27 ? (e.mat27 / e.mat - 1) * 100 : null;
 
   document.getElementById('vm-res-sub').textContent = e.title;
@@ -1323,11 +1335,11 @@ document.addEventListener('click', e => {
 });
 
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
 // Titill vafraflipa (og sögu) eftir flipa; forsíðan heldur aðaltitlinum
-const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
-// Akureyri og Reykjanesbær nota sama skjáhluta og höfuðborgarsvæðið (view-hofud)
-const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud' };
+const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
+// Önnur þéttbýlissvæði nota sama skjáhluta og höfuðborgarsvæðið (view-hofud)
+const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud' };
 
 // Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, annarra svæða úr SVAEDI
 SVAEDI.hofud.valkostir = document.getElementById('hofud-postnr').innerHTML;
@@ -1392,7 +1404,7 @@ document.getElementById('k-vm-form').addEventListener('submit', e => {
   if (q) vmSearch(q);
 });
 
-// ---- Svæði og tegund (höfuðborgarsvæðið / Akureyri / Reykjanesbær) ----
+// ---- Svæði og tegund (þéttbýlissvæðin í SVAEDI) ----
 document.getElementById('hofud-postnr').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 document.getElementById('hofud-tegund').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 
