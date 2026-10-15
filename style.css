@@ -199,11 +199,13 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   --k-aku: #5E4FA2;    --k-aku-tx: #433880;    --k-aku-fill: #EEEBF6;     /* Akureyri */
   --k-rnb: #2E6DA4;    --k-rnb-tx: #1F4F7A;    --k-rnb-fill: #E6EEF6;     /* Reykjanesbær */
   --k-sel: #A23B63;    --k-sel-tx: #7A2547;    --k-sel-fill: #F6E8EE;     /* Selfoss */
+  --k-akr: #5B7F2B;    --k-akr-tx: #3F5C1B;    --k-akr-fill: #EEF3E6;     /* Akranes */
 }
 /* Akureyri og Reykjanesbær nota skjáhluta höfuðborgarsvæðisins → sömu breytur, annar litur */
 #view-hofud[data-svaedi="akureyri"] { --k-hofud: var(--k-aku); --k-hofud-tx: var(--k-aku-tx); --k-hofud-fill: var(--k-aku-fill); }
 #view-hofud[data-svaedi="reykjanesbaer"] { --k-hofud: var(--k-rnb); --k-hofud-tx: var(--k-rnb-tx); --k-hofud-fill: var(--k-rnb-fill); }
 #view-hofud[data-svaedi="selfoss"] { --k-hofud: var(--k-sel); --k-hofud-tx: var(--k-sel-tx); --k-hofud-fill: var(--k-sel-fill); }
+#view-hofud[data-svaedi="akranes"] { --k-hofud: var(--k-akr); --k-hofud-tx: var(--k-akr-tx); --k-hofud-fill: var(--k-akr-fill); }
 
 /* ---- Haus ---- */
 .site-hd { border-bottom: 1px solid var(--k-rule); background: var(--k-paper); color: var(--k-ink); }
@@ -221,6 +223,7 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .tab-btn[data-view="akureyri"][aria-current="page"] { border-bottom-color: var(--k-aku); }
 .tab-btn[data-view="reykjanesbaer"][aria-current="page"] { border-bottom-color: var(--k-rnb); }
 .tab-btn[data-view="selfoss"][aria-current="page"] { border-bottom-color: var(--k-sel); }
+.tab-btn[data-view="akranes"][aria-current="page"] { border-bottom-color: var(--k-akr); }
 .tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-skorr); }
 .tab-btn:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
 

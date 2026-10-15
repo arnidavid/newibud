@@ -232,6 +232,14 @@ const SVAEDI = {
     algolia: '(zip:800 OR zip:801)',
     col: { c: '#A23B63', tx: '#7A2547', fill: '#F6E8EE', fill2: '#D9A9BD', faint: '#E8D3DC', lo: [246, 232, 238], hi: [110, 28, 62] },
     valkostir: '<option value="0">Allur Selfoss</option><option value="800">800 Selfoss</option><option value="801">801 Selfoss (dreifbýli)</option>'
+  },
+  // Aðeins bærinn (300); Hvalfjarðarsveit (301) er sveit með sumarhúsum í bland
+  akranes: {
+    nafn: 'Akranes', allt_txt: 'á Akranesi',
+    allt: [300],
+    algolia: '(zip:300)',
+    col: { c: '#5B7F2B', tx: '#3F5C1B', fill: '#EEF3E6', fill2: '#BFD0A6', faint: '#DCE5CF', lo: [238, 243, 230], hi: [44, 66, 18] },
+    valkostir: '<option value="0">300 Akranes</option>'
   }
 };
 const svPostnrs = (sv, postnr) => postnr === 0 ? SVAEDI[sv].allt : [postnr];
@@ -682,21 +690,22 @@ function pickListingForSale(sale, listings) {
 
 let sumarReady   = false;
 let hofudReady   = false;
-let hofudSvaedi  = 'hofud';   // lykill í SVAEDI ('hofud', 'akureyri', 'reykjanesbaer', 'selfoss') – sami flipi, mismunandi svæði
+let hofudSvaedi  = 'hofud';   // lykill í SVAEDI ('hofud', 'akureyri', 'reykjanesbaer', 'selfoss', 'akranes') – sami flipi, mismunandi svæði
 let hofudPostnr  = null;
 let hofudTegund  = 'all';
 // Á enn við? (notandi gæti hafa skipt um svæði/val á meðan beðið var eftir gögnum)
 const khCurrent = (sv, p, t) => hofudSvaedi === sv && hofudPostnr === p && hofudTegund === t;
 
 const SUB_TEXTS = {
-  yfirlit: 'Höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss og Skorradalur',
+  yfirlit: 'Höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss, Akranes og Skorradalur',
   hiti: 'Hversu auðvelt er að selja núna?',
   verdmat: 'Hvað er eignin mín virði?',
   sumar: 'Skorradalur — kauptækifæri í rauntíma',
   hofud: 'Höfuðborgarsvæðið — markaðsgreining íbúðarhúsnæðis',
   akureyri: 'Akureyri — markaðsgreining íbúðarhúsnæðis',
   reykjanesbaer: 'Reykjanesbær — markaðsgreining íbúðarhúsnæðis',
-  selfoss: 'Selfoss — markaðsgreining íbúðarhúsnæðis'
+  selfoss: 'Selfoss — markaðsgreining íbúðarhúsnæðis',
+  akranes: 'Akranes — markaðsgreining íbúðarhúsnæðis'
 };
 
 // Skorradalsgögn sótt einu sinni og samnýtt af forsíðu og Skorradals-flipa
@@ -836,9 +845,9 @@ async function matchSalesToListings(sales) {
 }
 
 // ---- Forsíða (kortastefna) ----
-const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, selfoss: SVAEDI.selfoss.col, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
+const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, selfoss: SVAEDI.selfoss.col, akranes: SVAEDI.akranes.col, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
 // Önnur þéttbýlissvæði á forsíðu: línur í verðfjalli, dálkur (id) og nýjustu sölur
-const K_AUKA = [{ sv: 'akureyri', id: 'k-reg-aku' }, { sv: 'reykjanesbaer', id: 'k-reg-rnb' }, { sv: 'selfoss', id: 'k-reg-sel' }];
+const K_AUKA = [{ sv: 'akureyri', id: 'k-reg-aku' }, { sv: 'reykjanesbaer', id: 'k-reg-rnb' }, { sv: 'selfoss', id: 'k-reg-sel' }, { sv: 'akranes', id: 'k-reg-akr' }];
 const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
 const kLastYear = by => Math.max(...Object.keys(by).filter(y => by[y].nFm > 0).map(Number));
 
@@ -979,7 +988,7 @@ async function initYfirlit() {
 // ============================================================
 // ====  MARKAÐSHITI  =========================================
 // ============================================================
-// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Þéttbýlissvæðin (höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss) eftir mánuðum,
+// Gögn: tafla markadshiti (reiknuð á hverri nóttu). Þéttbýlissvæðin (höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss, Akranes) eftir mánuðum,
 // Skorradalur eftir hálfum árum (of fáar sölur á mánuði) + staða eigna á sölu núna.
 const MH = { data: null, svaedi: 'hofud', metric: 'yfir_asettu', table: false };
 const MH_COOL = '#2f5f8a', MH_WARM = '#a3312a';
@@ -1203,7 +1212,7 @@ async function initHiti() {
   }
   MH.data = data;
   // Hnappar annarra svæða en höfuðborgarsvæðisins aðeins ef tölur eru komnar (n8n reiknar á nóttunni)
-  for (const sv of ['akureyri', 'reykjanesbaer', 'selfoss'])
+  for (const sv of ['akureyri', 'reykjanesbaer', 'selfoss', 'akranes'])
     document.querySelector(`.mh-seg-btn[data-svaedi="${sv}"]`).hidden = !data.some(r => r.svaedi === sv);
   mhRender();
 }
@@ -1230,7 +1239,7 @@ const VM_POSTNR = [
   [200, 'Kópavogur'], [201, 'Kópavogur'], [203, 'Kópavogur'], [210, 'Garðabær'], [225, 'Garðabær'],
   [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær'],
   [230, 'Reykjanesbær'], [233, 'Reykjanesbær'], [260, 'Reykjanesbær'], [262, 'Reykjanesbær'],
-  [800, 'Selfoss'], [801, 'Selfoss'],
+  [800, 'Selfoss'], [801, 'Selfoss'], [300, 'Akranes'],
   [600, 'Akureyri'], [603, 'Akureyri']
 ];
 const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'] };
@@ -1364,7 +1373,7 @@ async function vmCompute(e) {
   const teg = VM_TEG[e.tegund][1];
   const hvar = d.svaedi === 'postnr' ? `í ${e.postnr}`
              : d.svaedi === 'sveitarfelag' ? `í sama sveitarfélagi (of fáar sölur í ${e.postnr} einu)`
-             : `${{ akureyri: 'á Akureyri', reykjanesbaer: 'í Reykjanesbæ', selfoss: 'á Selfossi' }[d.svaedi] || 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
+             : `${{ akureyri: 'á Akureyri', reykjanesbaer: 'í Reykjanesbæ', selfoss: 'á Selfossi', akranes: 'á Akranesi' }[d.svaedi] || 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
   const breyt27 = e.mat27 ? (e.mat27 / e.mat - 1) * 100 : null;
 
   document.getElementById('vm-res-sub').textContent = e.title;
@@ -1414,11 +1423,11 @@ document.addEventListener('click', e => {
 });
 
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
 // Titill vafraflipa (og sögu) eftir flipa; forsíðan heldur aðaltitlinum
-const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
+const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', akranes: 'Akranes', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
 // Önnur þéttbýlissvæði nota sama skjáhluta og höfuðborgarsvæðið (view-hofud)
-const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud' };
+const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', akranes: 'hofud' };
 
 // Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, annarra svæða úr SVAEDI
 SVAEDI.hofud.valkostir = document.getElementById('hofud-postnr').innerHTML;

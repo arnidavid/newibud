@@ -1,5 +1,5 @@
 // Markaðshiti: reiknar mælikvarða úr söluferlum seldra eigna og eignum á sölu.
-// Höfuðborgarsvæðið, Akureyri, Reykjanesbær og Selfoss eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
+// Höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss og Akranes eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
 // og „staðan núna“ fyrir Skorradal (eignir á sölu). Niðurstaðan er vistuð í public.markadshiti.
 // Auk þess nýbyggingar á móti eldri eignum í þéttbýli: á ári frá 2023 (gerd 'ar_ny' / 'ar_eldra')
 // og eignir á sölu núna (gerd 'nuna_ny' / 'nuna_eldra').
@@ -60,7 +60,8 @@ const MAN_SVAEDI = {
   hofud:    ['100 TO 108', '109 TO 113', '114 TO 170', '200 TO 205', '206 TO 225', '270 TO 270'],
   akureyri: ['600 TO 600', '603 TO 603'],
   reykjanesbaer: ['230 TO 233', '260 TO 262'],  // 230 Keflavík, 233 Hafnir, 260 Njarðvík, 262 Ásbrú
-  selfoss:  ['800 TO 801']                      // ekki Eyrarbakki (820) né Stokkseyri (825)
+  selfoss:  ['800 TO 801'],                     // ekki Eyrarbakki (820) né Stokkseyri (825)
+  akranes:  ['300 TO 300']                      // ekki Hvalfjarðarsveit (301)
 };
 // Nýbygging: byggingarár sama eða árinu fyrr en söluárið (sama regla og mv_nybyggingar í Supabase).
 // Byggingarár vantar (0) í ~6 % auglýsinga; þær teljast hvorki nýjar né eldri.
