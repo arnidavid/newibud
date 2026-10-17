@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fasteignavaktin – fasteignaverð í tölum</title>
-<meta name="description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi, og sumarhúsa í Skorradal.">
+<meta name="description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi, og sumarhúsa í Skorradal, Grímsnesi og Bláskógabyggð.">
 <link rel="canonical" href="https://sumar.silfran.com/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -12,7 +12,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Fasteignavaktin">
 <meta property="og:title" content="Fasteignavaktin – fasteignaverð í tölum">
-<meta property="og:description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi, og sumarhúsa í Skorradal.">
+<meta property="og:description" content="Fermetraverð, nýjustu sölur, markaðshiti og verðmat íbúða á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi, og sumarhúsa í Skorradal, Grímsnesi og Bláskógabyggð.">
 <meta property="og:url" content="https://sumar.silfran.com/">
 <meta property="og:image" content="https://sumar.silfran.com/deilimynd.png">
 <meta property="og:image:width" content="1200">
@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=40">
+<link rel="stylesheet" href="style.css?v=41">
 </head>
 <body>
 <header class="site-hd">
@@ -37,7 +37,7 @@
     <nav class="tabs" aria-label="Aðalvalmynd">
       <button type="button" class="tab-btn active" data-view="yfirlit" aria-current="page">Yfirlit</button>
       <button type="button" class="tab-btn" data-view="svaedi">Svæði</button>
-      <button type="button" class="tab-btn" data-view="sumar">Skorradalur</button>
+      <button type="button" class="tab-btn" data-view="sumar">Sumarhús</button>
       <button type="button" class="tab-btn" data-view="hiti">Markaðshiti</button>
       <button type="button" class="tab-btn" data-view="verdmat">Verðmat</button>
     </nav>
@@ -131,6 +131,30 @@
           <div><dt>Á sölu núna</dt><dd data-k="ls">—</dd></div>
         </dl>
       </div>
+      <div class="k-col" id="k-reg-grim">
+        <div class="k-reg-hd">
+          <h2 class="k-h2"><span class="k-sw" style="background:var(--k-grim);width:18px;height:4px;vertical-align:middle"></span>Grímsnes</h2>
+          <a href="#grimsnes" data-goto="grimsnes" style="color:var(--k-grim-tx)">Opna Grímsnes</a>
+        </div>
+        <p style="margin:0 0 16px;color:var(--k-muted);font-size:14px">Sumarhús, póstnúmer 805</p>
+        <dl class="k-stats">
+          <div><dt data-k="fm-l">Fermetraverð</dt><dd data-k="fm">—</dd></div>
+          <div><dt data-k="chg-l">Frá fyrra ári</dt><dd data-k="chg">—</dd></div>
+          <div><dt>Á sölu núna</dt><dd data-k="ls">—</dd></div>
+        </dl>
+      </div>
+      <div class="k-col" id="k-reg-blask">
+        <div class="k-reg-hd">
+          <h2 class="k-h2"><span class="k-sw" style="background:var(--k-blask);width:18px;height:4px;vertical-align:middle"></span>Bláskógabyggð</h2>
+          <a href="#blaskogabyggd" data-goto="blaskogar" style="color:var(--k-blask-tx)">Opna Bláskógabyggð</a>
+        </div>
+        <p style="margin:0 0 16px;color:var(--k-muted);font-size:14px">Sumarhús, póstnúmer 806</p>
+        <dl class="k-stats">
+          <div><dt data-k="fm-l">Fermetraverð</dt><dd data-k="fm">—</dd></div>
+          <div><dt data-k="chg-l">Frá fyrra ári</dt><dd data-k="chg">—</dd></div>
+          <div><dt>Á sölu núna</dt><dd data-k="ls">—</dd></div>
+        </dl>
+      </div>
     </section>
 
     <section class="k-vmf" aria-labelledby="k-vm-h">
@@ -168,11 +192,16 @@
   </div><!-- /view-yfirlit -->
 
   <!-- ===================== SUMARHÚSASVÆÐI VIEW ===================== -->
-  <div id="view-sumar" class="view">
+  <div id="view-sumar" class="view" data-svaedi="sumar">
+    <div class="k-seg kh-seg ks-seg" role="group" aria-label="Veldu sumarhúsasvæði">
+      <button type="button" data-ssv="sumar" aria-pressed="true">Skorradalur</button>
+      <button type="button" data-ssv="grimsnes" aria-pressed="false">Grímsnes</button>
+      <button type="button" data-ssv="blaskogar" aria-pressed="false">Bláskógabyggð</button>
+    </div>
     <div class="k-titlerow">
       <div>
-        <h1 class="k-h1" style="margin-bottom:8px">Skorradalur</h1>
-        <p class="k-lead">Sumarhús í póstnúmeri 311, við Skorradalsvatn og í stærsta skógi landsins.</p>
+        <h1 class="k-h1" id="ks-h1" style="margin-bottom:8px">Skorradalur</h1>
+        <p class="k-lead" id="ks-sub">Sumarhús í póstnúmeri 311, við Skorradalsvatn og í stærsta skógi landsins.</p>
       </div>
     </div>
 
@@ -208,7 +237,7 @@
       </div>
     </section>
 
-    <section aria-labelledby="ks-hv-h" style="margin-top:72px">
+    <section id="ks-hv-sec" aria-labelledby="ks-hv-h" style="margin-top:72px">
       <h2 id="ks-hv-h" class="k-h2 k-rule">Hverfin</h2>
       <p class="k-intro">Fáar sölur á ári, svo hvert ár getur sveiflast mikið. Stærri punktur þýðir fleiri sölur; holur punktur er færri en þrjár sölur og ætti að taka með fyrirvara. Lárétta línan er 400 þ.kr/m².</p>
       <div class="k-sm" id="ks-hverfi"></div>
@@ -539,6 +568,6 @@
 </main>
 
 <script src="api.js?v=9"></script>
-<script src="app.js?v=90"></script>
+<script src="app.js?v=91"></script>
 </body>
 </html>

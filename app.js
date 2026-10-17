@@ -45,27 +45,47 @@ function getMatInfo(rows, addr, sqm) {
 // ====  SUMARHÚSASVÆÐI  ======================================
 // ============================================================
 
-const POSTNR = 311;
-// ---- Skorradalur (kortastefna) ----
-const KS = { rows: [], real: false };
-const KS_COL = { c: '#00897b', fill: '#E4F2EF', fill2: '#9FD0C8' };
-const KS_HVERFI = ['Fitjahlíð', 'Dagverðarnes', 'Vatnsendahlíð'];
+// Sumarhúsasvæði: sami flipi (view-sumar) með svæðavali, hvert svæði með eigin slóð.
+// Lykillinn 'sumar' er Skorradalur (eldri slóð #skorradalur og data-sv="sumar" á forsíðu haldast).
+// hverfi: litlu gröfin í „Hverfin“ – aðeins handvalin fyrir Skorradal enn sem komið er.
+const SUMAR = {
+  sumar: {
+    nafn: 'Skorradalur', postnr: 311, stadur: 'í Skorradal', i_txt: '311 Skorradal',
+    lead: 'Sumarhús í póstnúmeri 311, við Skorradalsvatn og í stærsta skógi landsins.',
+    hverfi: ['Fitjahlíð', 'Dagverðarnes', 'Vatnsendahlíð'],
+    col: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF', fill2: '#9FD0C8' }
+  },
+  grimsnes: {
+    nafn: 'Grímsnes', postnr: 805, stadur: 'í Grímsnesi', i_txt: '805 Grímsnesi',
+    lead: 'Sumarhús í Grímsnes- og Grafningshreppi, póstnúmeri 805. Hvergi á landinu seljast fleiri sumarhús.',
+    col: { c: '#A88400', tx: '#6E5600', fill: '#F5EFD6', fill2: '#D9C77F' }
+  },
+  blaskogar: {
+    nafn: 'Bláskógabyggð', postnr: 806, stadur: 'í Bláskógabyggð', i_txt: '806 Bláskógabyggð',
+    lead: 'Sumarhús í Bláskógabyggð, póstnúmeri 806.',
+    col: { c: '#55687D', tx: '#3B4A5B', fill: '#E8ECF0', fill2: '#AEB9C5' }
+  }
+};
+// ---- Sumarhúsaflipinn (kortastefna); KS.sv = valið svæði ----
+const KS = { sv: 'sumar', rows: [], real: false };
+const ksS = () => SUMAR[KS.sv];
 
 function ksFjall() {
+  const col = ksS().col;
   const by = yearStatsFromRows(KS.rows, 10, 2000), last = kLastYear(by), years = [];
   for (let y = 2008; y <= last; y++) years.push(y);
   const nom = years.map(y => kAvg(by, y));
   const vals = KS.real ? nom.map((v, i) => v ? toReal(v, years[i]) : null) : nom;
   let hi = 0; vals.forEach((v, i) => { if (v && v > (vals[hi] || 0)) hi = i; });
   const v1 = vals[vals.length - 1];
-  document.getElementById('ks-now').innerHTML = v1 ? `<b style="color:var(--k-skorr-tx)">${fmtInt(v1)}</b><span>þ.kr/m² árið ${last}${KS.real ? ' á verðlagi 2024' : ''}${hi !== vals.length - 1 ? `, hæst ${fmtInt(vals[hi])} árið ${years[hi]}` : ''}</span>` : '';
-  kProfile(document.getElementById('ks-fjall'), years, vals, KS_COL,
-    { ariaLabel: `Fermetraverð sumarhúsa ${years[0]} til ${last}${KS.real ? ' á verðlagi 2024' : ''}: úr ${fmtInt(vals[0])} í ${fmtInt(v1)} þúsund krónur, hæst ${fmtInt(vals[hi])} árið ${years[hi]}.` });
+  document.getElementById('ks-now').innerHTML = v1 ? `<b style="color:${col.tx}">${fmtInt(v1)}</b><span>þ.kr/m² árið ${last}${KS.real ? ' á verðlagi 2024' : ''}${hi !== vals.length - 1 ? `, hæst ${fmtInt(vals[hi])} árið ${years[hi]}` : ''}</span>` : '';
+  kProfile(document.getElementById('ks-fjall'), years, vals, col,
+    { ariaLabel: `Fermetraverð sumarhúsa ${ksS().stadur} ${years[0]} til ${last}${KS.real ? ' á verðlagi 2024' : ''}: úr ${fmtInt(vals[0])} í ${fmtInt(v1)} þúsund krónur, hæst ${fmtInt(vals[hi])} árið ${years[hi]}.` });
 
   const n = years.map(y => by[y]?.nAll || 0);
   let nmax = 0; n.forEach((v, i) => { if (v > n[nmax]) nmax = i; });
   document.getElementById('ks-bars-t').textContent = `flestar ${n[nmax]} árið ${years[nmax]}, ${n[n.length - 1]} það sem af er ${last}`;
-  kBars(document.getElementById('ks-bars'), years, n, KS_COL, `Fjöldi sölna á ári ${years[0]} til ${last}, flestar ${n[nmax]} árið ${years[nmax]}.`);
+  kBars(document.getElementById('ks-bars'), years, n, col, `Fjöldi sölna á ári ${years[0]} til ${last}, flestar ${n[nmax]} árið ${years[nmax]}.`);
 
   const mat = years.map(y => {
     const r = KS.rows.filter(x => new Date(x.thinglystdags).getFullYear() === y && x.fasteignamat > 0 && x.kaupverd > 1000);
@@ -73,15 +93,18 @@ function ksFjall() {
   });
   const mLast = mat[mat.length - 1];
   document.getElementById('ks-mat-t').textContent = mLast ? `${mLast}% árið ${last}; brotna línan er 100%` : '';
-  kLine(document.getElementById('ks-mat'), years, mat, KS_COL, { ref: 100, fmt: v => v + '%',
+  kLine(document.getElementById('ks-mat'), years, mat, col, { ref: 100, fmt: v => v + '%',
     ariaLabel: `Söluverð sem hlutfall af fasteignamati ${years[0]} til ${last}.` });
 }
 
 // Hverfin: lítil gröf í sama lit; punktur stærri með fleiri sölum, holur ef færri en 3
 function ksHverfi() {
+  const sec = document.getElementById('ks-hv-sec'), hverfi = ksS().hverfi || [], col = ksS().col;
+  sec.hidden = !hverfi.length;
+  if (!hverfi.length) return;
   const last = kLastYear(yearStatsFromRows(KS.rows, 10, 2000)), y0 = last - 10, W = 300, H = 150;
   const sx = y => +((y - y0) / 10 * W).toFixed(1), sy = v => +(H - v / 800 * H).toFixed(1);
-  document.getElementById('ks-hverfi').innerHTML = KS_HVERFI.map(name => {
+  document.getElementById('ks-hverfi').innerHTML = hverfi.map(name => {
     const pts = [];
     for (let y = y0; y <= last; y++) {
       const r = KS.rows.filter(x => x.heimilisfang?.startsWith(name) && new Date(x.thinglystdags).getFullYear() === y && x.einflm > 0 && x.kaupverd / x.einflm >= 10 && x.kaupverd / x.einflm <= 2000);
@@ -96,8 +119,8 @@ function ksHverfi() {
         <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${name}, fermetraverð á ári: ${pts.map(p => `${p.y} ${p.v} þ.kr/m² (${p.n} ${p.n === 1 ? 'sala' : 'sölur'})`).join(', ')}.">
           <line x1="0" x2="${W}" y1="${sy(400)}" y2="${sy(400)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>
           <line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
-          <path d="${d.trim()}" fill="none" stroke="${KS_COL.c}" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-          ${pts.map(p => `<circle cx="${sx(p.y)}" cy="${sy(p.v)}" r="${(2.5 + Math.sqrt(p.n) * 1.4).toFixed(1)}" fill="${p.n < 3 ? '#F2F4F1' : KS_COL.c}" stroke="${KS_COL.c}" stroke-width="1.5" vector-effect="non-scaling-stroke"><title>${p.y}: ${fmtInt(p.v)} þ.kr/m², ${p.n} ${p.n === 1 ? 'sala' : 'sölur'}</title></circle>`).join('')}
+          <path d="${d.trim()}" fill="none" stroke="${col.c}" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          ${pts.map(p => `<circle cx="${sx(p.y)}" cy="${sy(p.v)}" r="${(2.5 + Math.sqrt(p.n) * 1.4).toFixed(1)}" fill="${p.n < 3 ? '#F2F4F1' : col.c}" stroke="${col.c}" stroke-width="1.5" vector-effect="non-scaling-stroke"><title>${p.y}: ${fmtInt(p.v)} þ.kr/m², ${p.n} ${p.n === 1 ? 'sala' : 'sölur'}</title></circle>`).join('')}
         </svg>
         <span class="k-xl" style="left:0;transform:none">${y0}</span>
         <span class="k-xl" style="left:100%;transform:translateX(-100%)">${last}</span>
@@ -108,15 +131,17 @@ function ksHverfi() {
 
 // Auglýst og selt: nýjustu 20 sölur, ásett verð þar sem auglýsing fannst (pickListingForSale)
 async function ksAvs() {
+  const sv = KS.sv, postnr = ksS().postnr;
   const tb = document.getElementById('ks-avs'), sum = document.getElementById('ks-avs-sum');
-  const { data: listings, error } = await API.getListingsDb(POSTNR, 'sumarhus');
+  const { data: listings, error } = await API.getListingsDb(postnr, 'sumarhus');
+  if (KS.sv !== sv) return;   // annað svæði valið á meðan
   if (error || !listings) { tb.innerHTML = '<tr><td colspan="5">Ekki tókst að sækja auglýsingar. Reyndu aftur síðar.</td></tr>'; return; }
   const byKey = {};
   for (const l of listings) for (const k of [l.fastnum && 'f:' + l.fastnum, 'a:' + normAddr(l.heimilisfang)]) if (k) (byKey[k] = byKey[k] || []).push(l);
   const sales = KS.rows.filter(r => r.einflm > 0 && r.kaupverd / r.einflm >= 10 && r.kaupverd / r.einflm <= 2000)
     .slice().sort((a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags)).slice(0, 20);
   const pairs = sales.map(sale => {
-    const l = pickListingForSale({ ...sale, postnr: POSTNR }, [...(sale.fastnum ? byKey['f:' + sale.fastnum] || [] : []), ...(byKey['a:' + normAddr(sale.heimilisfang)] || [])]);
+    const l = pickListingForSale({ ...sale, postnr }, [...(sale.fastnum ? byKey['f:' + sale.fastnum] || [] : []), ...(byKey['a:' + normAddr(sale.heimilisfang)] || [])]);
     const ask = l?.verd ? l.verd / 1000 : 0;
     return { sale, l, ask, d: ask ? Math.round((sale.kaupverd / ask - 1) * 100) : null };
   });
@@ -659,7 +684,7 @@ function pickListingForSale(sale, listings) {
 // ====  VIEW MANAGEMENT  =====================================
 // ============================================================
 
-let sumarReady   = false;
+let sumarReady   = null;    // svæðið sem er teiknað í sumarhúsaflipanum
 let hofudReady   = false;
 let hofudSvaedi  = 'hofud';   // lykill í SVAEDI ('hofud', 'akureyri', 'reykjanesbaer', 'selfoss', 'akranes') – sami flipi, mismunandi svæði
 let hofudPostnr  = null;
@@ -679,45 +704,66 @@ const SUB_TEXTS = {
   akranes: 'Akranes — markaðsgreining íbúðarhúsnæðis'
 };
 
-// Skorradalsgögn sótt einu sinni og samnýtt af forsíðu og Skorradals-flipa
-let _sumarDataPromise = null;
-function loadSumarData() {
-  if (!_sumarDataPromise) {
-    _sumarDataPromise = Promise.all([
+// Sumarhúsagögn hvers svæðis sótt einu sinni og samnýtt af forsíðu og sumarhúsaflipa
+const _sumarData = {};
+function loadSumarData(sv = 'sumar') {
+  if (!_sumarData[sv]) {
+    const postnr = SUMAR[sv].postnr;
+    _sumarData[sv] = Promise.all([
       API.getKaupskra({
         select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi,fastnum,heinum',
-        postnr: 'eq.311', tegund: 'eq.Sumarhús', kaupverd: 'gt.500', order: 'thinglystdags.asc'
+        postnr: `eq.${postnr}`, tegund: 'eq.Sumarhús', kaupverd: 'gt.500', order: 'thinglystdags.asc'
       }),
-      fetchAuglysingar([POSTNR], ['sumarhus'])
+      fetchAuglysingar([postnr], ['sumarhus'])
     ]).then(([k, ls]) => {
-      // Misheppnuð sókn er ekki geymd: næsta kall (t.d. þegar farið er í Skorradals-flipann) reynir aftur
-      if (k.error || !ls.length) _sumarDataPromise = null;
+      // Misheppnuð sókn er ekki geymd: næsta kall (t.d. þegar farið er í flipann) reynir aftur
+      if (k.error || !ls.length) delete _sumarData[sv];
       return [
       // Ónothæfir samningar (gjafir, innan fjölskyldu o.þ.h.) skekkja meðaltöl – t.d. 2 m.kr. bústaður í Fitjahlíð 2022.
-      // Síað hér svo Skorradals-flipinn og forsíðan fái sömu tölur.
+      // Síað hér svo flipinn og forsíðan fái sömu tölur.
       { ...k, data: k.data ? k.data.filter(r => r.onothaefur_samningur !== '1') : k.data }, ls
     ]; });
   }
-  return _sumarDataPromise;
+  return _sumarData[sv];
 }
 
-async function initSumar() {
-  if (sumarReady) return;
-  sumarReady = true;
+// Velur sumarhúsasvæði: fyrirsögn, litur (CSS-breytur á view-sumar), svæðahnappar
+function ksSetSvaedi(sv) {
+  KS.sv = sv;
+  const S = SUMAR[sv], view = document.getElementById('view-sumar');
+  view.dataset.svaedi = sv;
+  document.getElementById('ks-h1').textContent = S.nafn;
+  document.getElementById('ks-sub').textContent = S.lead;
+  document.querySelectorAll('.ks-seg [data-ssv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ssv === sv)));
+  document.querySelector('.tab-btn[data-view="sumar"]').style.setProperty('--k-sumar', S.col.c);
+}
+
+async function initSumar(sv = KS.sv) {
+  if (sumarReady === sv) return;
+  sumarReady = sv;
+  ksSetSvaedi(sv);
+  const fail = () => { if (KS.sv === sv) document.getElementById('ks-fjall').innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; };
+  const loading = '<div class="ldw"><div class="ldr"></div>Sæki gögn…</div>';
+  ['ks-fjall', 'ks-ls'].forEach(id => { document.getElementById(id).innerHTML = loading; });
+  ['ks-bars', 'ks-mat', 'ks-hverfi', 'ks-now', 'ks-ls-n', 'ks-avs-sum', 'ks-bars-t', 'ks-mat-t'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+  document.getElementById('ks-avs').innerHTML = '<tr><td colspan="5"><div class="ldw"><div class="ldr"></div>Sæki sölur og auglýsingar…</div></td></tr>';
+  document.querySelectorAll('#ks-kpis .k-kv').forEach(e => { e.textContent = '—'; });
   try {
-    const [k, ls] = await loadSumarData();
+    const [k, ls] = await loadSumarData(sv);
+    if (KS.sv !== sv) return;   // annað svæði valið á meðan
     KS.rows = k.data || [];
-    if (!KS.rows.length) { document.getElementById('ks-fjall').innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; return; }
+    if (k.error || !KS.rows.length) { sumarReady = null; return fail(); }
     ksFjall();
-    khKpis(yearStatsFromRows(KS.rows, 10, 2000), ls.length, 'ks-kpis');
+    khKpis(yearStatsFromRows(KS.rows, 10, 2000), ls.total ?? ls.length, 'ks-kpis');
     ksHverfi();
     khListings(ls, KS.rows, 'ks', 'var(--k-skorr-tx)');
     await ksAvs();
     const q = document.getElementById('avs-filter').value;
-    if (q) ksFilter(q);
+    if (q && KS.sv === sv) ksFilter(q);
   } catch (e) {
     console.error('initSumar error:', e);
-    document.getElementById('ks-fjall').innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>';
+    sumarReady = null;
+    fail();
   }
 }
 
@@ -819,9 +865,12 @@ async function matchSalesToListings(sales) {
 }
 
 // ---- Forsíða (kortastefna) ----
-const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, selfoss: SVAEDI.selfoss.col, akranes: SVAEDI.akranes.col, sumar: { c: '#00897b', tx: '#00695E', fill: '#E4F2EF' } };
+const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, selfoss: SVAEDI.selfoss.col, akranes: SVAEDI.akranes.col,
+  sumar: SUMAR.sumar.col, grimsnes: SUMAR.grimsnes.col, blaskogar: SUMAR.blaskogar.col };
 // Önnur þéttbýlissvæði á forsíðu: línur í verðfjalli, dálkur (id) og nýjustu sölur
 const K_AUKA = [{ sv: 'akureyri', id: 'k-reg-aku' }, { sv: 'reykjanesbaer', id: 'k-reg-rnb' }, { sv: 'selfoss', id: 'k-reg-sel' }, { sv: 'akranes', id: 'k-reg-akr' }];
+// Sumarhúsasvæðin á forsíðu, sama mynstur
+const K_SUMAR = [{ sv: 'sumar', id: 'k-reg-sumar' }, { sv: 'grimsnes', id: 'k-reg-grim' }, { sv: 'blaskogar', id: 'k-reg-blask' }];
 const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
 const kLastYear = by => Math.max(...Object.keys(by).filter(y => by[y].nFm > 0).map(Number));
 
@@ -842,13 +891,14 @@ function kRegion(id, by, lsCount) {
 }
 
 // Verðfjallið: fermetraverð á ári sem hæðarsnið; hver lárétt lína í fjallinu = 100 þ.kr/m²
-// auka: [{ sv, by }] fyrir önnur þéttbýlissvæði (by má vanta ef sókn mistókst)
-function kFjall(hBy, sBy, auka, lastDate) {
-  const y1 = Math.max(kLastYear(hBy), kLastYear(sBy)), years = [];
+// auka: [{ sv, by }] fyrir önnur þéttbýlissvæði, sumar: [{ sv, by }] fyrir sumarhúsasvæðin (by má vanta ef sókn mistókst)
+function kFjall(hBy, auka, sumar, lastDate) {
+  const y1 = Math.max(kLastYear(hBy), ...sumar.filter(a => a.by).map(a => kLastYear(a.by))), years = [];
   for (let y = 2008; y <= y1; y++) years.push(y);
-  const H = years.map(y => kAvg(hBy, y)), S = years.map(y => kAvg(sBy, y));
+  const H = years.map(y => kAvg(hBy, y));
   const L = auka.filter(a => a.by).map(a => ({ sv: a.sv, v: years.map(y => kAvg(a.by, y)) }));
-  const all = [...H, ...S, ...L.flatMap(l => l.v)].filter(Boolean), top = Math.ceil((Math.max(...all) + 60) / 100) * 100;
+  const S = sumar.filter(a => a.by).map(a => ({ sv: a.sv, v: years.map(y => kAvg(a.by, y)) }));
+  const all = [...H, ...L.flatMap(l => l.v), ...S.flatMap(l => l.v)].filter(Boolean), top = Math.ceil((Math.max(...all) + 60) / 100) * 100;
   const W = 1000, B = 300, n = years.length;
   const x = i => +(i * W / (n - 1)).toFixed(1), yv = v => +(B - v / top * B).toFixed(1);
   const pts = a => a.map((v, i) => v ? [x(i), yv(v)] : null).filter(Boolean);
@@ -860,13 +910,12 @@ function kFjall(hBy, sBy, auka, lastDate) {
   // lægsti punktur höfuðborgarsvæðisins (eftir hrun)
   let lo = 0; H.forEach((v, i) => { if (v && v < H[lo]) lo = i; });
   const pct = (v, of) => +(v / of * 100).toFixed(1);
-  const hLast = H[n - 1], sLast = S[n - 1];
-  const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}.${L.map(l => ` ${SVAEDI[l.sv].nafn} úr ${fmtInt(l.v[0])} í ${fmtInt(l.v[n - 1])}.`).join('')} Skorradalur úr ${fmtInt(S[0])} í ${fmtInt(sLast)}.">
+  const hLast = H[n - 1];
+  const svg = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="Fermetraverð ${years[0]} til ${y1}. Höfuðborgarsvæðið úr ${fmtInt(H[0])} í ${fmtInt(hLast)} þúsund krónur á fermetra, lægst ${fmtInt(H[lo])} árið ${years[lo]}.${L.map(l => ` ${SVAEDI[l.sv].nafn} úr ${fmtInt(l.v[0])} í ${fmtInt(l.v[n - 1])}.`).join('')}${S.map(l => ` Sumarhús ${SUMAR[l.sv].stadur} úr ${fmtInt(l.v.find(Boolean))} í ${fmtInt(l.v[n - 1])}.`).join('')}">
     <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath></defs>
     ${grid.map(v => `<line x1="0" x2="${W}" y1="${yv(v)}" y2="${yv(v)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
     <g clip-path="url(#kH)" data-sv="hofud"><path d="${area(H)}" fill="${K_COL.hofud.fill}"/>${lv(K_COL.hofud.c)}</g>
-    ${L.map(l => `<path data-sv="${l.sv}" d="${line(l.v)}" fill="none" stroke="${K_COL[l.sv].c}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join('')}
-    <path data-sv="sumar" d="${line(S)}" fill="none" stroke="${K_COL.sumar.c}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    ${[...L, ...S].map(l => `<path data-sv="${l.sv}" d="${line(l.v)}" fill="none" stroke="${K_COL[l.sv].c}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join('')}
     <path data-sv="hofud" d="${line(H)}" fill="none" stroke="${K_COL.hofud.c}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     <line x1="0" x2="${W}" y1="${B}" y2="${B}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
   </svg>`;
@@ -879,14 +928,14 @@ function kFjall(hBy, sBy, auka, lastDate) {
     + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : i ? ' k-xl-end' : ' k-xl-start'}" style="left:${kXpos(pct(x(years.indexOf(y)), W))}">${y}</span>`).join('')
     + `<span class="k-note" style="left:${kXpos(pct(x(lo), W))};top:${pct(yv(H[lo]) - 10, B)}%;color:${K_COL.hofud.tx}">${years[lo]}: ${fmtInt(H[lo])}</span>`
     // Punktur við enda hverrar línu (HTML, því SVG-ið er teygt og hringir yrðu sporöskjur)
-    + [['hofud', hLast], ...L.map(l => [l.sv, l.v[n - 1]]), ['sumar', sLast]].filter(([, v]) => v)
+    + [['hofud', hLast], ...[...L, ...S].map(l => [l.sv, l.v[n - 1]])].filter(([, v]) => v)
       .map(([sv, v]) => `<span class="k-dot" data-sv="${sv}" style="left:${kXpos(pct(W, W))};top:${pct(yv(v), B)}%;background:${K_COL[sv].c}"></span>`).join('');
 
   // Skýringar = hnappar: smellur (eða mús yfir) auðkennir línu svæðisins og deyfir hinar
   const end = (sv, v, txt) => `<button type="button" class="k-end" data-sv="${sv}" aria-pressed="false" aria-label="Auðkenna ${txt} í grafinu, ${fmtInt(v)} þúsund krónur á fermetra"><i style="background:${K_COL[sv].c}"></i><b style="color:${K_COL[sv].tx}">${fmtInt(v)}</b><span>${txt}</span></button>`;
   document.getElementById('k-ends').innerHTML = end('hofud', hLast, 'Höfuðborgarsvæðið, íbúðir')
     + L.filter(l => l.v[n - 1]).map(l => end(l.sv, l.v[n - 1], `${SVAEDI[l.sv].nafn}, íbúðir`)).join('')
-    + end('sumar', sLast, 'Skorradalur, sumarhús');
+    + S.filter(l => l.v[n - 1]).map(l => end(l.sv, l.v[n - 1], `${SUMAR[l.sv].nafn}, sumarhús`)).join('');
 
   // Fyrirsögn: hve mikið verðið hefur margfaldast frá lægsta punkti
   const f = Math.floor(hLast / H[lo]);
@@ -920,7 +969,7 @@ function kSaleRow(r, reg, { postnrOnly = false } = {}) {
   // Ásett verð vísar á auglýsinguna sjálfa (heimilisfangið á eignasíðuna)
   const askTxt = askThkr && l.linkur ? `<a href="${l.linkur}" target="_blank" rel="noopener" title="Opna auglýsingu">${fmtMkr(askThkr)}</a>` : fmtMkr(askThkr);
   const ask = askThkr ? `${askTxt} <span class="${diff < 0 ? 'k-down' : diff > 0 ? 'k-up' : ''}" style="font-weight:600">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>` : '';
-  const svaedi = reg === 'sumar' ? '311 Skorradal' : postnrOnly ? r.postnr : reg === 'akureyri' ? r.postnr + ' Akureyri' : vmPostTxt(r.postnr);
+  const svaedi = SUMAR[reg] ? SUMAR[reg].i_txt : postnrOnly ? r.postnr : reg === 'akureyri' ? r.postnr + ' Akureyri' : vmPostTxt(r.postnr);
   const addr = vmEsc(r.heimilisfang);
   return `<tr>
     <th scope="row" class="c-eign" style="text-align:left;font-weight:600">${postnrOnly ? '' : `<span class="k-sw" style="background:${c.c}"></span>`}${propUrl ? `<a href="${propUrl}" target="_blank" rel="noopener">${addr}</a>` : addr}<span class="k-sub"${postnrOnly ? '' : ' style="margin-left:14px"'}>${vmEsc(r.tegund)}, ${fmtDag(r.thinglystdags)}${postnrOnly ? `<span class="k-mob">, ${r.postnr}</span>` : ''}</span></th>
@@ -957,10 +1006,10 @@ async function initYfirlit() {
   const fail = id => { const e = document.getElementById(id); if (e) e.innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; };
 
   const hBy = API.getManadarsolur(SVAEDI.hofud.allt, null).then(r => r.data ? hofudByYear(r.data) : null);
-  const sum = loadSumarData().then(([k, ls]) => ({ rows: k.error ? [] : k.data || [], ls, err: !!k.error }));
+  const sums = K_SUMAR.map(({ sv }) => loadSumarData(sv).then(([k, ls]) => ({ rows: k.error ? [] : k.data || [], ls, err: !!k.error })));
   Promise.all([hBy, fetchSvaediAuglysingar('hofud', 0, 'all', 1)]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.total ?? ls.length); });
   // Ef sölurnar náðust ekki standa strikin (—) eftir í stað rangrar tölu (0)
-  sum.then(s => s.err || kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.total ?? s.ls.length));
+  sums.forEach((p, i) => p.then(s => s.err || kRegion(K_SUMAR[i].id, yearStatsFromRows(s.rows, 10, 2000), s.ls.total ?? s.ls.length)));
   const aukaBy = K_AUKA.map(({ sv, id }) => {
     const by = API.getManadarsolur(SVAEDI[sv].allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
     Promise.all([by, fetchSvaediAuglysingar(sv, 0, 'all', 1)]).then(([b, ls]) => { if (b) kRegion(id, b, ls.total ?? ls.length); });
@@ -974,16 +1023,17 @@ async function initYfirlit() {
   }, { paginate: false }).then(r => r.data || []);
   const hSales = ibudSales('hofud', 5);
   const aukaSales = K_AUKA.map(({ sv }) => ibudSales(sv, 3).catch(() => []));
-  const sSales = sum.then(s => s.rows.filter(r => r.einflm > 10).slice(-3).reverse()
-    .map(r => ({ ...r, postnr: POSTNR, tegund: 'Sumarhús' })));
+  const sSales = sums.map((p, i) => p.then(s => s.rows.filter(r => r.einflm > 10).slice(-3).reverse()
+    .map(r => ({ ...r, postnr: SUMAR[K_SUMAR[i].sv].postnr, tegund: 'Sumarhús' }))));
 
-  Promise.all([hBy, sum, hSales, ...aukaBy]).then(([h, s, hs, ...auka]) => {
+  Promise.all([hBy, hSales, Promise.all(aukaBy), Promise.all(sums)]).then(([h, hs, auka, su]) => {
     if (!h) return fail('k-fjall');
-    kFjall(h, yearStatsFromRows(s.rows, 10, 2000), auka.map((by, i) => ({ sv: K_AUKA[i].sv, by })), hs[0]?.thinglystdags);
+    kFjall(h, auka.map((by, i) => ({ sv: K_AUKA[i].sv, by })),
+      su.map((s, i) => ({ sv: K_SUMAR[i].sv, by: s.rows.length ? yearStatsFromRows(s.rows, 10, 2000) : null })), hs[0]?.thinglystdags);
   }).catch(() => fail('k-fjall'));
 
-  const regs = ['hofud', ...K_AUKA.map(a => a.sv), 'sumar'];
-  Promise.all([hSales, ...aukaSales, sSales]).then(async lists => {
+  const regs = ['hofud', ...K_AUKA.map(a => a.sv), ...K_SUMAR.map(a => a.sv)];
+  Promise.all([hSales, ...aukaSales, ...sSales]).then(async lists => {
     kSalesTable(lists.map((l, i) => [regs[i], l]));     // sölur strax…
     const matched = await Promise.all(lists.map(matchSalesToListings));
     kSalesTable(matched.map((l, i) => [regs[i], l]));   // …ásett verð þegar það finnst
@@ -1422,11 +1472,11 @@ document.addEventListener('click', e => {
 });
 
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', hiti: 'markadshiti', verdmat: 'verdmat' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', grimsnes: 'grimsnes', blaskogar: 'blaskogabyggd', hiti: 'markadshiti', verdmat: 'verdmat' };
 // Titill vafraflipa (og sögu) eftir flipa; forsíðan heldur aðaltitlinum
-const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', akranes: 'Akranes', sumar: 'Skorradalur', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
-// Önnur þéttbýlissvæði nota sama skjáhluta og höfuðborgarsvæðið (view-hofud)
-const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', akranes: 'hofud' };
+const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', akranes: 'Akranes', sumar: 'Skorradalur', grimsnes: 'Grímsnes', blaskogar: 'Bláskógabyggð', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
+// Önnur þéttbýlissvæði nota sama skjáhluta og höfuðborgarsvæðið (view-hofud), sumarhúsasvæðin skjáhluta Skorradals (view-sumar)
+const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', akranes: 'hofud', grimsnes: 'sumar', blaskogar: 'sumar' };
 
 // Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, annarra svæða úr SVAEDI
 SVAEDI.hofud.valkostir = document.getElementById('hofud-postnr').innerHTML;
@@ -1449,7 +1499,7 @@ function showView(view, { push = true } = {}) {
   if (!VIEW_HASH[view]) view = 'yfirlit';
   const dom = VIEW_DOM[view] || view;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const on = b.dataset.view === (dom === 'hofud' ? 'svaedi' : view);   // öll þéttbýlissvæðin undir „Svæði“
+    const on = b.dataset.view === (dom === 'hofud' ? 'svaedi' : dom);   // þéttbýlissvæðin undir „Svæði“, sumarhúsasvæðin undir „Sumarhús“
     b.classList.toggle('active', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
@@ -1464,7 +1514,7 @@ function showView(view, { push = true } = {}) {
   if (view === 'yfirlit') initYfirlit();
   else if (view === 'hiti') initHiti();
   else if (view === 'verdmat') initVerdmat();
-  else if (view === 'sumar') initSumar();
+  else if (dom === 'sumar') initSumar(view);
   else if (dom === 'hofud') { khSetSvaedi(view); khInitFromForm(); }
 }
 
@@ -1473,9 +1523,12 @@ function viewFromHash() {
   return Object.keys(VIEW_HASH).find(k => VIEW_HASH[k] === h) || 'yfirlit';
 }
 
-// „Svæði“ opnar síðasta valda svæðið (höfuðborgarsvæðið í byrjun); hvert svæði hefur áfram eigin slóð (#selfoss o.s.frv.)
+// „Svæði“ og „Sumarhús“ opna síðasta valda svæðið; hvert svæði hefur áfram eigin slóð (#selfoss, #grimsnes o.s.frv.)
 document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => showView(btn.dataset.view === 'svaedi' ? hofudSvaedi : btn.dataset.view));
+  btn.addEventListener('click', () => showView(btn.dataset.view === 'svaedi' ? hofudSvaedi : btn.dataset.view === 'sumar' ? KS.sv : btn.dataset.view));
+});
+document.querySelectorAll('.ks-seg [data-ssv]').forEach(btn => {
+  btn.addEventListener('click', () => { if (btn.dataset.ssv !== KS.sv) showView(btn.dataset.ssv); });
 });
 document.querySelectorAll('.kh-seg [data-sv]').forEach(btn => {
   btn.addEventListener('click', () => { if (btn.dataset.sv !== hofudSvaedi) showView(btn.dataset.sv); });
@@ -1502,7 +1555,7 @@ document.getElementById('k-vm-form').addEventListener('submit', e => {
 document.getElementById('hofud-postnr').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 document.getElementById('hofud-tegund').addEventListener('change', () => { hofudReady = false; khInitFromForm(); });
 
-// ---- Götuleit í Skorradal ----
+// ---- Götuleit í sumarhúsaflipanum ----
 let _streetFilterTimer = null;
 document.addEventListener('input', e => {
   if (e.target.id !== 'avs-filter') return;
@@ -1510,5 +1563,5 @@ document.addEventListener('input', e => {
   _streetFilterTimer = setTimeout(() => ksFilter(e.target.value), 200);
 });
 
-// ---- Startup: forsíða nema slóðin vísi á svæði (#hofud, #skorradalur) ----
+// ---- Startup: forsíða nema slóðin vísi á svæði (#hofud, #skorradalur, #grimsnes …) ----
 showView(viewFromHash(), { push: false });

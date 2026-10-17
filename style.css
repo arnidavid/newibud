@@ -200,12 +200,17 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
   --k-rnb: #2E6DA4;    --k-rnb-tx: #1F4F7A;    --k-rnb-fill: #E6EEF6;     /* Reykjanesbær */
   --k-sel: #A23B63;    --k-sel-tx: #7A2547;    --k-sel-fill: #F6E8EE;     /* Selfoss */
   --k-akr: #5B7F2B;    --k-akr-tx: #3F5C1B;    --k-akr-fill: #EEF3E6;     /* Akranes */
+  --k-grim: #A88400;   --k-grim-tx: #6E5600;   --k-grim-fill: #F5EFD6;    /* Grímsnes (sumarhús) */
+  --k-blask: #55687D;  --k-blask-tx: #3B4A5B;  --k-blask-fill: #E8ECF0;   /* Bláskógabyggð (sumarhús) */
 }
 /* Akureyri og Reykjanesbær nota skjáhluta höfuðborgarsvæðisins → sömu breytur, annar litur */
 #view-hofud[data-svaedi="akureyri"] { --k-hofud: var(--k-aku); --k-hofud-tx: var(--k-aku-tx); --k-hofud-fill: var(--k-aku-fill); }
 #view-hofud[data-svaedi="reykjanesbaer"] { --k-hofud: var(--k-rnb); --k-hofud-tx: var(--k-rnb-tx); --k-hofud-fill: var(--k-rnb-fill); }
 #view-hofud[data-svaedi="selfoss"] { --k-hofud: var(--k-sel); --k-hofud-tx: var(--k-sel-tx); --k-hofud-fill: var(--k-sel-fill); }
 #view-hofud[data-svaedi="akranes"] { --k-hofud: var(--k-akr); --k-hofud-tx: var(--k-akr-tx); --k-hofud-fill: var(--k-akr-fill); }
+/* Sumarhúsasvæðin nota skjáhluta Skorradals → --k-skorr-breyturnar fá lit valins svæðis */
+#view-sumar[data-svaedi="grimsnes"] { --k-skorr: var(--k-grim); --k-skorr-tx: var(--k-grim-tx); --k-skorr-fill: var(--k-grim-fill); }
+#view-sumar[data-svaedi="blaskogar"] { --k-skorr: var(--k-blask); --k-skorr-tx: var(--k-blask-tx); --k-skorr-fill: var(--k-blask-fill); }
 
 /* ---- Haus ---- */
 .site-hd { border-bottom: 1px solid var(--k-rule); background: var(--k-paper); color: var(--k-ink); }
@@ -221,7 +226,7 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 .tab-btn[aria-current="page"] { font-weight: 700; border-bottom-color: var(--k-ink); }
 /* Svæði-flipinn fær lit valins svæðis (stilltur í khSetSvaedi) */
 .tab-btn[data-view="svaedi"][aria-current="page"] { border-bottom-color: var(--k-svaedi, var(--k-ink)); }
-.tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-skorr); }
+.tab-btn[data-view="sumar"][aria-current="page"] { border-bottom-color: var(--k-sumar, var(--k-skorr)); }
 .tab-btn:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
 
 @media (max-width: 640px) {
@@ -331,6 +336,7 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 /* Svæðaval efst í Svæði-flipanum (sama útlit og svæðaval Markaðshita) */
 .kh-seg { margin-top: 32px; flex-wrap: wrap; }
 #view-hofud .kh-seg button[aria-pressed="true"] { background: var(--k-hofud-tx); }
+#view-sumar .kh-seg button[aria-pressed="true"] { background: var(--k-skorr-tx); }
 @media (max-width: 640px) {
   .kh-seg { margin-top: 20px; }
   .kh-seg button { flex: 1 1 auto; }
