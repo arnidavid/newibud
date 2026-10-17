@@ -177,12 +177,25 @@ async function fetchFastinnSumar(postnr) {
           staerd: sqm,
           fm_thkr: sqm > 0 && price > 0 ? Math.round(price / sqm / 1000) : 0,
           linkur: `https://fastinn.is/soluskra/${h.mblAssetId || h.objectID}`,
-          dags: h.dateadded ? fmtDagAr(h.dateadded) : '',
-          dags_raw: h.dateadded ? new Date(h.dateadded) : null
+          ...soluferill(h)
         };
       });
   } catch (e) { console.error('Fastinn.is (sumar) error:', e); return []; }
 }
+
+// Söluferill auglýsingar: endurbirtingar sömu eignar teljast saman, svo dagar á sölu
+// og lækkun miðast við fyrstu birtingu en ekki nýjustu endurbirtingu
+function soluferill(h) {
+  const first = h.journeyFirstListedAt_timestamp || h.dateadded_timestamp || (h.dateadded ? Date.parse(h.dateadded) : null);
+  const max = h.journeyMaxPrice || 0, price = h.price || 0;
+  return {
+    dags: first ? fmtDagAr(new Date(first)) : '',
+    dags_raw: first ? new Date(first) : null,
+    dagar: first ? Math.max(0, Math.floor((Date.now() - first) / 864e5)) : null,
+    haest_kr: max > price && price > 0 ? max : 0          // hæsta ásetta verð í ferlinum, ef hærra en núna
+  };
+}
+const fmtDagar = n => `${fmtInt(n)} ${n % 10 === 1 && n % 100 !== 11 ? 'dag' : 'daga'}`;
 
 // ============================================================
 // ====  HÖFUÐBORGARSVÆÐI  ====================================
@@ -269,8 +282,7 @@ async function fetchFastinnHofud(sv, postnr, tegund = 'all') {
           staerd: sqm,
           fm_thkr: sqm > 0 && price > 0 ? Math.round(price / sqm / 1000) : 0,
           linkur: `https://fastinn.is/soluskra/${h.mblAssetId || h.objectID}`,
-          dags: h.dateadded ? fmtDagAr(h.dateadded) : '',
-          dags_raw: h.dateadded ? new Date(h.dateadded) : null
+          ...soluferill(h)
         };
       });
     // Heildarfjöldi á sölu: leitin skilar mest 1000 færslum. Aðeins ef listinn er styttur er nbHits notað
@@ -451,17 +463,22 @@ function khSeason(agg) {
 function khListings(ls, rows, pre = 'kh', col = 'var(--k-hofud-tx)') {
   const w = document.getElementById(pre + '-ls');
   const tot = ls.total ?? ls.length;   // leitin skilar mest 1000 nýjustu; heildarfjöldi getur verið meiri
+  // Samantekt aðeins ef allur listinn er sóttur; annars eru bara nýjustu auglýsingarnar með og miðgildið of lágt
+  const dg = ls.map(l => l.dagar).filter(d => d != null).sort((a, b) => a - b);
+  const nLk = ls.filter(l => l.haest_kr && l.verd_kr / l.haest_kr <= 0.995).length;
   document.getElementById(pre + '-ls-n').textContent = !ls.length ? ''
-    : tot > ls.length ? `${fmtInt(tot)} eignir, ${fmtInt(ls.length)} nýjustu sýndar`
-    : `${fmtInt(ls.length)} ${ls.length === 1 ? 'eign' : 'eignir'}, nýjast fyrst`;
+    : (tot > ls.length ? `${fmtInt(tot)} eignir, ${fmtInt(ls.length)} nýjustu sýndar`
+    : `${fmtInt(ls.length)} ${ls.length === 1 ? 'eign' : 'eignir'}, nýjast fyrst`)
+    + (dg.length >= 5 && tot <= ls.length ? ` · miðgildi ${fmtDagar(dg[Math.floor(dg.length / 2)])} á sölu · ${fmtInt(nLk)} ${nLk % 10 === 1 && nLk % 100 !== 11 ? 'hefur' : 'hafa'} lækkað verð` : '');
   if (!ls.length) { w.innerHTML = '<p class="k-sub" style="padding:16px 0">Engar eignir á sölu á þessu svæði.</p>'; document.getElementById(pre + '-ls-more').hidden = true; return; }
   ls.sort((a, b) => (b.dags_raw?.getTime() || 0) - (a.dags_raw?.getTime() || 0));
   w.innerHTML = ls.map(l => {
     const mi = rows.length ? getMatInfo(rows, l.heimilisfang, l.staerd) : null;
     const diff = mi && mi.mat > 0 && l.verd_kr > 0 ? Math.round(l.verd_kr / mi.mat / 10) - 100 : null;
+    const lk = l.haest_kr ? Math.round((1 - l.verd_kr / l.haest_kr) * 100) : 0;   // lækkun frá hæsta ásetta verði, %
     return `<article class="k-lst" data-addr="${vmEsc(l.heimilisfang.toLowerCase())}">
-      <div><h3>${vmEsc(l.heimilisfang)}</h3><div class="k-sub">${l.dags ? 'Skráð ' + l.dags : ''}</div></div>
-      <div><div class="k-lab">Ásett verð</div><div style="font-weight:700">${l.verd_kr > 0 ? fmtMkr(l.verd_kr / 1000) : 'Tilboð'}</div></div>
+      <div><h3>${vmEsc(l.heimilisfang)}</h3><div class="k-sub"${l.dags ? ` title="Fyrst auglýst ${l.dags}"` : ''}>${l.dagar == null ? '' : l.dagar < 2 ? 'Nýtt á sölu' : `${fmtDagar(l.dagar)} á sölu`}</div></div>
+      <div><div class="k-lab">Ásett verð</div><div style="font-weight:700">${l.verd_kr > 0 ? fmtMkr(l.verd_kr / 1000) : 'Tilboð'}</div>${lk >= 1 ? `<div class="k-sub">−${lk}% frá ${fmtMkr(l.haest_kr / 1000)}</div>` : ''}</div>
       <div><div class="k-lab">Stærð</div><div>${l.staerd ? fmtM2(l.staerd) : '–'}</div></div>
       <div><div class="k-lab">Þ.kr/m²</div><div>${l.fm_thkr > 0 ? fmtInt(l.fm_thkr) : '–'}</div></div>
       <div><div class="k-lab">${diff < 0 ? 'Undir' : 'Yfir'} fasteignamati</div><div class="${diff > 0 ? 'k-up' : diff < 0 ? 'k-down' : ''}">${diff === null ? '–' : Math.abs(diff) + '%'}</div></div>
