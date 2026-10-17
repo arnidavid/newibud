@@ -274,33 +274,25 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 
 /* ---- Forsíða ---- */
 .k-hero { padding: 40px 0 34px; }
-.k-ends { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 20px 0 6px; }
-.k-end { display: flex; align-items: baseline; gap: 8px; font: inherit; color: var(--k-ink); background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left; }
-.k-end:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
-.k-end[aria-pressed="true"] span { text-decoration: underline; text-underline-offset: 3px; }
-/* Auðkenning: önnur svæði dofna (línur, punktar og skýringar) */
+/* Íbúðir / sumarhús: eitt val stýrir fjalli, svæðatöflu og nýjustu sölum */
+.k-fam { margin: 24px 0 18px; }
+/* Auðkenning: önnur svæði dofna (línur, punktar og línur í svæðatöflunni) */
 .k-dim { opacity: .18; transition: opacity .15s; }
-.k-end.k-dim { opacity: .4; }
+.k-svt tr.k-dim { opacity: .38; }
 .k-dot { position: absolute; width: 9px; height: 9px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid var(--k-paper); }
 @media (prefers-reduced-motion: reduce) { .k-dim { transition: none; } }
-.k-end i { width: 22px; height: 4px; display: inline-block; align-self: center; }
-.k-end b { font-size: 34px; font-weight: 800; letter-spacing: -.6px; }
+/* Svæðataflan = skýring grafsins: litastrik, nafn, tölur í föstum dálkum; öll línan opnar svæðið */
+.k-svt { margin-top: 30px; border-top: 2px solid var(--k-ink); }
+.k-svt tbody tr { cursor: pointer; }
+.k-svt td { vertical-align: middle; font-size: 16px; }
+.k-svt .c-sv { text-align: left; font-size: 17px; font-weight: 700; }
+.k-svt .c-sv i { display: inline-block; width: 22px; height: 4px; margin-right: 12px; vertical-align: middle; }
+.k-svt .c-sv .k-sub { display: block; margin: 2px 0 0 34px; font-size: 13px; font-weight: 400; }
+.k-svt .c-sv a:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+.k-svt tbody tr:hover .c-sv a { text-decoration: underline; text-underline-offset: 3px; }
+.k-svt .c-v { font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
+.k-svt .c-chg, .k-svt .c-ls { color: var(--k-muted); }
 .k-figcap { font-size: 13px; color: var(--k-muted); margin-top: 34px; }
-/* Tengillinn alltaf undir fyrirsögn svo spjöldin standist á, hvað sem nafnið er langt */
-.k-reg-hd { display: flex; flex-direction: column; align-items: flex-start; }
-.k-reg-hd a { font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 4px 0 10px; background: none; border: 0; font-family: inherit; cursor: pointer; }
-/* Svæðin tvö og tvö saman (fleiri dálkar hlið við hlið yrðu of þröngir fyrir tölurnar); í síma einn dálkur.
-   Standi síðasta svæðið eitt (oddatala) nær það yfir alla breiddina en tölurnar halda dálkbreidd. */
-@media (min-width: 641px) {
-  .k-cols-4 .k-col:nth-child(odd) { padding-left: 0; border-left: 0; }
-  .k-cols-4 .k-col:nth-child(n+3) { border-top: 1px solid var(--k-rule); }
-  .k-cols-4 .k-col:last-child:nth-child(odd) { grid-column: 1 / -1; }
-  .k-cols-4 .k-col:last-child:nth-child(odd) > * { max-width: calc(50% - 28px); }
-}
-.k-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.k-stats > div { display: flex; flex-direction: column; justify-content: space-between; }   /* tölur standast á þótt merki brotni */
-.k-stats dt { font-size: 13px; color: var(--k-muted); }
-.k-stats dd { margin: 2px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.5px; }
 .k-col-t { display: block; font-size: 22px; font-weight: 800; }
 .k-col-p { display: block; margin-top: 6px; color: var(--k-muted); font-size: 15px; line-height: 1.5; }
 
@@ -309,14 +301,8 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-h2 { font-size: 22px; }
   .k-xl.mid { display: none; }
   .k-chart.k-tall svg { height: 200px; }   /* viewBox er teygður (preserveAspectRatio=none) svo grafið verði ekki 100 px lágt */
-  .k-end b { font-size: 24px; }
-  /* Sex svæði: tveir þéttir dálkar svo grafið sjáist á fyrsta skjá */
-  .k-ends { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
-  .k-end { gap: 6px; font-size: 13px; line-height: 1.2; }
-  .k-end i { width: 14px; }
   .k-cols { grid-template-columns: 1fr; }
   .k-col + .k-col { padding-left: 0; border-left: 0; border-top: 1px solid var(--k-rule); }
-  .k-stats dd { font-size: 24px; }
   .k-tbl thead { display: none; }
   .k-tbl, .k-tbl tbody { display: block; }
   .k-tbl tbody tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 12px 0; }
@@ -330,6 +316,17 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-tbl .c-ask:empty { display: none; }
   .k-tbl .c-ask:not(:empty)::before { content: "Ásett "; }
   .k-tbl .c-svaedi { display: none; }
+  .k-tbl.k-svt { display: table; }
+  .k-tbl.k-svt thead { display: table-header-group; }
+  .k-tbl.k-svt tbody { display: table-row-group; }
+  .k-tbl.k-svt tbody tr { display: table-row; padding: 0; }
+  .k-tbl.k-svt th, .k-tbl.k-svt td { padding: 11px 0 11px 10px !important; text-align: right; }
+  .k-tbl.k-svt .c-sv, .k-tbl.k-svt thead th:first-child { padding-left: 0 !important; text-align: left; }
+  .k-svt .c-sv { font-size: 15px; white-space: nowrap; }   /* strikið helst við nafnið (Höfuðborgarsvæðið er langt) */
+  .k-svt .c-sv i { width: 14px; margin-right: 8px; }
+  .k-svt .c-sv .k-sub { display: none; }
+  .k-svt .c-v { font-size: 20px; }
+  .k-svt td { font-size: 14px; }
 }
 
 /* ---- Höfuðborgarsvæðið (og síðar Skorradalur) ---- */
