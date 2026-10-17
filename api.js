@@ -8,6 +8,30 @@ const API = (() => {
   const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56dXdwbGF3d25sbmpuYmRwbWVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3OTIzNTgsImV4cCI6MjA5MDM2ODM1OH0.YK2lWlZQQB0jO-U6GhzME5YoiIsA1B-H7hRNx-yd56E';
   const DEFAULT_PAGE_SIZE = 500;
 
+  // ---- Sending með einni endurtilraun ----
+  // Þjónninn rennur stundum á tímamörk (statement timeout, 3 sek. hjá anon) þegar mörg köll koma í
+  // einu eftir hlé og gögnin eru ekki í minni. Seinna kallið er þá yfirleitt hratt, svo bráðabirgðavillur
+  // eru reyndar aftur einu sinni eftir stutta, slembna bið (svo köllin komi ekki öll aftur samtímis).
+  const BRADABIRGDA = new Set([502, 503, 504]);
+  async function send(url, init, label, tilraun = 1) {
+    let retry = false, error;
+    try {
+      const response = await fetch(url.toString(), init);
+      if (response.ok) return { data: await response.json(), error: null };
+      const errorText = await response.text();
+      error = `${label} ${response.status}: ${errorText}`;
+      retry = BRADABIRGDA.has(response.status) || errorText.includes('57014');
+    } catch (err) {
+      error = err.message;
+      retry = true;                                    // netvilla
+    }
+    if (retry && tilraun === 1) {
+      await new Promise(r => setTimeout(r, 600 + Math.random() * 900));
+      return send(url, init, label, 2);
+    }
+    return { data: null, error };
+  }
+
   // ---- Core fetch ----
   async function query(endpoint, params = {}, options = {}) {
     const url = new URL(`${BASE_URL}/${endpoint}`);
@@ -30,56 +54,25 @@ const API = (() => {
       url.searchParams.set('order', options.order);
     }
 
-    try {
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'apikey': ANON_KEY,
-          'Authorization': 'Bearer ' + ANON_KEY
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      return { data, error: null };
-    } catch (err) {
-      console.error(`[API] ${endpoint} failed:`, err.message);
-      return { data: null, error: err.message };
-    }
+    const { data, error } = await send(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY }
+    }, `API`);
+    if (error) console.error(`[API] ${endpoint} failed:`, error);
+    return { data, error };
   }
 
   // ---- RPC (POST) ----
   async function rpc(functionName, body = {}) {
     const url = new URL(`${BASE_URL}/rpc/${functionName}`);
 
-    try {
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'apikey': ANON_KEY,
-          'Authorization': 'Bearer ' + ANON_KEY
-        },
-        body: JSON.stringify(body)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`RPC ${functionName} ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      return { data, error: null };
-    } catch (err) {
-      console.error(`[API] RPC ${functionName} failed:`, err.message);
-      return { data: null, error: err.message };
-    }
+    const { data, error } = await send(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY },
+      body: JSON.stringify(body)
+    }, `RPC ${functionName}`);
+    if (error) console.error(`[API] RPC ${functionName} failed:`, error);
+    return { data, error };
   }
 
   // ---- Paginated fetch (auto-fetches all pages) ----

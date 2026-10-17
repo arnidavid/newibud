@@ -162,8 +162,7 @@ function ksFilter(q) {
 // miðast við fyrstu birtingu. ls.total / ls.midgildi / ls.nLk ná yfir allar auglýsingar,
 // líka þegar aðeins `limit` nýjustu eru sóttar.
 async function fetchAuglysingar(postnrs, tegundir, limit = 1000) {
-  let { data, error } = await API.rpc('auglysingar_a_solu', { p_postnrs: postnrs, p_tegundir: tegundir, p_limit: limit });
-  if (error) ({ data, error } = await API.rpc('auglysingar_a_solu', { p_postnrs: postnrs, p_tegundir: tegundir, p_limit: limit }));
+  const { data, error } = await API.rpc('auglysingar_a_solu', { p_postnrs: postnrs, p_tegundir: tegundir, p_limit: limit });
   if (error || !data) { console.error('Auglýsingar:', error); return []; }
   const now = Date.now();
   const ls = data.map(r => {
@@ -449,9 +448,7 @@ const SA_MIN_N = 5;   // færri sölur en þetta → dauf súla, ekki notuð í 
 
 async function renderStaerdAldur(sv, postnr, tegund, kaupTegund) {
   const args = { p_postnrs: svPostnrs(sv, postnr), p_tegund: kaupTegund };
-  let { data } = await API.rpc('get_verd_staerd_aldur_svaedi', args);
-  // Fyrsta kall eftir hlé getur runnið út á tíma (gögn ekki í minni); seinna kallið er ~0,3 sek.
-  if (!data && khCurrent(sv, postnr, tegund)) ({ data } = await API.rpc('get_verd_staerd_aldur_svaedi', args));
+  const { data } = await API.rpc('get_verd_staerd_aldur_svaedi', args);   // API reynir aftur við tímamörk
   if (!khCurrent(sv, postnr, tegund)) return;
   document.getElementById('kh-sa-desc').textContent = postnr === 0
     ? 'Sölur síðustu 24 mánuði, leiðrétt fyrir staðsetningu svo hverfið skekki ekki samanburðinn.'
@@ -692,11 +689,14 @@ function loadSumarData() {
         postnr: 'eq.311', tegund: 'eq.Sumarhús', kaupverd: 'gt.500', order: 'thinglystdags.asc'
       }),
       fetchAuglysingar([POSTNR], ['sumarhus'])
-    ]).then(([k, ls]) => [
+    ]).then(([k, ls]) => {
+      // Misheppnuð sókn er ekki geymd: næsta kall (t.d. þegar farið er í Skorradals-flipann) reynir aftur
+      if (k.error || !ls.length) _sumarDataPromise = null;
+      return [
       // Ónothæfir samningar (gjafir, innan fjölskyldu o.þ.h.) skekkja meðaltöl – t.d. 2 m.kr. bústaður í Fitjahlíð 2022.
       // Síað hér svo Skorradals-flipinn og forsíðan fái sömu tölur.
       { ...k, data: k.data ? k.data.filter(r => r.onothaefur_samningur !== '1') : k.data }, ls
-    ]);
+    ]; });
   }
   return _sumarDataPromise;
 }
@@ -957,9 +957,10 @@ async function initYfirlit() {
   const fail = id => { const e = document.getElementById(id); if (e) e.innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; };
 
   const hBy = API.getManadarsolur(SVAEDI.hofud.allt, null).then(r => r.data ? hofudByYear(r.data) : null);
-  const sum = loadSumarData().then(([k, ls]) => ({ rows: k.data || [], ls }));
+  const sum = loadSumarData().then(([k, ls]) => ({ rows: k.error ? [] : k.data || [], ls, err: !!k.error }));
   Promise.all([hBy, fetchSvaediAuglysingar('hofud', 0, 'all', 1)]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.total ?? ls.length); });
-  sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.total ?? s.ls.length));
+  // Ef sölurnar náðust ekki standa strikin (—) eftir í stað rangrar tölu (0)
+  sum.then(s => s.err || kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.total ?? s.ls.length));
   const aukaBy = K_AUKA.map(({ sv, id }) => {
     const by = API.getManadarsolur(SVAEDI[sv].allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
     Promise.all([by, fetchSvaediAuglysingar(sv, 0, 'all', 1)]).then(([b, ls]) => { if (b) kRegion(id, b, ls.total ?? ls.length); });
@@ -1362,13 +1363,7 @@ async function vmCompute(e) {
   body.innerHTML = '<p class="vm-empty">Reikna…</p>';
   const seq = ++VM.cseq;
   const args = { p_postnr: e.postnr, p_tegund: e.tegund, p_einflm: e.einflm ?? null, p_fastnum: e.fastnum ?? null };
-  let { data: d, error } = await API.rpc('get_verdmat', args);
-  // Fyrsta kall eftir hlé getur runnið á tímamörk; annað kall er yfirleitt hratt
-  if (error && seq === VM.cseq) {
-    await new Promise(r => setTimeout(r, 800));
-    if (seq !== VM.cseq) return;
-    ({ data: d } = await API.rpc('get_verdmat', args));
-  }
+  const { data: d } = await API.rpc('get_verdmat', args);   // API reynir aftur við tímamörk
   if (seq !== VM.cseq) return;
   if (!d || !d.p50) { body.innerHTML = '<p class="vm-empty">Ekki tókst að reikna verðmat. Reyndu aftur síðar.</p>'; return; }
 
