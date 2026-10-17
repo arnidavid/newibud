@@ -157,43 +157,34 @@ function ksFilter(q) {
   });
 }
 
-async function fetchFastinnSumar(postnr) {
-  try {
-    const r = await fetch('https://chmqzsxu3l-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=CHMQZSXU3L&x-algolia-api-key=9bfe0ddf26fdff0dd90dcdfc0e955eb7', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters: `type:sumarhus AND removed:false AND zip:${postnr}`, hitsPerPage: 200, page: 0 }] })
-    });
-    const d = await r.json();
-    const hits = d.results?.[0]?.hits || [];
-    const seen = new Set();
-    return hits
-      .filter(h => { const k = h.address || h.street_name; if (seen.has(k)) return false; seen.add(k); return true; })
-      .map(h => {
-        const sqm = h.sqm || h.size || 0, price = h.price || 0;
-        return {
-          heimilisfang: h.address || h.street_name || '?',
-          verd_kr: price,
-          staerd: sqm,
-          fm_thkr: sqm > 0 && price > 0 ? Math.round(price / sqm / 1000) : 0,
-          linkur: `https://fastinn.is/soluskra/${h.mblAssetId || h.objectID}`,
-          ...soluferill(h)
-        };
-      });
-  } catch (e) { console.error('Fastinn.is (sumar) error:', e); return []; }
-}
-
-// Söluferill auglýsingar: endurbirtingar sömu eignar teljast saman, svo dagar á sölu
-// og lækkun miðast við fyrstu birtingu en ekki nýjustu endurbirtingu
-function soluferill(h) {
-  const first = h.journeyFirstListedAt_timestamp || h.dateadded_timestamp || (h.dateadded ? Date.parse(h.dateadded) : null);
-  const max = h.journeyMaxPrice || 0, price = h.price || 0;
-  return {
-    dags: first ? fmtDagAr(new Date(first)) : '',
-    dags_raw: first ? new Date(first) : null,
-    dagar: first ? Math.max(0, Math.floor((Date.now() - first) / 864e5)) : null,
-    haest_kr: max > price && price > 0 ? max : 0          // hæsta ásetta verð í ferlinum, ef hærra en núna
-  };
+// Auglýsingar á sölu úr okkar gagnagrunni (RPC auglysingar_a_solu, safnað reglulega í n8n).
+// Ein lína á söluferil: endurbirtingar sömu eignar teljast saman, svo dagar á sölu og lækkun
+// miðast við fyrstu birtingu. ls.total / ls.midgildi / ls.nLk ná yfir allar auglýsingar,
+// líka þegar aðeins `limit` nýjustu eru sóttar.
+async function fetchAuglysingar(postnrs, tegundir, limit = 1000) {
+  let { data, error } = await API.rpc('auglysingar_a_solu', { p_postnrs: postnrs, p_tegundir: tegundir, p_limit: limit });
+  if (error) ({ data, error } = await API.rpc('auglysingar_a_solu', { p_postnrs: postnrs, p_tegundir: tegundir, p_limit: limit }));
+  if (error || !data) { console.error('Auglýsingar:', error); return []; }
+  const now = Date.now();
+  const ls = data.map(r => {
+    const sqm = Number(r.staerd) || 0, price = Number(r.verd) || 0, max = Number(r.haest_verd) || 0;
+    const first = r.fyrst_birt ? new Date(r.fyrst_birt) : null;
+    return {
+      heimilisfang: r.heimilisfang || '?',
+      verd_kr: price,
+      staerd: sqm,
+      fm_thkr: sqm > 0 && price > 0 ? Math.round(price / sqm / 1000) : 0,
+      linkur: r.linkur,
+      dags: first ? fmtDagAr(first) : '',
+      dags_raw: first,
+      dagar: first ? Math.max(0, Math.floor((now - first) / 864e5)) : null,
+      haest_kr: max > price && price > 0 ? max : 0          // hæsta ásetta verð í ferlinum, ef hærra en núna
+    };
+  });
+  ls.total = data.length ? Number(data[0].alls) : 0;
+  ls.midgildi = data.length ? data[0].midgildi_daga : null;
+  ls.nLk = data.length ? Number(data[0].n_laekkad) : 0;
+  return ls;
 }
 const fmtDagar = n => `${fmtInt(n)} ${n % 10 === 1 && n % 100 !== 11 ? 'dag' : 'daga'}`;
 
@@ -207,10 +198,10 @@ const H_FM_MIN = 50;
 const H_FM_MAX = 5000;
 
 const TEGUND_MAP = {
-  all:   { algolia: '(type:fjolb OR type:einb OR type:raðpar OR type:hæðir)', kaupskra: null },
-  fjolb: { algolia: 'type:fjolb',  kaupskra: 'Fjölbýli' },
-  einb:  { algolia: '(type:einb OR type:einbýlishús)', kaupskra: 'Einbýli' },
-  raðpar:{ algolia: 'type:raðpar', kaupskra: 'Sérbýli' },
+  all:   { teg: ['fjolb', 'einb', 'einbýlishús', 'raðpar', 'hæðir'], kaupskra: null },
+  fjolb: { teg: ['fjolb'], kaupskra: 'Fjölbýli' },
+  einb:  { teg: ['einb', 'einbýlishús'], kaupskra: 'Einbýli' },
+  raðpar:{ teg: ['raðpar'], kaupskra: 'Sérbýli' },
 };
 
 // Þéttbýlissvæði: postnr 0 í fellilista = allt svæðið (listinn `allt`).
@@ -220,20 +211,17 @@ const SVAEDI = {
     nafn: 'Höfuðborgarsvæðið', allt_txt: 'á öllu höfuðborgarsvæðinu',
     allt: [101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112, 113, 116, 161, 162, 170,
            200, 201, 202, 203, 206, 210, 212, 220, 221, 222, 225, 270],
-    algolia: '(zip:101 TO 116 OR zip:161 TO 170 OR zip:200 TO 225 OR zip:270 TO 270)',
     col: { c: '#B8652A', tx: '#8A4519', fill: '#F7EEE6', fill2: '#D9B79C', faint: '#E1D3C8', lo: [247, 236, 226], hi: [122, 58, 22] }
   },
   akureyri: {
     nafn: 'Akureyri', allt_txt: 'á Akureyri',
     allt: [600, 603],
-    algolia: '(zip:600 OR zip:603)',
     col: { c: '#5E4FA2', tx: '#433880', fill: '#EEEBF6', fill2: '#C3BADF', faint: '#DAD5EA', lo: [238, 235, 246], hi: [52, 40, 110] },
     valkostir: '<option value="0">Allur bærinn</option><option value="600">600 Akureyri</option><option value="603">603 Akureyri (norðan Glerár)</option>'
   },
   reykjanesbaer: {
     nafn: 'Reykjanesbær', allt_txt: 'í Reykjanesbæ',
     allt: [230, 233, 260, 262],
-    algolia: '(zip:230 OR zip:233 OR zip:260 OR zip:262)',
     col: { c: '#2E6DA4', tx: '#1F4F7A', fill: '#E6EEF6', fill2: '#A9C3DC', faint: '#D2DEE9', lo: [230, 238, 246], hi: [22, 58, 98] },
     valkostir: '<option value="0">Allur bærinn</option><option value="230">230 Keflavík</option><option value="260">260 Njarðvík</option><option value="262">262 Ásbrú</option><option value="233">233 Hafnir</option>'
   },
@@ -242,7 +230,6 @@ const SVAEDI = {
   selfoss: {
     nafn: 'Selfoss', allt_txt: 'á Selfossi',
     allt: [800, 801],
-    algolia: '(zip:800 OR zip:801)',
     col: { c: '#A23B63', tx: '#7A2547', fill: '#F6E8EE', fill2: '#D9A9BD', faint: '#E8D3DC', lo: [246, 232, 238], hi: [110, 28, 62] },
     valkostir: '<option value="0">Allur Selfoss</option><option value="800">800 Selfoss</option><option value="801">801 Selfoss (dreifbýli)</option>'
   },
@@ -250,48 +237,14 @@ const SVAEDI = {
   akranes: {
     nafn: 'Akranes', allt_txt: 'á Akranesi',
     allt: [300],
-    algolia: '(zip:300)',
     col: { c: '#5B7F2B', tx: '#3F5C1B', fill: '#EEF3E6', fill2: '#BFD0A6', faint: '#DCE5CF', lo: [238, 243, 230], hi: [44, 66, 18] },
     valkostir: '<option value="0">300 Akranes</option>'
   }
 };
 const svPostnrs = (sv, postnr) => postnr === 0 ? SVAEDI[sv].allt : [postnr];
 
-async function fetchFastinnHofud(sv, postnr, tegund = 'all') {
-  try {
-    const typeFilter = TEGUND_MAP[tegund]?.algolia || TEGUND_MAP.all.algolia;
-    const zipFilter  = postnr === 0 ? SVAEDI[sv].algolia : `zip:${postnr}`;
-    // Aðeins virkar auglýsingar (áður voru 500 fyrstu sóttar með fjarlægðum og síaðar á eftir → allt of lágar tölur)
-    const filters = `(${typeFilter}) AND ${zipFilter} AND removed:false`;
-    const r = await fetch('https://chmqzsxu3l-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=CHMQZSXU3L&x-algolia-api-key=9bfe0ddf26fdff0dd90dcdfc0e955eb7', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ indexName: 'listing_index', query: '', filters, hitsPerPage: 1000, page: 0 }] })
-    });
-    const d = await r.json();
-    const hits = d.results?.[0]?.hits || [];
-    // Ein færsla á söluferil (endurbirt auglýsing sömu eignar), ekki á heimilisfang: íbúðir í sama húsi eru ólíkar eignir
-    const seen = new Set();
-    const ls = hits
-      .filter(h => { const k = h.journeyId || h.objectID; if (seen.has(k)) return false; seen.add(k); return true; })
-      .map(h => {
-        const sqm = h.sqm || h.size || 0, price = h.price || 0;
-        return {
-          heimilisfang: h.address || h.street_name || '?',
-          verd_kr: price,
-          staerd: sqm,
-          fm_thkr: sqm > 0 && price > 0 ? Math.round(price / sqm / 1000) : 0,
-          linkur: `https://fastinn.is/soluskra/${h.mblAssetId || h.objectID}`,
-          ...soluferill(h)
-        };
-      });
-    // Heildarfjöldi á sölu: leitin skilar mest 1000 færslum. Aðeins ef listinn er styttur er nbHits notað
-    // (það telur endurbirtar auglýsingar sömu eignar oftar en einu sinni, svo það er ekki rétt annars)
-    const nb = d.results?.[0]?.nbHits || 0;
-    ls.total = nb > hits.length ? nb : ls.length;
-    return ls;
-  } catch (e) { console.error('Fastinn.is (hofud) error:', e); return []; }
-}
+const fetchSvaediAuglysingar = (sv, postnr, tegund = 'all', limit = 1000) =>
+  fetchAuglysingar(svPostnrs(sv, postnr), (TEGUND_MAP[tegund] || TEGUND_MAP.all).teg, limit);
 
 // Leggur mánaðarsamantekt (get_manadarsolur) saman eftir árum
 function hofudByYear(agg) {
@@ -463,13 +416,12 @@ function khSeason(agg) {
 function khListings(ls, rows, pre = 'kh', col = 'var(--k-hofud-tx)') {
   const w = document.getElementById(pre + '-ls');
   const tot = ls.total ?? ls.length;   // leitin skilar mest 1000 nýjustu; heildarfjöldi getur verið meiri
-  // Samantekt aðeins ef allur listinn er sóttur; annars eru bara nýjustu auglýsingarnar með og miðgildið of lágt
-  const dg = ls.map(l => l.dagar).filter(d => d != null).sort((a, b) => a - b);
-  const nLk = ls.filter(l => l.haest_kr && l.verd_kr / l.haest_kr <= 0.995).length;
+  // Miðgildi og lækkanir reiknuð í gagnagrunninum yfir allar auglýsingar, ekki bara þær sem sóttar eru
+  const nLk = ls.nLk ?? 0;
   document.getElementById(pre + '-ls-n').textContent = !ls.length ? ''
     : (tot > ls.length ? `${fmtInt(tot)} eignir, ${fmtInt(ls.length)} nýjustu sýndar`
     : `${fmtInt(ls.length)} ${ls.length === 1 ? 'eign' : 'eignir'}, nýjast fyrst`)
-    + (dg.length >= 5 && tot <= ls.length ? ` · miðgildi ${fmtDagar(dg[Math.floor(dg.length / 2)])} á sölu · ${fmtInt(nLk)} ${nLk % 10 === 1 && nLk % 100 !== 11 ? 'hefur' : 'hafa'} lækkað verð` : '');
+    + (tot >= 5 && ls.midgildi != null ? ` · miðgildi ${fmtDagar(ls.midgildi)} á sölu · ${fmtInt(nLk)} ${nLk % 10 === 1 && nLk % 100 !== 11 ? 'hefur' : 'hafa'} lækkað verð` : '');
   if (!ls.length) { w.innerHTML = '<p class="k-sub" style="padding:16px 0">Engar eignir á sölu á þessu svæði.</p>'; document.getElementById(pre + '-ls-more').hidden = true; return; }
   ls.sort((a, b) => (b.dags_raw?.getTime() || 0) - (a.dags_raw?.getTime() || 0));
   w.innerHTML = ls.map(l => {
@@ -739,7 +691,7 @@ function loadSumarData() {
         select: 'heimilisfang,kaupverd,einflm,byggar,thinglystdags,onothaefur_samningur,fasteignamat,fasteignamat_gildandi,fastnum,heinum',
         postnr: 'eq.311', tegund: 'eq.Sumarhús', kaupverd: 'gt.500', order: 'thinglystdags.asc'
       }),
-      fetchFastinnSumar(POSTNR)
+      fetchAuglysingar([POSTNR], ['sumarhus'])
     ]).then(([k, ls]) => [
       // Ónothæfir samningar (gjafir, innan fjölskyldu o.þ.h.) skekkja meðaltöl – t.d. 2 m.kr. bústaður í Fitjahlíð 2022.
       // Síað hér svo Skorradals-flipinn og forsíðan fái sömu tölur.
@@ -795,7 +747,7 @@ async function initHofud(sv, postnr, tegund = hofudTegund) {
 
   try {
     const kaupTegund = TEGUND_MAP[tegund]?.kaupskra || null;
-    const [aggResult, ls] = await Promise.all([API.getManadarsolur(svPostnrs(sv, postnr), kaupTegund), fetchFastinnHofud(sv, postnr, tegund)]);
+    const [aggResult, ls] = await Promise.all([API.getManadarsolur(svPostnrs(sv, postnr), kaupTegund), fetchSvaediAuglysingar(sv, postnr, tegund)]);
     if (!khCurrent(sv, postnr, tegund)) return;
     const agg = aggResult.data;
     if (!agg || !agg.length) {
@@ -1006,11 +958,11 @@ async function initYfirlit() {
 
   const hBy = API.getManadarsolur(SVAEDI.hofud.allt, null).then(r => r.data ? hofudByYear(r.data) : null);
   const sum = loadSumarData().then(([k, ls]) => ({ rows: k.data || [], ls }));
-  Promise.all([hBy, fetchFastinnHofud('hofud', 0, 'all')]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.total ?? ls.length); });
-  sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.length));
+  Promise.all([hBy, fetchSvaediAuglysingar('hofud', 0, 'all', 1)]).then(([by, ls]) => { if (by) kRegion('k-reg-hofud', by, ls.total ?? ls.length); });
+  sum.then(s => kRegion('k-reg-sumar', yearStatsFromRows(s.rows, 10, 2000), s.ls.total ?? s.ls.length));
   const aukaBy = K_AUKA.map(({ sv, id }) => {
     const by = API.getManadarsolur(SVAEDI[sv].allt, null).then(r => r.data ? hofudByYear(r.data) : null).catch(() => null);
-    Promise.all([by, fetchFastinnHofud(sv, 0, 'all')]).then(([b, ls]) => { if (b) kRegion(id, b, ls.total ?? ls.length); });
+    Promise.all([by, fetchSvaediAuglysingar(sv, 0, 'all', 1)]).then(([b, ls]) => { if (b) kRegion(id, b, ls.total ?? ls.length); });
     return by;
   });
 
