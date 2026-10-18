@@ -53,7 +53,7 @@ grant execute on function public.auglysingar_a_solu(int[], text[], int) to anon,
 -- 3. (Viðbót sama dag) Hraði: fallið las nánast alla fastinn_listings (143 þús. línur) í hverju kalli
 --    og tók 0,05–1,5 sek. eftir álagi; forsíðan rann á tímamörk (anon: 3 sek.).
 --    Lausn: lítil samantekt með aðeins virkum auglýsingum, ein lína á söluferil (~18 þús. mjóar línur),
---    endurnýjuð á klukkutíma fresti (safnarinn keyrir daglega).
+--    endurnýjuð á klukkutíma fresti (safnarinn keyrir á :00, kl. 7–23).
 create materialized view public.mv_a_solu as
 select distinct on (coalesce(l.journey_id::text, l.id))
        coalesce(l.journey_id::text, l.id) as ferill,
