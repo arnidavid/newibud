@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <!--
   Deilingarmynd (og:image) fyrir sumar.silfran.com – 1200×630.
-  Verðfjallið er teiknað úr árlegu meðalfermetraverði 2008–2026 (íbúðarhúsnæði;
-  sumarhús í Skorradal), sótt 13. okt. 2026. Engar líðandi tölur á myndinni svo hún úreldist ekki.
-  Endurgera: opna síðuna í vafra í 1200×630 og vista skjámynd (eða teikna á canvas eins og
-  gert var 13. okt.: texti með ctx.fillText í sama letri, fjallið sem SVG-mynd). Snertitáknið
-  (apple-touch-icon.png, 180×180) er merkið einungis, 128 px á pappírslit.
+  Verðfjallið er teiknað úr árlegu meðalfermetraverði 2008–2026: íbúðarhúsnæði á höfuðborgarsvæðinu
+  (fyllt) og á Akureyri, sumarhús í Grímsnesi og Skorradal. Sótt 19. okt. 2026 (fyrst 13. okt.).
+  Engar líðandi tölur á myndinni og engin upptalning svæða, svo hún úreldist ekki við ný svæði.
+  Endurgera PNG: `?vista=SLÓÐ` teiknar myndina á canvas (texti með ctx.fillText í sama letri,
+  fjallið og merkið sem SVG-myndir) og sendir PNG með POST á SLÓÐ (lítill vistunarþjónn, sjá
+  verkfaeri/vista_mynd.py). Snertitáknið (apple-touch-icon.png, 180×180) er merkið einungis,
+  128 px á pappírslit (#takn).
 -->
 <html lang="is">
 <head>
 <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;800&display=block" rel="stylesheet">
 <style>
-  :root { --paper: #F2F4F1; --ink: #1C2B33; --muted: #56656B; --hofud: #B8652A; --aku: #5E4FA2; --skorr: #00897b; }
+  :root { --paper: #F2F4F1; --ink: #1C2B33; --muted: #56656B; --hofud: #B8652A; --aku: #5E4FA2; --skorr: #00897b; --grim: #A88400; }
   * { margin: 0; box-sizing: border-box; }
   html, body { width: 1200px; height: 630px; overflow: hidden; background: var(--paper); color: var(--ink);
     font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
@@ -37,7 +39,7 @@
     Fasteignavaktin
   </div>
   <h1>Fasteignaverð í tölum</h1>
-  <p>Höfuðborgarsvæðið, Akureyri og Skorradalur</p>
+  <p>Fermetraverð, sölur og verðmat íbúða og sumarhúsa</p>
   <svg id="fjall" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true"></svg>
 </div>
 <div class="takn" id="takn">
@@ -46,22 +48,48 @@
   </svg>
 </div>
 <script>
-  // Meðalfermetraverð (þ.kr/m²) 2008–2026
-  const H = [258,234,224,235,251,270,297,323,355,423,449,464,500,566,689,725,773,808,827];  // höfuðborgarsvæðið
-  const A = [182,163,176,185,195,200,212,230,256,299,339,359,364,400,505,544,599,640,691];  // Akureyri
-  const S = [133,210,215,245,174,232,200,241,262,256,306,259,331,395,461,444,533,500,471];  // Skorradalur
-  const W = 1200, B = 300, TOPP = 900, n = H.length, pad = 0;
-  const x = i => pad + i * (W - 2 * pad) / (n - 1), y = v => B - v / TOPP * B;
+  // Meðalfermetraverð (þ.kr/m²) 2008–2026, sótt 19. okt. 2026
+  const H = [258,234,224,235,251,270,297,323,355,423,449,464,500,566,689,725,773,808,827];  // höfuðborgarsvæðið, íbúðir
+  const A = [182,163,176,185,195,200,212,230,256,299,339,359,364,400,505,544,599,640,691];  // Akureyri, íbúðir
+  const G = [201,210,200,226,263,256,254,266,286,319,320,323,351,427,564,569,614,645,590];  // Grímsnes, sumarhús
+  const S = [133,210,215,245,174,232,200,241,262,256,306,259,331,395,461,444,533,500,476];  // Skorradalur, sumarhús
+  const W = 1200, B = 300, TOPP = 900, n = H.length;
+  const x = i => i * W / (n - 1), y = v => B - v / TOPP * B;
   const line = a => a.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
   const area = a => line(a) + ` L${x(n - 1)} ${B} L${x(0)} ${B} Z`;
   let lv = ''; for (let L = 100; L < TOPP; L += 100) lv += `<line x1="0" x2="${W}" y1="${y(L)}" y2="${y(L)}" stroke="#B8652A" stroke-width="1.5" opacity=".55"/>`;
-  document.getElementById('fjall').innerHTML = `
+  const fjall = `
     <defs><clipPath id="kH"><path d="${area(H)}"/></clipPath></defs>
     <g clip-path="url(#kH)"><path d="${area(H)}" fill="#F7EEE6"/>${lv}</g>
     <path d="${line(S)}" fill="none" stroke="#00897b" stroke-width="4" stroke-linejoin="round"/>
+    <path d="${line(G)}" fill="none" stroke="#A88400" stroke-width="4" stroke-linejoin="round"/>
     <path d="${line(A)}" fill="none" stroke="#5E4FA2" stroke-width="4" stroke-linejoin="round"/>
     <path d="${line(H)}" fill="none" stroke="#B8652A" stroke-width="5" stroke-linejoin="round"/>
     <line x1="0" x2="${W}" y1="${B - 1}" y2="${B - 1}" stroke="#1C2B33" stroke-width="2"/>`;
+  document.getElementById('fjall').innerHTML = fjall;
+
+  // ?vista=SLÓÐ: teiknar myndina á canvas og sendir PNG þangað (sjá athugasemd efst)
+  const vista = new URLSearchParams(location.search).get('vista');
+  if (vista) (async () => {
+    await document.fonts.load('800 84px "Schibsted Grotesk"'); await document.fonts.load('500 30px "Schibsted Grotesk"');
+    await document.fonts.ready;
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 630;
+    const g = c.getContext('2d');
+    const mynd = svg => new Promise(r => { const i = new Image(); i.onload = () => r(i);
+      i.src = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })); });
+    g.fillStyle = '#F2F4F1'; g.fillRect(0, 0, 1200, 630);
+    const merki = document.querySelector('.brand svg').outerHTML.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" ').replaceAll('currentColor', '#1C2B33');
+    g.drawImage(await mynd(merki), 72, 64);
+    g.fillStyle = '#1C2B33'; g.textBaseline = 'middle';
+    g.font = '800 30px "Schibsted Grotesk"'; g.letterSpacing = '-0.3px'; g.fillText('Fasteignavaktin', 130, 87);
+    g.textBaseline = 'alphabetic';
+    g.font = '800 84px "Schibsted Grotesk"'; g.letterSpacing = '-2.4px'; g.fillText(document.querySelector('h1').textContent, 72, 225);
+    g.fillStyle = '#56656B'; g.font = '500 30px "Schibsted Grotesk"'; g.letterSpacing = '0px'; g.fillText(document.querySelector('p').textContent, 74, 282);
+    g.drawImage(await mynd(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" preserveAspectRatio="none">${fjall}</svg>`), 0, 330);
+    const png = await new Promise(r => c.toBlob(r, 'image/png'));
+    const svar = await fetch(vista, { method: 'POST', body: png });
+    document.title = 'vistad:' + svar.status + ':' + png.size;
+  })();
 </script>
 </body>
 </html>
