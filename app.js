@@ -1102,6 +1102,9 @@ const mhYm  = d => String(d).slice(0, 7);
 const mhShift = (ym, months) => { const [y, m] = ym.split('-').map(Number); const t = y * 12 + (m - 1) + months;
   return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; };
 
+// Sumarhúsasvæðin í Markaðshita (eftir hálfum árum); lyklarnir eru þeir sem n8n vistar í markadshiti.svaedi
+const MH_SUMAR = { skorr: SUMAR.sumar, grimsnes: SUMAR.grimsnes, blaskogar: SUMAR.blaskogar };
+
 // Hitastig eftir söluverði sem hlutfalli af ásettu verði
 function mhLevel(hlut) {
   if (hlut == null) return 2;
@@ -1112,7 +1115,7 @@ function mhLevel(hlut) {
 function mhCompute(svaedi) {
   const rows = MH.data.filter(r => r.svaedi === svaedi);
   const today = new Date(), curYm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-  if (svaedi !== 'skorr') {                          // þéttbýlissvæðin: eftir mánuðum
+  if (!MH_SUMAR[svaedi]) {                          // þéttbýlissvæðin: eftir mánuðum
     const months = rows.filter(r => r.gerd === 'manudur').sort((a, b) => a.timabil.localeCompare(b.timabil));
     const full = months.filter(r => mhYm(r.timabil) < curYm);       // aðeins heilir mánuðir
     const last = full.slice(-3).map(r => mhYm(r.timabil));
@@ -1129,7 +1132,7 @@ function mhCompute(svaedi) {
       refLabel: 'Sama tíma ' + (Number(last[0].slice(0, 4)) - 1)
     };
   }
-  // Skorradalur: síðasta heila hálfa ár borið saman við sama hálfa ár árið áður
+  // Sumarhúsasvæðin: síðasta heila hálfa ár borið saman við sama hálfa ár árið áður
   const halves = rows.filter(r => r.gerd === 'halfar').sort((a, b) => a.timabil.localeCompare(b.timabil));
   const isFull = r => mhShift(mhYm(r.timabil), 6) <= curYm;
   const full = halves.filter(isFull);
@@ -1160,7 +1163,7 @@ function mhChange(key, cur, prev) {
 }
 
 function mhSummary(svaedi, c, changes) {
-  if (svaedi === 'skorr') {
+  if (MH_SUMAR[svaedi]) {
     const p = c.cur.soluhlutfall != null ? mhFmt(c.cur.soluhlutfall, 'soluhlutfall') : null;
     const nuna = c.nuna?.dagar != null ? ` og þau sem eru á sölu núna hafa verið þar í um ${fmtInt(Math.round(c.nuna.dagar / 10) * 10)} daga` : '';
     return (p ? `Sumarhús seljast að jafnaði á um ${p} af ásettu verði${nuna}.` : '') + ' Fáar sölur, svo tölurnar sveiflast milli tímabila.';
@@ -1185,7 +1188,7 @@ function mhHeadline(level, changes) {
 
 function mhRender() {
   if (!MH.data) return;
-  const sv = MH.svaedi, c = mhCompute(sv), isH = sv !== 'skorr';
+  const sv = MH.svaedi, c = mhCompute(sv), isH = !MH_SUMAR[sv];
   document.querySelectorAll('.mh-seg-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.svaedi === sv)));
 
   const changes = Object.fromEntries(c.keys.map(k => [k, mhChange(k, c.cur[k], c.prev[k])]));
@@ -1221,7 +1224,7 @@ function mhRender() {
 }
 
 function mhRenderChart(c) {
-  const k = MH.metric, m = MH_METRICS[k], isH = MH.svaedi !== 'skorr';
+  const k = MH.metric, m = MH_METRICS[k], isH = !MH_SUMAR[MH.svaedi];
   const W = 1000, H = 240, pct = (v, of) => +(v / of * 100).toFixed(1);
   document.getElementById('mh-chart-title').textContent = 'Þróun: ' + m.label.toLowerCase();
   let svg, labels, legend, aria, note, rows;
@@ -1257,7 +1260,8 @@ function mhRenderChart(c) {
       <thead><tr><th scope="col">Mánuður</th><th scope="col" class="r">${y1}</th><th scope="col" class="r">${y0}</th></tr></thead>
       <tbody>${rows.map(r => `<tr><th scope="row" style="text-align:left;font-weight:500">${r.p}</th><td class="r">${mhFmt(r.a, k)}</td><td class="r">${mhFmt(r.b, k)}</td></tr>`).join('')}</tbody></table></div>`;
   } else {
-    // Skorradalur: hálf ár (of fáar sölur á mánuði)
+    // Sumarhúsasvæðin: hálf ár (of fáar sölur á mánuði)
+    const S = MH_SUMAR[MH.svaedi];
     const pts = c.series.map(r => ({ v: r[k] == null ? null : Number(r[k]), n: r.n, p: (c.halfName(r) + (c.isFull(r) ? '' : ' (til þessa)')).replace(/^./, ch => ch.toUpperCase()),
       x: (mhYm(r.timabil).slice(5) === '01' ? 'fyrri' : 'seinni') + ' ’' + r.timabil.slice(2, 4) }));
     const all = pts.map(p => p.v).filter(v => v != null), span = Math.max(...all) - Math.min(...all) || 1;
@@ -1265,11 +1269,11 @@ function mhRenderChart(c) {
     const x = i => +((i + .5) / n * W).toFixed(1), yv = v => +(H - (v - lo) / (hi - lo) * H).toFixed(1);
     const grid = [lo + (hi - lo) * .25, (lo + hi) / 2, lo + (hi - lo) * .75];
     svg = `${grid.map(g => `<line x1="0" x2="${W}" y1="${yv(g)}" y2="${yv(g)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
-      <path d="${pts.map((p, i) => p.v == null ? null : [x(i), yv(p.v)]).filter(Boolean).map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ')}" fill="none" stroke="var(--k-skorr)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
-      ${pts.map((p, i) => p.v == null ? '' : `<circle cx="${x(i)}" cy="${yv(p.v)}" r="4" fill="var(--k-skorr)" stroke="#F2F4F1" stroke-width="2" vector-effect="non-scaling-stroke"><title>${p.p}: ${mhFmt(p.v, k)} (${p.n} sölur)</title></circle>`).join('')}`;
+      <path d="${pts.map((p, i) => p.v == null ? null : [x(i), yv(p.v)]).filter(Boolean).map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ')}" fill="none" stroke="${S.col.c}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      ${pts.map((p, i) => p.v == null ? '' : `<circle cx="${x(i)}" cy="${yv(p.v)}" r="4" fill="${S.col.c}" stroke="#F2F4F1" stroke-width="2" vector-effect="non-scaling-stroke"><title>${p.p}: ${mhFmt(p.v, k)} (${p.n} sölur)</title></circle>`).join('')}`;
     labels = grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), H)}%;left:auto;right:0">${mhFmt(g, k)}</span>`).join('')
       + pts.map((p, i) => `<span class="k-xl${i && i < n - 1 ? ' mid' : ''}" style="left:${pct(x(i), W)}%">${p.x}</span>`).join('');
-    legend = `<span><i style="height:3px;background:var(--k-skorr)"></i>Sumarhús í Skorradal, eftir hálfum árum</span>`;
+    legend = `<span><i style="height:3px;background:${S.col.c}"></i>Sumarhús ${S.stadur}, eftir hálfum árum</span>`;
     note = `Fáar sölur (${Math.min(...pts.map(p => p.n))}–${Math.max(...pts.map(p => p.n))} á hverju tímabili), svo tölurnar sveiflast mikið milli tímabila.`;
     aria = `${m.label} eftir hálfum árum: ${pts.map(p => `${p.p} ${mhFmt(p.v, k)}`).join(', ')}.`;
     document.getElementById('mh-table').innerHTML = `<div class="k-tblbox"><table class="k-tbl"><caption class="k-sub" style="text-align:left;padding-bottom:6px">${m.label} eftir hálfum árum</caption>
@@ -1296,7 +1300,7 @@ async function initHiti() {
   }
   MH.data = data;
   // Hnappar annarra svæða en höfuðborgarsvæðisins aðeins ef tölur eru komnar (n8n reiknar á nóttunni)
-  for (const sv of ['akureyri', 'reykjanesbaer', 'selfoss', 'akranes'])
+  for (const sv of ['akureyri', 'reykjanesbaer', 'selfoss', 'akranes', 'grimsnes', 'blaskogar'])
     document.querySelector(`.mh-seg-btn[data-svaedi="${sv}"]`).hidden = !data.some(r => r.svaedi === sv);
   mhRender();
 }

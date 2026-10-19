@@ -1,6 +1,6 @@
 // Markaðshiti: reiknar mælikvarða úr söluferlum seldra eigna og eignum á sölu.
-// Höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss og Akranes eftir mánuðum (frá jan. 2025), Skorradalur eftir hálfum árum (frá júlí 2024)
-// og „staðan núna“ fyrir Skorradal (eignir á sölu). Niðurstaðan er vistuð í public.markadshiti.
+// Höfuðborgarsvæðið, Akureyri, Reykjanesbær, Selfoss og Akranes eftir mánuðum (frá jan. 2025); sumarhús í Skorradal,
+// Grímsnesi og Bláskógabyggð eftir hálfum árum (frá júlí 2024) og „staðan núna“ fyrir þau (eignir á sölu). Niðurstaðan er vistuð í public.markadshiti.
 // Auk þess nýbyggingar á móti eldri eignum í þéttbýli: á ári frá 2023 (gerd 'ar_ny' / 'ar_eldra')
 // og eignir á sölu núna (gerd 'nuna_ny' / 'nuna_eldra').
 const URL = 'https://chmqzsxu3l-dsn.algolia.net/1/indexes/listing_index/query';
@@ -91,21 +91,23 @@ for (const [svaedi, zips] of Object.entries(MAN_SVAEDI)) {
   }
 }
 
-// 2) Skorradalur eftir hálfum árum (of fáar sölur á mánuði)
-for (let y = 2024, h = 2; y < curY || (y === curY && (h === 1 || curM >= 7)); h === 2 ? (y++, h = 1) : h++) {
-  const sm = h === 1 ? 1 : 7;
-  const a = ms(y, sm), b = h === 1 ? ms(y, 7) : ms(y + 1, 1);
-  const s = soldStats(await hitsFor(`journeyStatus:SOLD AND zip:311 AND journeySoldAt_timestamp:${a} TO ${b - 1}`));
-  if (s) rows.push({ svaedi: 'skorr', gerd: 'halfar', timabil: iso(y, sm), ...s });
-}
+// 2) Sumarhúsasvæði eftir hálfum árum (of fáar sölur á mánuði). Aðeins sumarhús (type:sumarhus):
+//    í 311 og 806 eru líka jarðir og íbúðarhús (~30 % sölna í 311). Lyklarnir passa við SUMAR/MH_SUMAR í app.js.
+const SUMAR_SVAEDI = { skorr: 311, grimsnes: 805, blaskogar: 806 };
+for (const [svaedi, zip] of Object.entries(SUMAR_SVAEDI)) {
+  for (let y = 2024, h = 2; y < curY || (y === curY && (h === 1 || curM >= 7)); h === 2 ? (y++, h = 1) : h++) {
+    const sm = h === 1 ? 1 : 7;
+    const a = ms(y, sm), b = h === 1 ? ms(y, 7) : ms(y + 1, 1);
+    const s = soldStats(await hitsFor(`journeyStatus:SOLD AND zip:${zip} AND type:sumarhus AND journeySoldAt_timestamp:${a} TO ${b - 1}`));
+    if (s) rows.push({ svaedi, gerd: 'halfar', timabil: iso(y, sm), ...s });
+  }
 
-// 3) Skorradalur: eignir á sölu núna – tími á sölu og hlutfall sem hefur lækkað
-{
+  // 3) Sumarhús á sölu núna – tími á sölu og hlutfall sem hefur lækkað
   const J = {};
-  for (const h of await hitsFor('removed:false AND zip:311')) J[h.journeyId || h.objectID] = h;
+  for (const h of await hitsFor(`removed:false AND zip:${zip} AND type:sumarhus`)) J[h.journeyId || h.objectID] = h;
   const act = Object.values(J).filter(h => h.price && h.journeyMaxPrice);
   const age = act.map(h => h.journeyFirstListedAt_timestamp).filter(Boolean).map(t => (Date.now() - t) / 864e5);
-  rows.push({ svaedi: 'skorr', gerd: 'nuna', timabil: now.toISOString().slice(0, 10), n: act.length,
+  rows.push({ svaedi, gerd: 'nuna', timabil: now.toISOString().slice(0, 10), n: act.length,
     yfir_asettu: null, soluhlutfall: null,
     dagar: age.length ? Math.round(median(age)) : null,
     laekkad: act.length ? Math.round(100 * act.filter(h => h.price < h.journeyMaxPrice).length / act.length) : null });
