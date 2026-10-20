@@ -949,7 +949,7 @@ function kSvTafla() {
   document.getElementById('k-svt').innerHTML = rows.map(({ sv, v, ch }) => {
     const c = K_COL[sv], slod = VIEW_HASH[sv];
     return `<tr data-sv="${sv}">
-      <th scope="row" class="c-sv"><i style="background:${c.c}"></i><a href="#${slod}" data-goto="${sv}">${kNafn(sv)}</a><span class="k-sub">${kUndir(sv)}</span></th>
+      <th scope="row" class="c-sv"><i style="background:${c.c}"></i><a href="/${slod}" data-goto="${sv}">${kNafn(sv)}</a><span class="k-sub">${kUndir(sv)}</span></th>
       <td class="c-v r" style="color:${c.tx}">${v ? fmtInt(v) : '—'}</td>
       <td class="c-chg r">${ch == null ? '—' : (ch > 0 ? '+' : ch < 0 ? '−' : '±') + Math.abs(ch) + '%'}</td>
       <td class="c-ls r">${KY.ls[sv] != null ? fmtInt(KY.ls[sv]) : '—'}</td>
@@ -1433,11 +1433,12 @@ function vmPickUnit(i, saga = null) {
   }
   vmSaga(u.fastnum, saga);
   // Eigin slóð á eignina (deilanleg); titill vafraflipa fylgir
-  if (location.hash !== '#eign/' + u.fastnum) history.replaceState(null, '', '#eign/' + u.fastnum);
+  if (location.pathname !== '/eign/' + u.fastnum) history.replaceState(null, '', '/eign/' + u.fastnum);
   document.title = `${VM.addr.h} – Fasteignavaktin`;
+  kSetCanonical('/eign/' + u.fastnum);
 }
 
-// Opnar eign beint eftir fastanúmeri (slóðin #eign/2000522)
+// Opnar eign beint eftir fastanúmeri (slóðin /eign/2000522)
 async function vmOpenFastnum(fastnum) {
   const box = document.getElementById('vm-results');
   box.innerHTML = '<p class="vm-help">Sæki eign…</p>';
@@ -1485,7 +1486,7 @@ function kSoguGraf(graf, legend, pts, hverfi, o) {
   return true;
 }
 
-const kGataSlod = (postnr, gata) => `#gata/${postnr}/${encodeURIComponent(gata)}`;
+const kGataSlod = (postnr, gata) => `/gata/${postnr}/${encodeURIComponent(gata)}`;
 const kGataAfHeimilisfangi = h => String(h || '').replace(/\s+\d.*$/, '').trim();
 
 // Saga eignarinnar: sölur frá 2006, fermetraverð borið saman við hverfið, auglýsingar
@@ -1549,7 +1550,10 @@ async function vmSaga(fastnum, data = null) {
     }).join('')}</ul>` : '';
 
   const gata = kGataAfHeimilisfangi(e.heimilisfang);
-  document.getElementById('vm-saga-slod').innerHTML = `<a href="${kGataSlod(e.postnr, gata)}">Allar sölur í götunni: ${vmEsc(gata)}, ${e.postnr}</a><br>Slóð á þessa eign: <a href="#eign/${e.fastnum}">sumar.silfran.com/#eign/${e.fastnum}</a>`;
+  document.getElementById('vm-saga-slod').innerHTML = `<a href="${kGataSlod(e.postnr, gata)}">Allar sölur í götunni: ${vmEsc(gata)}, ${e.postnr}</a><br>Slóð á þessa eign: <a href="/eign/${e.fastnum}">sumar.silfran.com/eign/${e.fastnum}</a>`;
+  kSetLysing(S.length
+    ? `Sölusaga ${e.heimilisfang}, ${e.postnr}: ${S.length === 1 ? 'seld einu sinni' : `${S.length} sölur`} síðan 2006, síðast á ${fmtMkr(S[S.length - 1].kaupverd)} ${fmtDagLangt(S[S.length - 1].dags)}. Fermetraverð borið saman við hverfið.`
+    : `${e.heimilisfang}, ${e.postnr}: engin sala á markaðsverði síðan 2006. Fasteignamat og sölur í hverfinu.`);
 }
 
 // Tekur „68.000.000“, „68000000“, „68000“ (þ.kr) eða „68“ (m.kr) → þ.kr
@@ -1652,6 +1656,7 @@ async function kgOpen(postnr, gata) {
   if (seq !== kgSeq) return;
   if (!d || !d.n) { $('kg-graf').innerHTML = `<p class="k-sub">Engar sölur fundust í ${vmEsc(gata)}, ${postnr}.</p>`; return; }
   document.title = `${d.gata}, ${postnr} – Fasteignavaktin`;
+  kSetCanonical(kGataSlod(postnr, d.gata));
   $('kg-h1').textContent = d.gata;
   const teg = d.flokkur === 'sumar' ? 'sumarhúsum' : 'íbúðarhúsnæði';
   const eintala = n => n % 10 === 1 && n % 100 !== 11;   // 1, 21, 41 … sala/eign; 11 sölur
@@ -1666,6 +1671,9 @@ async function kgOpen(postnr, gata) {
     set('mun', (m > 0 ? '+' : m < 0 ? '−' : '±') + Math.abs(m) + '%', m > 0 ? `dýrari á fermetra en ${postnr}` : m < 0 ? `ódýrari á fermetra en ${postnr}` : `sama og ${postnr}`);
   } else set('mun', '—', 'of fáar nýlegar sölur til samanburðar');
   set('ls', fmtInt((d.a_solu || []).length), 'eignir í götunni');
+  kSetLysing(`Fasteignaverð í ${d.gata}, ${pnTxt}: ${fmtInt(d.n)} ${eintala(d.n) ? 'sala' : 'sölur'} síðan 2006`
+    + (ny.fm_gata ? `, fermetraverð ${fmtInt(ny.fm_gata)} þ.kr/m² síðustu 2 ár` + (ny.fm_pn ? ` (${fmtInt(ny.fm_pn)} í póstnúmerinu)` : '') : '')
+    + `. Allar sölur${(d.a_solu || []).length ? ' og eignir á sölu' : ''} í götunni.`);
 
   // Graf: ársmeðaltal götunnar (punktar, stærri með fleiri sölum) ofan á póstnúmerið
   const pts = (d.ar_gata || []).map(a => ({ t: Date.UTC(a.ar, 6, 1), v: Number(a.fm), r: Math.min(9, 3.5 + Math.sqrt(a.n) * 1.3),
@@ -1685,7 +1693,7 @@ async function kgOpen(postnr, gata) {
   // Allar sölur (nýjast fyrst); heimilisfang → eignasíða
   const S = d.solur || [];
   $('kg-solur').innerHTML = S.map(x => `<tr>
-      <th scope="row" style="text-align:left;font-weight:600"><a href="#eign/${x.fastnum}">${vmEsc(x.heimilisfang)}</a><span class="k-sub" style="display:block;font-weight:400">${vmEsc(VM_TEG[x.tegund]?.[0] || x.tegund)}, ${vmM2(x.einflm)}</span></th>
+      <th scope="row" style="text-align:left;font-weight:600"><a href="/eign/${x.fastnum}">${vmEsc(x.heimilisfang)}</a><span class="k-sub" style="display:block;font-weight:400">${vmEsc(VM_TEG[x.tegund]?.[0] || x.tegund)}, ${vmM2(x.einflm)}</span></th>
       <td style="color:var(--k-muted)">${fmtDagAr(x.dags)}</td>
       <td class="r" style="font-weight:700">${fmtMkr(x.kaupverd)}</td>
       <td class="r">${fmtInt(x.fm)}</td></tr>`).join('');
@@ -1737,33 +1745,75 @@ function showView(view, { push = true } = {}) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + dom));
 
   document.title = VIEW_TITLE[view] ? `${VIEW_TITLE[view]} – Fasteignavaktin` : 'Fasteignavaktin – fasteignaverð í tölum';
+  kSetLysing(null);
+  if (view !== 'gata' && !(view === 'verdmat' && /^\/eign\//.test(location.pathname))) kSetCanonical(viewSlod(view));
 
   const subEl = document.getElementById('header-sub');
   if (subEl) subEl.textContent = SUB_TEXTS[view] || '';
-  if (push && view !== 'gata' && location.hash !== '#' + VIEW_HASH[view]) history.pushState(null, '', '#' + VIEW_HASH[view]);
+  if (push && view !== 'gata' && location.pathname !== viewSlod(view)) history.pushState(null, '', viewSlod(view));
 
   if (view === 'yfirlit') initYfirlit();
   else if (view === 'hiti') initHiti();
   else if (view === 'gata') {
-    const m = location.hash.match(/^#gata\/(\d{3})\/(.+)$/);
+    const m = location.pathname.match(/^\/gata\/(\d{3})\/(.+?)\/?$/);
     if (m) kgOpen(parseInt(m[1], 10), decodeURIComponent(m[2]));
     window.scrollTo({ top: 0 });
   }
   else if (view === 'verdmat') {
     initVerdmat();
-    const m = location.hash.match(/^#eign\/F?(\d{7})$/);
+    const m = location.pathname.match(/^\/eign\/F?(\d{7})\/?$/);
     if (m && m[1] !== VM.units[VM.unit]?.fastnum) vmOpenFastnum(m[1]);
   }
   else if (dom === 'sumar') initSumar(view);
   else if (dom === 'hofud') { khSetSvaedi(view); khInitFromForm(); }
 }
 
-function viewFromHash() {
-  const h = location.hash.replace('#', '');
-  if (/^eign\/F?\d{7}$/.test(h)) return 'verdmat';
-  if (/^gata\/\d{3}\/.+/.test(h)) return 'gata';
-  return Object.keys(VIEW_HASH).find(k => VIEW_HASH[k] === h) || 'yfirlit';
+// Slóðir: / (forsíða), /hofud, /skorradalur …, /eign/<fastanúmer>, /gata/<postnr>/<gata>.
+// nginx skilar index.html fyrir þessar slóðir (verkfaeri/nginx_slodir.conf). Skilar null ef slóðin er ekki síða.
+function viewFromPath(path) {
+  let p;
+  try { p = decodeURIComponent(path); } catch { return null; }
+  p = p.replace(/^\/+|\/+$/g, '');
+  if (p === '') return 'yfirlit';
+  if (/^eign\/F?\d{7}$/.test(p)) return 'verdmat';
+  if (/^gata\/\d{3}\/.+/.test(p)) return 'gata';
+  return Object.keys(VIEW_HASH).find(k => VIEW_HASH[k] === p) || null;
 }
+const viewSlod = view => view === 'yfirlit' ? '/' : '/' + VIEW_HASH[view];
+
+// Gamlar #-slóðir (#skorradalur, #eign/2000522, #gata/101/…) sem fólk hefur deilt → venjuleg slóð
+// (líka þegar aðeins #-hlutinn breytist og síðan endurhleðst ekki – sjá popstate)
+function kFraHash() {
+  const h = location.hash.slice(1), v = h && viewFromPath(h);
+  if (v) history.replaceState(null, '', v === 'gata' || h.startsWith('eign/') ? '/' + h : viewSlod(v));
+}
+kFraHash();
+
+// Lýsing og aðalslóð síðunnar (fyrir leitarvélar og deilingu); null = almenna lýsingin
+const K_LYSING = document.querySelector('meta[name="description"]').content;
+function kSetLysing(txt) {
+  document.querySelector('meta[name="description"]').content = txt || K_LYSING;
+  document.querySelector('meta[property="og:description"]').content = txt || K_LYSING;
+  document.querySelector('meta[property="og:title"]').content = document.title;
+}
+function kSetCanonical(slod) {
+  const url = 'https://sumar.silfran.com' + slod;
+  document.querySelector('link[rel="canonical"]').href = url;
+  document.querySelector('meta[property="og:url"]').content = url;
+}
+
+// Innri tenglar (/eign/…, /gata/…, flipar) opnast án þess að endurhlaða síðuna
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="/"]');
+  if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target) return;
+  const url = new URL(a.href);
+  const view = viewFromPath(url.pathname);
+  if (!view) return;
+  e.preventDefault();
+  if (url.pathname !== location.pathname) history.pushState(null, '', url.pathname);
+  showView(view, { push: false });
+  window.scrollTo({ top: 0 });
+});
 
 // „Svæði“ og „Sumarhús“ opna síðasta valda svæðið; hvert svæði hefur áfram eigin slóð (#selfoss, #grimsnes o.s.frv.)
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1778,7 +1828,7 @@ document.querySelectorAll('.kh-seg [data-sv]').forEach(btn => {
 document.querySelectorAll('[data-goto]').forEach(a => {
   a.addEventListener('click', e => { e.preventDefault(); showView(a.dataset.goto); window.scrollTo({ top: 0, behavior: 'smooth' }); });
 });
-window.addEventListener('popstate', () => showView(viewFromHash(), { push: false }));
+window.addEventListener('popstate', () => { kFraHash(); showView(viewFromPath(location.pathname) || 'yfirlit', { push: false }); });
 
 // ---- Postnr dropdown ----
 // ---- Verðmatsleit á forsíðu → Verðmat-flipinn með sömu leit ----
@@ -1806,4 +1856,4 @@ document.addEventListener('input', e => {
 });
 
 // ---- Startup: forsíða nema slóðin vísi á svæði (#hofud, #skorradalur, #grimsnes …) ----
-showView(viewFromHash(), { push: false });
+showView(viewFromPath(location.pathname) || 'yfirlit', { push: false });

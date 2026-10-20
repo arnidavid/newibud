@@ -12,13 +12,15 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 ## Development Workflow
 
 - Unnið staðbundið á Mac í `~/Projects/newibud/`
-- Prófa staðbundið: `python3 -m http.server` → http://localhost:8000 (talar við **sömu** Supabase Cloud gögn og raunsíðan)
+- Prófa staðbundið: `python3 verkfaeri/thjonn.py` → http://localhost:8000 (talar við **sömu** Supabase Cloud gögn og raunsíðan). Ekki `python3 -m http.server` – hann skilar 404 á síðuslóðum eins og /gata/…
 - Git: `git push` frá Mac → GitHub (`github.com/arnidavid/newibud`, SSH) → `git pull` á VPS → strax live
 - **Enginn Docker/scp** — síðan keyrir beint á VPS úr git repo
 
 ## Architecture
 
-- `index.html` — layout and Chart.js canvases, script tags með `?v=N` cache-busters
+- `index.html` — layout and Chart.js canvases, script tags með `?v=N` cache-busters. Slóðir á skrár byrja á `/` (síðan er líka þjónuð á /gata/101/…)
+- **Slóðir:** `/`, `/hofud`, `/skorradalur` … (`VIEW_HASH`), `/eign/<fastanúmer>`, `/gata/<postnr>/<gata>`. nginx skilar index.html fyrir þær (`verkfaeri/nginx_slodir.conf`); gamlar `#`-slóðir eru fluttar í app.js. Nýr flipi = bæta í `VIEW_HASH`, `verkfaeri/nginx_slodir.conf` (+ á VPS), `verkfaeri/thjonn.py` og `verkfaeri/sitemap.py`
+- `sitemap.xml`, `robots.txt` — búið til með `python3 verkfaeri/sitemap.py` (götur með ≥3 sölur); keyra aftur öðru hvoru
 - `api.js` — Supabase/PostgREST API module (IIFE pattern, exposed as `API`)
 - `app.js` — all chart rendering, data processing, UI logic
 - `style.css` — styles
