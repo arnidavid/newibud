@@ -71,6 +71,8 @@ Eftir breytingar á JS/CSS: bæta `?v=N` við script/link tags í `index.html` t
 - `Prefer: count=exact` — sleppa, veldur CORS preflight
 - `onothaefur_samningur` — geymt sem string, nota `neq.1` ekki `is.null`
 - Outlier filter alltaf: `einflm > 0 && kaupverd/einflm < 2000 && kaupverd/einflm > 10`
+- **Nýjar töflur/samantektir í `public` (frá 30. okt. 2026):** Supabase gefur ekki lengur sjálfkrafa aðgang. Sama migration þarf `grant select on public.X to anon;` (ef síðan les hana) og `grant select, insert, update, delete on public.X to service_role;` (ef n8n skrifar). Annars „permission denied“. Föll: `grant execute` eins og áður. Á líka við ef tafla er felld og búin til aftur
+- **Ekki sækja nýja skráarslóð (`?v=N`) fyrr en hún er komin í loftið** – Cloudflare geymir svarið í 30 daga (`immutable`)
 
 ## API Module (`API.*`)
 
