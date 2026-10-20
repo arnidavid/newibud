@@ -1374,7 +1374,13 @@ async function vmSearch(q) {
   if (seq !== VM.qseq) return;                                   // nýrri leit komin af stað
   if (!rows) { box.innerHTML = '<p class="vm-help">Ekki tókst að leita. Reyndu aftur síðar.</p>'; return; }
   if (!rows.length) { box.innerHTML = '<p class="vm-help">Ekkert heimilisfang fannst sem byrjar svona.</p>'; return; }
-  box.innerHTML = '<ul class="vm-list">' + rows.map(r =>
+  // Engin tala í leitinni → göturnar sjálfar efst (götusíða)
+  const gotur = /\d/.test(q) ? [] : [...new Map(rows.map(r => [kGataAfHeimilisfangi(r.heimilisfang) + '|' + r.postnr, { g: kGataAfHeimilisfangi(r.heimilisfang), p: r.postnr }])).values()].slice(0, 3);
+  box.innerHTML = '<ul class="vm-list">' + gotur.map(g =>
+    `<li><a class="vm-opt vm-gata-opt" href="${kGataSlod(g.p, g.g)}">
+      <span class="vm-opt-main">${vmEsc(g.g)}, ${vmEsc(vmPostTxt(g.p))}</span>
+      <span class="vm-opt-side">Allar sölur í götunni</span>
+    </a></li>`).join('') + rows.map(r =>
     `<li><button type="button" class="vm-opt vm-addr-btn" data-h="${vmEsc(r.heimilisfang)}" data-p="${r.postnr}">
       <span class="vm-opt-main">${vmEsc(r.heimilisfang)}, ${vmEsc(vmPostTxt(r.postnr))}</span>
       <span class="vm-opt-side">${r.eignir} ${r.eignir === 1 ? 'eign' : 'eignir'}</span>
@@ -1446,6 +1452,42 @@ async function vmOpenFastnum(fastnum) {
   vmPickUnit(0, data);
 }
 
+// Sögugraf (eignasíða og götusíða): meðalverð hverfisins eftir árum (brotin lína) og punktar ofan á
+// (sölur eignar, eða ársmeðaltöl götunnar með stærð eftir fjölda). pts: [{ t (ms), v, r?, title }].
+// Skilar false ef ekkert er til að teikna.
+function kSoguGraf(graf, legend, pts, hverfi, o) {
+  const nu = new Date().getFullYear(), ar = t => new Date(t).getFullYear();
+  const y0 = Math.min(2006, ...pts.map(p => ar(p.t))), hv = hverfi.filter(h => h.ar >= y0 && Number(h.n) >= 3);
+  if (!pts.length && hv.length < 2) return false;
+  const W = 1000, H = 240, t0 = Date.UTC(y0, 0, 1), t1 = Date.UTC(nu + 1, 0, 1);
+  const all = [...pts.map(p => p.v), ...hv.map(h => Number(h.fm))];
+  const mx = Math.max(...all), step = mx > 1200 ? 500 : mx > 500 ? 200 : 100;
+  const top = Math.ceil(mx * 1.08 / step) * step;
+  const x = t => +((t - t0) / (t1 - t0) * W).toFixed(1), yv = v => +(H - v / top * H).toFixed(1);
+  const mid = y => Date.UTC(y, 6, 1);
+  const hvPath = hv.map((h, i) => (i ? 'L' : 'M') + x(mid(h.ar)) + ' ' + yv(Number(h.fm))).join(' ');
+  const pPath = pts.map((p, i) => (i ? 'L' : 'M') + x(p.t) + ' ' + yv(p.v)).join(' ');
+  const grid = []; for (let g = step; g < top; g += step) grid.push(g);
+  const pct = (v, of) => +(v / of * 100).toFixed(1);
+  const ticks = [y0, ...[2010, 2015, 2020].filter(y => y > y0 + 1 && y < nu - 1), nu];
+  legend.innerHTML = `<span><i style="border-top:2px dashed #8B98A0"></i>${o.hvTxt}</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--k-ink)"></i>${o.ptsTxt}</span>`;
+  graf.classList.add('k-gut');   // ás-tölur í eigin dálki vinstra megin
+  graf.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:240px" role="img" aria-label="${vmEsc(o.aria)}">
+      ${grid.map(g => `<line x1="0" x2="${W}" y1="${yv(g)}" y2="${yv(g)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
+      ${hvPath ? `<path d="${hvPath}" fill="none" stroke="#8B98A0" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ''}
+      ${o.lina && pts.length > 1 ? `<path d="${pPath}" fill="none" stroke="#1C2B33" stroke-width="1.5" opacity=".5" vector-effect="non-scaling-stroke"/>` : ''}
+      <line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
+    </svg>`
+    + grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), H)}%">${fmtInt(g)}</span>`).join('')
+    + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : i ? ' k-xl-end' : ' k-xl-start'}" style="left:${kXpos(pct(x(i === ticks.length - 1 ? t1 : Date.UTC(y, 0, 1)), W))}">${y}</span>`).join('')
+    // Punktar sem HTML (SVG-ið er teygt og hringir yrðu sporöskjur)
+    + pts.map(p => `<span class="k-dot k-dot-eign" style="left:${kXpos(pct(x(p.t), W))};top:${pct(yv(p.v), H)}%${p.r ? `;width:${p.r * 2}px;height:${p.r * 2}px` : ''}" title="${vmEsc(p.title)}"></span>`).join('');
+  return true;
+}
+
+const kGataSlod = (postnr, gata) => `#gata/${postnr}/${encodeURIComponent(gata)}`;
+const kGataAfHeimilisfangi = h => String(h || '').replace(/\s+\d.*$/, '').trim();
+
 // Saga eignarinnar: sölur frá 2006, fermetraverð borið saman við hverfið, auglýsingar
 const vmFold = r => r >= 1.95 ? `${String(Math.round(r * 10) / 10).replace('.', ',')}-faldaðist` : r >= 1 ? `hækkaði um ${Math.round((r - 1) * 100)}%` : `lækkaði um ${Math.round((1 - r) * 100)}%`;
 async function vmSaga(fastnum, data = null) {
@@ -1485,38 +1527,11 @@ async function vmSaga(fastnum, data = null) {
   document.getElementById('vm-saga-txt').textContent = txt;
 
   // Graf: meðalverð hverfisins (lína) og sölur eignarinnar (punktar)
-  const fig = document.getElementById('vm-saga-fig');
-  const pts = S.filter(x => x.fm).map(x => ({ t: new Date(x.dags).getTime(), v: Number(x.fm), x }));
-  const nu = new Date().getFullYear();
-  const y0 = Math.min(2006, ...pts.map(p => ar(p.t))), hv = Hv.filter(h => h.ar >= y0 && Number(h.n) >= 3);
-  fig.hidden = !pts.length && hv.length < 2;
-  if (!fig.hidden) {
-    const W = 1000, H = 240, t0 = Date.UTC(y0, 0, 1), t1 = Date.UTC(nu + 1, 0, 1);
-    const all = [...pts.map(p => p.v), ...hv.map(h => Number(h.fm))];
-    const mx = Math.max(...all), step = mx > 1200 ? 500 : mx > 500 ? 200 : 100;
-    const top = Math.ceil(mx * 1.08 / step) * step;
-    const x = t => +((t - t0) / (t1 - t0) * W).toFixed(1), yv = v => +(H - v / top * H).toFixed(1);
-    const mid = y => Date.UTC(y, 6, 1);
-    const hvPath = hv.map((h, i) => (i ? 'L' : 'M') + x(mid(h.ar)) + ' ' + yv(Number(h.fm))).join(' ');
-    const eigPath = pts.map((p, i) => (i ? 'L' : 'M') + x(p.t) + ' ' + yv(p.v)).join(' ');
-    const grid = []; for (let g = step; g < top; g += step) grid.push(g);
-    const pct = (v, of) => +(v / of * 100).toFixed(1);
-    const ticks = [y0, ...[2010, 2015, 2020].filter(y => y > y0 + 1 && y < nu - 1), nu];
-    document.getElementById('vm-saga-legend').innerHTML =
-      `<span><i style="border-top:2px dashed #8B98A0"></i>Meðalverð á ${teg} í ${e.postnr}</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--k-ink)"></i>Þessi eign</span>`;
-    document.getElementById('vm-saga-graf').classList.add('k-gut');   // ás-tölur í eigin dálki vinstra megin
-    document.getElementById('vm-saga-graf').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:240px" role="img"
-        aria-label="Fermetraverð eignarinnar við hverja sölu borið saman við meðalverð á ${teg} í ${e.postnr}: ${pts.map(p => `${ar(p.t)} ${fmtInt(p.v)}`).join(', ')} þúsund krónur á fermetra.">
-        ${grid.map(g => `<line x1="0" x2="${W}" y1="${yv(g)}" y2="${yv(g)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
-        ${hvPath ? `<path d="${hvPath}" fill="none" stroke="#8B98A0" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ''}
-        ${pts.length > 1 ? `<path d="${eigPath}" fill="none" stroke="#1C2B33" stroke-width="1.5" opacity=".5" vector-effect="non-scaling-stroke"/>` : ''}
-        <line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
-      </svg>`
-      + grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), H)}%">${fmtInt(g)}</span>`).join('')
-      + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : i ? ' k-xl-end' : ' k-xl-start'}" style="left:${kXpos(pct(x(i === ticks.length - 1 ? t1 : Date.UTC(y, 0, 1)), W))}">${y}</span>`).join('')
-      // Punktar sem HTML (SVG-ið er teygt og hringir yrðu sporöskjur)
-      + pts.map(p => `<span class="k-dot k-dot-eign" style="left:${kXpos(pct(x(p.t), W))};top:${pct(yv(p.v), H)}%" title="${fmtDagAr(p.x.dags)}: ${fmtMkr(p.x.kaupverd)}, ${fmtInt(p.v)} þ.kr/m²"></span>`).join('');
-  }
+  const pts = S.filter(x => x.fm).map(x => ({ t: new Date(x.dags).getTime(), v: Number(x.fm),
+    title: `${fmtDagAr(x.dags)}: ${fmtMkr(x.kaupverd)}, ${fmtInt(x.fm)} þ.kr/m²` }));
+  document.getElementById('vm-saga-fig').hidden = !kSoguGraf(document.getElementById('vm-saga-graf'), document.getElementById('vm-saga-legend'),
+    pts, Hv, { lina: true, hvTxt: `Meðalverð á ${teg} í ${e.postnr}`, ptsTxt: 'Þessi eign',
+      aria: `Fermetraverð eignarinnar við hverja sölu borið saman við meðalverð á ${teg} í ${e.postnr}: ${pts.map(p => `${ar(p.t)} ${fmtInt(p.v)}`).join(', ')} þúsund krónur á fermetra.` });
 
   // Tafla: nýjasta sala efst
   document.getElementById('vm-saga').innerHTML = S.slice().reverse().map(x => `<tr>
@@ -1533,7 +1548,8 @@ async function vmSaga(fastnum, data = null) {
       return `<li>${l.virk ? '<b>Á sölu núna</b>' : `Auglýst ${fmtDagAr(l.fra)}–${fmtDagAr(l.til)}`} á ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${l.linkur ? ` · <a href="${l.linkur}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
     }).join('')}</ul>` : '';
 
-  document.getElementById('vm-saga-slod').innerHTML = `Slóð á þessa eign: <a href="#eign/${e.fastnum}">sumar.silfran.com/#eign/${e.fastnum}</a>`;
+  const gata = kGataAfHeimilisfangi(e.heimilisfang);
+  document.getElementById('vm-saga-slod').innerHTML = `<a href="${kGataSlod(e.postnr, gata)}">Allar sölur í götunni: ${vmEsc(gata)}, ${e.postnr}</a><br>Slóð á þessa eign: <a href="#eign/${e.fastnum}">sumar.silfran.com/#eign/${e.fastnum}</a>`;
 }
 
 // Tekur „68.000.000“, „68000000“, „68000“ (þ.kr) eða „68“ (m.kr) → þ.kr
@@ -1612,12 +1628,67 @@ async function vmCompute(e) {
     <table class="k-tbl k-tbl-vm">
       <thead><tr><th scope="col">Gata</th><th scope="col">Þinglýst</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Byggt</th><th scope="col" class="r">Söluverð</th><th scope="col" class="r">% af mati</th></tr></thead>
       <tbody>${d.samb.map(s => `<tr>
-        <th scope="row" class="c-eign" style="text-align:left;font-weight:600">${vmEsc(s.gata)}</th><td class="c-d" style="color:var(--k-muted)">${fmtDagAr(s.thinglystdags)}</td>
+        <th scope="row" class="c-eign" style="text-align:left;font-weight:600"><a href="${kGataSlod(e.postnr, s.gata)}">${vmEsc(s.gata)}</a></th><td class="c-d" style="color:var(--k-muted)">${fmtDagAr(s.thinglystdags)}</td>
         <td class="c-staerd r">${vmM2(s.einflm)}</td><td class="c-b r">${s.byggar || '–'}</td>
         <td class="c-selt r" style="font-weight:700">${fmtMkr(s.kaupverd)}</td><td class="c-r r ${s.r >= 1 ? 'k-up' : 'k-down'}" style="font-weight:600">${vmPct(s.r)}</td></tr>`).join('')}
       </tbody></table>`
     : `<p class="k-sub">Engar sambærilegar sölur í þessu póstnúmeri síðustu ${man} mánuði.</p>`;
 
+}
+
+// ============================================================
+// GATA – „Verð í götunni“: allar sölur í götu, borið saman við póstnúmerið (RPC gata_yfirlit)
+// ============================================================
+let kgSeq = 0;
+async function kgOpen(postnr, gata) {
+  const seq = ++kgSeq;
+  const $ = id => document.getElementById(id);
+  $('kg-h1').textContent = gata;
+  $('kg-sub').textContent = vmPostTxt(postnr);
+  ['kg-graf', 'kg-solur', 'kg-asolu'].forEach(id => { $(id).innerHTML = ''; });
+  $('kg-graf').innerHTML = '<div class="ldw"><div class="ldr"></div>Sæki sölur…</div>';
+  document.querySelectorAll('#kg-kpis .k-kv').forEach(el => { el.textContent = '—'; });
+  const { data: d } = await API.rpc('gata_yfirlit', { p_postnr: postnr, p_gata: gata });
+  if (seq !== kgSeq) return;
+  if (!d || !d.n) { $('kg-graf').innerHTML = `<p class="k-sub">Engar sölur fundust í ${vmEsc(gata)}, ${postnr}.</p>`; return; }
+  document.title = `${d.gata}, ${postnr} – Fasteignavaktin`;
+  $('kg-h1').textContent = d.gata;
+  const teg = d.flokkur === 'sumar' ? 'sumarhúsum' : 'íbúðarhúsnæði';
+  $('kg-sub').textContent = `${vmPostTxt(postnr)}. ${fmtInt(d.n)} ${d.n === 1 ? 'sala' : 'sölur'} á ${fmtInt(d.eignir)} ${d.eignir === 1 ? 'eign' : 'eignum'} síðan 2006${d.flokkur === 'sumar' ? ' (sumarhús)' : ''}.`;
+
+  const ny = d.nylegt || {}, set = (k, v, s) => { const el = document.querySelector(`#kg-kpis [data-k="${k}"]`); el.textContent = v; if (s != null) el.nextElementSibling.textContent = s; };
+  set('fm', ny.fm_gata ? fmtInt(ny.fm_gata) : '—', ny.n_gata ? `þ.kr/m², miðgildi ${ny.n_gata} ${ny.n_gata === 1 ? 'sölu' : 'sölna'} síðustu 2 ár` : 'engar sölur síðustu 2 ár');
+  set('pn', ny.fm_pn ? fmtInt(ny.fm_pn) : '—', `þ.kr/m², ${d.flokkur === 'sumar' ? 'sumarhús' : 'íbúðarhúsnæði'} í ${postnr}`);
+  if (ny.fm_gata && ny.fm_pn && ny.n_gata >= 3) {
+    const m = Math.round((ny.fm_gata / ny.fm_pn - 1) * 100);
+    set('mun', (m > 0 ? '+' : m < 0 ? '−' : '±') + Math.abs(m) + '%', m > 0 ? `dýrari á fermetra en ${postnr}` : m < 0 ? `ódýrari á fermetra en ${postnr}` : `sama og ${postnr}`);
+  } else set('mun', '—', 'of fáar nýlegar sölur til samanburðar');
+  set('ls', fmtInt((d.a_solu || []).length), 'eignir í götunni');
+
+  // Graf: ársmeðaltal götunnar (punktar, stærri með fleiri sölum) ofan á póstnúmerið
+  const pts = (d.ar_gata || []).map(a => ({ t: Date.UTC(a.ar, 6, 1), v: Number(a.fm), r: Math.min(9, 3.5 + Math.sqrt(a.n) * 1.3),
+    title: `${a.ar}: ${fmtInt(a.fm)} þ.kr/m², ${a.n} ${a.n === 1 ? 'sala' : 'sölur'}` }));
+  $('kg-fig').hidden = !kSoguGraf($('kg-graf'), $('kg-legend'), pts, d.ar_pn || [],
+    { lina: false, hvTxt: `Meðalverð á ${teg} í ${postnr}`, ptsTxt: `${d.gata}, meðaltal ársins (stærri punktur = fleiri sölur)`,
+      aria: `Meðalfermetraverð í ${d.gata} eftir árum borið saman við ${postnr}: ${pts.map(p => p.title).join('; ')}.` });
+
+  // Á sölu núna
+  const A = d.a_solu || [];
+  $('kg-asolu-box').hidden = !A.length;
+  $('kg-asolu').innerHTML = A.map(l => {
+    const lk = l.haest && l.haest > l.verd ? ` <span class="kg-muted">(lækkað úr ${fmtMkr(l.haest / 1000)})</span>` : '';
+    return `<li><b>${vmEsc(String(l.heimilisfang).replace(/\s*\(\d{3}\)$/, ''))}</b>${l.staerd ? `, ${vmM2(l.staerd)}` : ''}: ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${l.linkur ? ` · <a href="${l.linkur}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
+  }).join('');
+
+  // Allar sölur (nýjast fyrst); heimilisfang → eignasíða
+  const S = d.solur || [];
+  $('kg-solur').innerHTML = S.map(x => `<tr>
+      <th scope="row" style="text-align:left;font-weight:600"><a href="#eign/${x.fastnum}">${vmEsc(x.heimilisfang)}</a><span class="k-sub" style="display:block;font-weight:400">${vmEsc(VM_TEG[x.tegund]?.[0] || x.tegund)}, ${vmM2(x.einflm)}</span></th>
+      <td style="color:var(--k-muted)">${fmtDagAr(x.dags)}</td>
+      <td class="r" style="font-weight:700">${fmtMkr(x.kaupverd)}</td>
+      <td class="r">${fmtInt(x.fm)}</td></tr>`).join('');
+  kMore($('kg-solur-more'), [...$('kg-solur').querySelectorAll('tr')], 15, 'sölur');
+  $('kg-solur-sub').textContent = d.n > S.length ? `${fmtInt(S.length)} nýjustu af ${fmtInt(d.n)}` : '';
 }
 
 document.addEventListener('click', e => {
@@ -1630,9 +1701,9 @@ document.addEventListener('click', e => {
 });
 
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', grimsnes: 'grimsnes', blaskogar: 'blaskogabyggd', hiti: 'markadshiti', verdmat: 'verdmat' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', grimsnes: 'grimsnes', blaskogar: 'blaskogabyggd', hiti: 'markadshiti', verdmat: 'verdmat', gata: 'gata' };
 // Titill vafraflipa (og sögu) eftir flipa; forsíðan heldur aðaltitlinum
-const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', akranes: 'Akranes', sumar: 'Skorradalur', grimsnes: 'Grímsnes', blaskogar: 'Bláskógabyggð', hiti: 'Markaðshiti', verdmat: 'Verðmat' };
+const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', akranes: 'Akranes', sumar: 'Skorradalur', grimsnes: 'Grímsnes', blaskogar: 'Bláskógabyggð', hiti: 'Markaðshiti', verdmat: 'Verðmat', gata: 'Verð í götunni' };
 // Önnur þéttbýlissvæði nota sama skjáhluta og höfuðborgarsvæðið (view-hofud), sumarhúsasvæðin skjáhluta Skorradals (view-sumar)
 const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', akranes: 'hofud', grimsnes: 'sumar', blaskogar: 'sumar' };
 
@@ -1657,7 +1728,7 @@ function showView(view, { push = true } = {}) {
   if (!VIEW_HASH[view]) view = 'yfirlit';
   const dom = VIEW_DOM[view] || view;
   document.querySelectorAll('.tab-btn').forEach(b => {
-    const on = b.dataset.view === (dom === 'hofud' ? 'svaedi' : dom);   // þéttbýlissvæðin undir „Svæði“, sumarhúsasvæðin undir „Sumarhús“
+    const on = b.dataset.view === (dom === 'hofud' ? 'svaedi' : dom === 'gata' ? 'verdmat' : dom);   // þéttbýlissvæðin undir „Svæði“, sumarhúsasvæðin undir „Sumarhús“
     b.classList.toggle('active', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
@@ -1667,10 +1738,15 @@ function showView(view, { push = true } = {}) {
 
   const subEl = document.getElementById('header-sub');
   if (subEl) subEl.textContent = SUB_TEXTS[view] || '';
-  if (push && location.hash !== '#' + VIEW_HASH[view]) history.pushState(null, '', '#' + VIEW_HASH[view]);
+  if (push && view !== 'gata' && location.hash !== '#' + VIEW_HASH[view]) history.pushState(null, '', '#' + VIEW_HASH[view]);
 
   if (view === 'yfirlit') initYfirlit();
   else if (view === 'hiti') initHiti();
+  else if (view === 'gata') {
+    const m = location.hash.match(/^#gata\/(\d{3})\/(.+)$/);
+    if (m) kgOpen(parseInt(m[1], 10), decodeURIComponent(m[2]));
+    window.scrollTo({ top: 0 });
+  }
   else if (view === 'verdmat') {
     initVerdmat();
     const m = location.hash.match(/^#eign\/F?(\d{7})$/);
@@ -1683,6 +1759,7 @@ function showView(view, { push = true } = {}) {
 function viewFromHash() {
   const h = location.hash.replace('#', '');
   if (/^eign\/F?\d{7}$/.test(h)) return 'verdmat';
+  if (/^gata\/\d{3}\/.+/.test(h)) return 'gata';
   return Object.keys(VIEW_HASH).find(k => VIEW_HASH[k] === h) || 'yfirlit';
 }
 

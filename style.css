@@ -546,3 +546,20 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-tbl.k-tbl-saga th:first-child { padding-left: 0 !important; text-align: left; }
   .k-vsaga-txt { font-size: 16px; }
 }
+
+/* Götusíða (#gata/<postnr>/<gata>) */
+.kg-back { margin: 0 0 14px; font-size: 15px; }
+.kg-back a { color: var(--k-muted); text-decoration: none; }
+.kg-back a:hover { color: var(--k-ink); text-decoration: underline; text-underline-offset: 3px; }
+.kg-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 28px; }
+.kg-asolu { list-style: none; margin: 0; padding: 0; }
+.kg-asolu li { padding: 12px 0; border-bottom: 1px solid var(--k-hair); font-size: 15px; line-height: 1.45; }
+.kg-tbl th a { color: inherit; }
+.kg-muted { color: var(--k-muted); }
+.vm-gata-opt { text-decoration: none; color: inherit; }
+.vm-gata-opt .vm-opt-main { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 720px) {
+  .kg-kpis { grid-template-columns: 1fr 1fr; }
+  .kg-kpis > div:first-child { grid-column: auto; }
+  .kg-tbl td:nth-child(2) { white-space: nowrap; }
+}

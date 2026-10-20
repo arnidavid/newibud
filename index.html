@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=43">
+<link rel="stylesheet" href="style.css?v=44">
 </head>
 <body>
 <header class="site-hd">
@@ -485,9 +485,44 @@
     </aside>
   </div><!-- /view-verdmat -->
 
+  <div id="view-gata" class="view">
+    <p class="kg-back"><a href="#verdmat">← Leita að annarri eign eða götu</a></p>
+    <h1 class="k-h1" id="kg-h1" style="margin-bottom:10px">Verð í götunni</h1>
+    <p class="k-lead" id="kg-sub"></p>
+
+    <dl class="k-kpis kg-kpis" id="kg-kpis" aria-label="Lykiltölur" aria-live="polite">
+      <div><dt>Fermetraverð í götunni</dt><dd class="k-kv" data-k="fm">—</dd><dd class="k-ks"></dd></div>
+      <div><dt>Fermetraverð í póstnúmerinu</dt><dd class="k-kv" data-k="pn">—</dd><dd class="k-ks"></dd></div>
+      <div><dt>Munur</dt><dd class="k-kv" data-k="mun">—</dd><dd class="k-ks"></dd></div>
+      <div><dt>Á sölu núna</dt><dd class="k-kv" data-k="ls">—</dd><dd class="k-ks"></dd></div>
+    </dl>
+
+    <section class="k-vmsec" aria-labelledby="kg-throun-h">
+      <div class="k-sechd"><h2 class="k-h2" id="kg-throun-h">Fermetraverð eftir árum</h2></div>
+      <figure class="k-vsaga-fig" id="kg-fig" style="margin:0">
+        <div class="k-legend" id="kg-legend"></div>
+        <div class="k-chart" id="kg-graf"></div>
+      </figure>
+    </section>
+
+    <section class="k-vmsec" id="kg-asolu-box" hidden aria-labelledby="kg-asolu-h">
+      <div class="k-sechd"><h2 class="k-h2" id="kg-asolu-h">Á sölu í götunni núna</h2></div>
+      <ul class="kg-asolu" id="kg-asolu"></ul>
+    </section>
+
+    <section class="k-vmsec" aria-labelledby="kg-solur-h">
+      <div class="k-sechd"><h2 class="k-h2" id="kg-solur-h">Allar sölur</h2><span class="k-sechd-note" id="kg-solur-sub"></span></div>
+      <table class="k-tbl kg-tbl">
+        <thead><tr><th scope="col">Eign</th><th scope="col">Þinglýst</th><th scope="col" class="r">Kaupverð</th><th scope="col" class="r">Þ.kr/m²</th></tr></thead>
+        <tbody id="kg-solur"></tbody>
+      </table>
+      <button type="button" class="k-more" id="kg-solur-more" aria-controls="kg-solur" hidden></button>
+    </section>
+  </div><!-- /view-gata -->
+
 </main>
 
 <script src="api.js?v=9"></script>
-<script src="app.js?v=95"></script>
+<script src="app.js?v=96"></script>
 </body>
 </html>
