@@ -1654,7 +1654,9 @@ async function kgOpen(postnr, gata) {
   document.title = `${d.gata}, ${postnr} – Fasteignavaktin`;
   $('kg-h1').textContent = d.gata;
   const teg = d.flokkur === 'sumar' ? 'sumarhúsum' : 'íbúðarhúsnæði';
-  $('kg-sub').textContent = `${vmPostTxt(postnr)}. ${fmtInt(d.n)} ${d.n === 1 ? 'sala' : 'sölur'} á ${fmtInt(d.eignir)} ${d.eignir === 1 ? 'eign' : 'eignum'} síðan 2006${d.flokkur === 'sumar' ? ' (sumarhús)' : ''}.`;
+  const eintala = n => n % 10 === 1 && n % 100 !== 11;   // 1, 21, 41 … sala/eign; 11 sölur
+  const pnTxt = vmPostTxt(postnr) === String(postnr) ? `Póstnúmer ${postnr}` : vmPostTxt(postnr);
+  $('kg-sub').textContent = `${pnTxt}. ${fmtInt(d.n)} ${eintala(d.n) ? 'sala' : 'sölur'} á ${fmtInt(d.eignir)} ${eintala(d.eignir) ? 'eign' : 'eignum'} síðan 2006${d.flokkur === 'sumar' ? ' (sumarhús)' : ''}.`;
 
   const ny = d.nylegt || {}, set = (k, v, s) => { const el = document.querySelector(`#kg-kpis [data-k="${k}"]`); el.textContent = v; if (s != null) el.nextElementSibling.textContent = s; };
   set('fm', ny.fm_gata ? fmtInt(ny.fm_gata) : '—', ny.n_gata ? `þ.kr/m², miðgildi ${ny.n_gata} ${ny.n_gata === 1 ? 'sölu' : 'sölna'} síðustu 2 ár` : 'engar sölur síðustu 2 ár');
