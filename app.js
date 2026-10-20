@@ -1330,7 +1330,11 @@ const VM_POSTNR = [
   [800, 'Selfoss'], [801, 'Selfoss'], [300, 'Akranes'],
   [600, 'Akureyri'], [603, 'Akureyri']
 ];
-const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'] };
+const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'], 'Sumarhús': ['Sumarhús', 'sumarhús'] };
+// Verðmatið er aðeins reiknað fyrir íbúðarhúsnæði á svæðunum í VM_POSTNR; sölusagan nær yfir allt landið og sumarhús
+// Þágufall fleirtölu: „meðalverð á íbúðum í fjölbýli í 101“
+const VM_TEG_THGF = { 'Fjölbýli': 'íbúðum í fjölbýli', 'Sérbýli': 'sérbýlum', 'Einbýli': 'einbýlishúsum', 'Sumarhús': 'sumarhúsum' };
+const vmKannVerdmat = (tegund, postnr) => tegund !== 'Sumarhús' && !!VM_TEG[tegund] && VM_POSTNR.some(a => a[0] === postnr);
 const VM = { mode: 'addr', addr: null, units: [], unit: null, qseq: 0, cseq: 0, ready: false };
 
 const vmEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1405,15 +1409,130 @@ function vmRenderUnits() {
     </button></li>`).join('') + '</ul>';
 }
 
-function vmPickUnit(i) {
+function vmPickUnit(i, saga = null) {
   VM.unit = i;
   vmRenderUnits();
   const u = VM.units[i];
-  vmCompute({
-    mat: u.fasteignamat, mat27: u.fasteignamat_2027, postnr: VM.addr.p, tegund: u.tegund,
-    einflm: u.einflm, fastnum: u.fastnum,
-    title: `${VM.addr.h}, ${(VM_TEG[u.tegund]?.[0] || 'eign').toLowerCase()} ${vmM2(u.einflm)}`
-  });
+  const title = `${VM.addr.h}, ${(VM_TEG[u.tegund]?.[0] || 'eign').toLowerCase()} ${vmM2(u.einflm)}`;
+  if (vmKannVerdmat(u.tegund, VM.addr.p)) {
+    vmCompute({ mat: u.fasteignamat, mat27: u.fasteignamat_2027, postnr: VM.addr.p, tegund: u.tegund,
+      einflm: u.einflm, fastnum: u.fastnum, title });
+  } else {
+    ++VM.cseq;                                                    // hunsa eldri verðmatsútreikning
+    document.getElementById('vm-res-sub').textContent = title;
+    document.getElementById('vm-res-body').innerHTML = `<p class="vm-empty">Verðmat er aðeins reiknað fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi. Sölusaga eignarinnar er hér fyrir neðan.</p>`
+      + (u.fasteignamat ? `<dl class="k-vfacts"><div><dt>Fasteignamat 2026</dt><dd>${fmtMkr(u.fasteignamat)}</dd></div>${u.fasteignamat_2027 ? `<div><dt>Fasteignamat 2027</dt><dd>${fmtMkr(u.fasteignamat_2027)}</dd></div>` : ''}</dl>` : '');
+    document.getElementById('vm-comps-box').hidden = true;
+  }
+  vmSaga(u.fastnum, saga);
+  // Eigin slóð á eignina (deilanleg); titill vafraflipa fylgir
+  if (location.hash !== '#eign/' + u.fastnum) history.replaceState(null, '', '#eign/' + u.fastnum);
+  document.title = `${VM.addr.h} – Fasteignavaktin`;
+}
+
+// Opnar eign beint eftir fastanúmeri (slóðin #eign/2000522)
+async function vmOpenFastnum(fastnum) {
+  const box = document.getElementById('vm-results');
+  box.innerHTML = '<p class="vm-help">Sæki eign…</p>';
+  const { data } = await API.rpc('saga_eignar', { p_fastnum: fastnum });
+  const e = data?.eign;
+  if (!e) { box.innerHTML = '<p class="vm-help">Eignin fannst ekki. Leitaðu eftir heimilisfangi.</p>'; return; }
+  vmSetMode('addr');
+  document.getElementById('vm-q').value = e.heimilisfang;
+  VM.addr = { h: e.heimilisfang, p: e.postnr };
+  VM.units = [{ fastnum: e.fastnum, tegund: e.tegund, einflm: Number(e.einflm), byggar: e.byggar,
+                fasteignamat: e.fasteignamat, fasteignamat_2027: e.fasteignamat_2027 }];
+  vmPickUnit(0, data);
+}
+
+// Saga eignarinnar: sölur frá 2006, fermetraverð borið saman við hverfið, auglýsingar
+const vmFold = r => r >= 1.95 ? `${String(Math.round(r * 10) / 10).replace('.', ',')}-faldaðist` : r >= 1 ? `hækkaði um ${Math.round((r - 1) * 100)}%` : `lækkaði um ${Math.round((1 - r) * 100)}%`;
+async function vmSaga(fastnum, data = null) {
+  const box = document.getElementById('vm-saga-box');
+  const seq = VM.sseq = (VM.sseq || 0) + 1;
+  if (!data) ({ data } = await API.rpc('saga_eignar', { p_fastnum: fastnum }));
+  if (seq !== VM.sseq) return;                                  // önnur eign valin á meðan
+  if (!data?.eign) { box.hidden = true; return; }
+  box.hidden = false;
+  const e = data.eign, S = data.solur || [], Hv = data.hverfi || [];
+  const teg = VM_TEG_THGF[e.tegund] || 'eignum';
+  const hvBy = Object.fromEntries(Hv.map(h => [h.ar, Number(h.fm)]));
+  const ar = d => new Date(d).getFullYear();
+  document.getElementById('vm-saga-sub').textContent =
+    `${e.heimilisfang}, ${e.postnr}. ${e.byggar ? `Byggt ${e.byggar}, f` : 'F'}astanúmer F${e.fastnum}`;
+
+  // Samantekt
+  let txt;
+  if (!S.length) txt = 'Engin sala á markaðsverði er skráð á þessa eign síðan 2006.';
+  else if (S.length === 1) txt = `Eignin hefur selst einu sinni síðan 2006, á ${fmtMkr(S[0].kaupverd)} ${fmtDagLangt(S[0].dags)}.`;
+  else {
+    const a = S[0], b = S[S.length - 1], ya = ar(a.dags), yb = ar(b.dags);
+    const r = a.fm && b.fm ? b.fm / a.fm : b.kaupverd / a.kaupverd;
+    txt = `Eignin hefur selst ${S.length} sinnum síðan 2006: fyrst á ${fmtMkr(a.kaupverd)} árið ${ya}, síðast á ${fmtMkr(b.kaupverd)} árið ${yb}. Fermetraverðið ${vmFold(r)}`;
+    if (VNV[ya] && VNV[yb]) {
+      const raun = r * VNV[ya] / VNV[yb] - 1;
+      txt += `, sem er ${Math.abs(Math.round(raun * 100))}% ${raun >= 0 ? 'raunhækkun' : 'raunlækkun'} að teknu tilliti til verðbólgu`;
+    }
+    if (hvBy[ya] && hvBy[yb]) {
+      const rh = hvBy[yb] / hvBy[ya], munur = r / rh - 1;
+      const hvar = `meðalfermetraverð á ${teg} í ${e.postnr}`;
+      txt += rh >= 1.95 ? `. Á sama tíma ${vmFold(rh)} ${hvar}` : `. Á sama tíma ${rh >= 1 ? 'hækkaði' : 'lækkaði'} ${hvar} um ${Math.round(Math.abs(rh - 1) * 100)}%`;
+      txt += Math.abs(munur) < 0.05 ? ', svo eignin fylgdi hverfinu' : munur > 0 ? ', svo eignin hækkaði meira en hverfið' : ', svo eignin hækkaði minna en hverfið';
+    }
+    txt += '.';
+  }
+  document.getElementById('vm-saga-txt').textContent = txt;
+
+  // Graf: meðalverð hverfisins (lína) og sölur eignarinnar (punktar)
+  const fig = document.getElementById('vm-saga-fig');
+  const pts = S.filter(x => x.fm).map(x => ({ t: new Date(x.dags).getTime(), v: Number(x.fm), x }));
+  const nu = new Date().getFullYear();
+  const y0 = Math.min(2006, ...pts.map(p => ar(p.t))), hv = Hv.filter(h => h.ar >= y0 && Number(h.n) >= 3);
+  fig.hidden = !pts.length && hv.length < 2;
+  if (!fig.hidden) {
+    const W = 1000, H = 240, t0 = Date.UTC(y0, 0, 1), t1 = Date.UTC(nu + 1, 0, 1);
+    const all = [...pts.map(p => p.v), ...hv.map(h => Number(h.fm))];
+    const mx = Math.max(...all), step = mx > 1200 ? 500 : mx > 500 ? 200 : 100;
+    const top = Math.ceil(mx * 1.08 / step) * step;
+    const x = t => +((t - t0) / (t1 - t0) * W).toFixed(1), yv = v => +(H - v / top * H).toFixed(1);
+    const mid = y => Date.UTC(y, 6, 1);
+    const hvPath = hv.map((h, i) => (i ? 'L' : 'M') + x(mid(h.ar)) + ' ' + yv(Number(h.fm))).join(' ');
+    const eigPath = pts.map((p, i) => (i ? 'L' : 'M') + x(p.t) + ' ' + yv(p.v)).join(' ');
+    const grid = []; for (let g = step; g < top; g += step) grid.push(g);
+    const pct = (v, of) => +(v / of * 100).toFixed(1);
+    const ticks = [y0, ...[2010, 2015, 2020].filter(y => y > y0 + 1 && y < nu - 1), nu];
+    document.getElementById('vm-saga-legend').innerHTML =
+      `<span><i style="border-top:2px dashed #8B98A0"></i>Meðalverð á ${teg} í ${e.postnr}</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--k-ink)"></i>Þessi eign</span>`;
+    document.getElementById('vm-saga-graf').classList.add('k-gut');   // ás-tölur í eigin dálki vinstra megin
+    document.getElementById('vm-saga-graf').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:240px" role="img"
+        aria-label="Fermetraverð eignarinnar við hverja sölu borið saman við meðalverð á ${teg} í ${e.postnr}: ${pts.map(p => `${ar(p.t)} ${fmtInt(p.v)}`).join(', ')} þúsund krónur á fermetra.">
+        ${grid.map(g => `<line x1="0" x2="${W}" y1="${yv(g)}" y2="${yv(g)}" stroke="#D5DCDC" vector-effect="non-scaling-stroke"/>`).join('')}
+        ${hvPath ? `<path d="${hvPath}" fill="none" stroke="#8B98A0" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>` : ''}
+        ${pts.length > 1 ? `<path d="${eigPath}" fill="none" stroke="#1C2B33" stroke-width="1.5" opacity=".5" vector-effect="non-scaling-stroke"/>` : ''}
+        <line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
+      </svg>`
+      + grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), H)}%">${fmtInt(g)}</span>`).join('')
+      + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : i ? ' k-xl-end' : ' k-xl-start'}" style="left:${kXpos(pct(x(i === ticks.length - 1 ? t1 : Date.UTC(y, 0, 1)), W))}">${y}</span>`).join('')
+      // Punktar sem HTML (SVG-ið er teygt og hringir yrðu sporöskjur)
+      + pts.map(p => `<span class="k-dot k-dot-eign" style="left:${kXpos(pct(x(p.t), W))};top:${pct(yv(p.v), H)}%" title="${fmtDagAr(p.x.dags)}: ${fmtMkr(p.x.kaupverd)}, ${fmtInt(p.v)} þ.kr/m²"></span>`).join('');
+  }
+
+  // Tafla: nýjasta sala efst
+  document.getElementById('vm-saga').innerHTML = S.slice().reverse().map(x => `<tr>
+      <th scope="row" style="text-align:left;font-weight:500">${fmtDagAr(x.dags)}</th>
+      <td class="r" style="font-weight:700">${fmtMkr(x.kaupverd)}</td>
+      <td class="r">${x.fm ? fmtInt(x.fm) : '–'}</td>
+      <td class="r" style="color:var(--k-muted)">${x.mat ? Math.round(x.kaupverd / x.mat * 100) + '%' : '–'}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="k-sub">Engar sölur á markaðsverði síðan 2006.</td></tr>';
+
+  // Auglýsingar sem fundust fyrir eignina (eftir fastanúmeri)
+  const A = data.augl || [];
+  document.getElementById('vm-saga-augl').innerHTML = A.length ? `<ul class="k-vsaga-augl">${A.map(l => {
+      const lk = l.haest && l.haest > l.verd ? ` (lækkað úr ${fmtMkr(l.haest / 1000)})` : '';
+      return `<li>${l.virk ? '<b>Á sölu núna</b>' : `Auglýst ${fmtDagAr(l.fra)}–${fmtDagAr(l.til)}`} á ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${l.linkur ? ` · <a href="${l.linkur}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
+    }).join('')}</ul>` : '';
+
+  document.getElementById('vm-saga-slod').innerHTML = `Slóð á þessa eign: <a href="#eign/${e.fastnum}">sumar.silfran.com/#eign/${e.fastnum}</a>`;
 }
 
 // Tekur „68.000.000“, „68000000“, „68000“ (þ.kr) eða „68“ (m.kr) → þ.kr
@@ -1488,11 +1607,6 @@ async function vmCompute(e) {
       </tbody></table>`
     : '<p class="k-sub">Engar sambærilegar sölur í þessu póstnúmeri síðustu 12 mánuði.</p>';
 
-  // Fyrri sölur eignarinnar
-  const sBox = document.getElementById('vm-saga-box');
-  sBox.hidden = !d.saga.length;
-  document.getElementById('vm-saga').innerHTML = d.saga.map(s =>
-    `<li><span>${fmtDagLangt(s.thinglystdags)}</span><b>${fmtMkr(s.kaupverd)}</b></li>`).join('');
 }
 
 document.addEventListener('click', e => {
@@ -1546,13 +1660,18 @@ function showView(view, { push = true } = {}) {
 
   if (view === 'yfirlit') initYfirlit();
   else if (view === 'hiti') initHiti();
-  else if (view === 'verdmat') initVerdmat();
+  else if (view === 'verdmat') {
+    initVerdmat();
+    const m = location.hash.match(/^#eign\/F?(\d{7})$/);
+    if (m && m[1] !== VM.units[VM.unit]?.fastnum) vmOpenFastnum(m[1]);
+  }
   else if (dom === 'sumar') initSumar(view);
   else if (dom === 'hofud') { khSetSvaedi(view); khInitFromForm(); }
 }
 
 function viewFromHash() {
   const h = location.hash.replace('#', '');
+  if (/^eign\/F?\d{7}$/.test(h)) return 'verdmat';
   return Object.keys(VIEW_HASH).find(k => VIEW_HASH[k] === h) || 'yfirlit';
 }
 

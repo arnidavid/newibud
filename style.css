@@ -526,3 +526,23 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-tbl-vm .c-r { grid-column: 2; grid-row: 2; text-align: right; font-size: 13px; }
   .k-tbl-vm .c-r::after { content: " af mati"; color: var(--k-muted); font-weight: 400; }
 }
+
+/* ---- Saga eignarinnar (Verðmat-flipinn) ---- */
+.k-vsaga-txt { margin: 14px 0 22px; font-size: 17px; line-height: 1.55; max-width: 68ch; }
+.k-vsaga-fig { margin-bottom: 40px !important; }
+.k-vsaga-fig .k-chart { margin-top: 10px; }
+.k-dot-eign { width: 11px; height: 11px; background: var(--k-ink); }
+.k-tbl-saga { margin-top: 8px; }
+.k-vsaga-augl { list-style: none; margin: 18px 0 0; padding: 0; font-size: 15px; }
+.k-vsaga-augl li { padding: 6px 0; border-top: 1px solid var(--k-hair); }
+.k-vsaga-augl a { color: inherit; text-underline-offset: 3px; }
+@media (max-width: 640px) {
+  /* sögutaflan helst tafla (fjórir mjóir dálkar), ólíkt sölutöflunni */
+  .k-tbl.k-tbl-saga { display: table; }
+  .k-tbl.k-tbl-saga thead { display: table-header-group; }
+  .k-tbl.k-tbl-saga tbody { display: table-row-group; }
+  .k-tbl.k-tbl-saga tbody tr { display: table-row; padding: 0; }
+  .k-tbl.k-tbl-saga th, .k-tbl.k-tbl-saga td { padding: 10px 0 10px 10px !important; text-align: right; font-size: 14px; }
+  .k-tbl.k-tbl-saga th:first-child { padding-left: 0 !important; text-align: left; }
+  .k-vsaga-txt { font-size: 16px; }
+}

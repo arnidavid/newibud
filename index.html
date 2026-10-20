@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=42">
+<link rel="stylesheet" href="style.css?v=43">
 </head>
 <body>
 <header class="site-hd">
@@ -402,7 +402,7 @@
     <div class="k-titlerow">
       <div>
       <h1 class="k-h1" style="margin-bottom:10px">Hvað er eignin mín virði?</h1>
-      <p class="k-lead">Gróf áætlun út frá fasteignamati og því hvað sambærilegar eignir í hverfinu hafa selst á síðustu 12 mánuði. Fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi.</p>
+      <p class="k-lead">Gróf áætlun út frá fasteignamati og því hvað sambærilegar eignir í hverfinu hafa selst á síðustu 12 mánuði, fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi. Sölusaga allra eigna sem hafa selst síðan 2006, líka sumarhúsa.</p>
       </div>
     </div>
 
@@ -422,7 +422,7 @@
           </div>
           <p class="vm-help" id="vm-q-help">Skrifaðu götu og húsnúmer.</p>
           <div id="vm-results" aria-live="polite"></div>
-          <p class="vm-help">Finnurðu ekki eignina? Hún hefur þá líklega ekki selst síðustu ár. Veldu „Slá inn mat“ og notaðu fasteignamatið af álagningarseðlinum.</p>
+          <p class="vm-help">Finnurðu ekki eignina? Hún hefur þá líklega ekki selst síðan 2006. Veldu „Slá inn mat“ og notaðu fasteignamatið af álagningarseðlinum.</p>
         </div>
 
         <form id="vm-manual" hidden novalidate>
@@ -460,14 +460,24 @@
       </section>
     </div>
 
+    <section class="k-vmsec" id="vm-saga-box" hidden aria-labelledby="vm-saga-title">
+      <div class="k-sechd"><h2 class="k-h2" id="vm-saga-title">Saga eignarinnar</h2><span class="k-sechd-note" id="vm-saga-sub"></span></div>
+      <p class="k-vsaga-txt" id="vm-saga-txt"></p>
+      <figure class="k-vsaga-fig" id="vm-saga-fig" style="margin:0">
+        <div class="k-legend" id="vm-saga-legend"></div>
+        <div class="k-chart" id="vm-saga-graf"></div>
+      </figure>
+      <table class="k-tbl k-tbl-saga">
+        <thead><tr><th scope="col">Þinglýst</th><th scope="col" class="r">Kaupverð</th><th scope="col" class="r">Þ.kr/m²</th><th scope="col" class="r">% af mati</th></tr></thead>
+        <tbody id="vm-saga"></tbody>
+      </table>
+      <div id="vm-saga-augl"></div>
+      <p class="vm-help" id="vm-saga-slod"></p>
+    </section>
+
     <section class="k-vmsec" id="vm-comps-box" hidden aria-labelledby="vm-comps-title">
       <div class="k-sechd"><h2 class="k-h2" id="vm-comps-title">Sambærilegar sölur í hverfinu</h2><span class="k-sechd-note" id="vm-comps-sub"></span></div>
       <div id="vm-comps"></div>
-    </section>
-
-    <section class="k-vmsec" id="vm-saga-box" hidden aria-labelledby="vm-saga-title">
-      <h2 class="k-h2 k-rule" id="vm-saga-title">Fyrri sölur þessarar eignar</h2>
-      <ol class="vm-saga" id="vm-saga"></ol>
     </section>
 
     <aside class="k-aside">
@@ -478,6 +488,6 @@
 </main>
 
 <script src="api.js?v=9"></script>
-<script src="app.js?v=93"></script>
+<script src="app.js?v=94"></script>
 </body>
 </html>
