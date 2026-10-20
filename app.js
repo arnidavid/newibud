@@ -1331,10 +1331,11 @@ const VM_POSTNR = [
   [600, 'Akureyri'], [603, 'Akureyri']
 ];
 const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýli': ['Sérbýli', 'sérbýli'], 'Einbýli': ['Einbýli', 'einbýlishús'], 'Sumarhús': ['Sumarhús', 'sumarhús'] };
-// Verðmatið er aðeins reiknað fyrir íbúðarhúsnæði á svæðunum í VM_POSTNR; sölusagan nær yfir allt landið og sumarhús
+// Verðmat: íbúðarhúsnæði á svæðunum í VM_POSTNR, sumarhús alls staðar (sem bil – sjá vmCompute).
+// Sölusagan nær yfir allt íbúðarhúsnæði á landinu og sumarhús.
 // Þágufall fleirtölu: „meðalverð á íbúðum í fjölbýli í 101“
 const VM_TEG_THGF = { 'Fjölbýli': 'íbúðum í fjölbýli', 'Sérbýli': 'sérbýlum', 'Einbýli': 'einbýlishúsum', 'Sumarhús': 'sumarhúsum' };
-const vmKannVerdmat = (tegund, postnr) => tegund !== 'Sumarhús' && !!VM_TEG[tegund] && VM_POSTNR.some(a => a[0] === postnr);
+const vmKannVerdmat = (tegund, postnr) => tegund === 'Sumarhús' || (!!VM_TEG[tegund] && VM_POSTNR.some(a => a[0] === postnr));
 const VM = { mode: 'addr', addr: null, units: [], unit: null, qseq: 0, cseq: 0, ready: false };
 
 const vmEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1420,7 +1421,7 @@ function vmPickUnit(i, saga = null) {
   } else {
     ++VM.cseq;                                                    // hunsa eldri verðmatsútreikning
     document.getElementById('vm-res-sub').textContent = title;
-    document.getElementById('vm-res-body').innerHTML = `<p class="vm-empty">Verðmat er aðeins reiknað fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi. Sölusaga eignarinnar er hér fyrir neðan.</p>`
+    document.getElementById('vm-res-body').innerHTML = `<p class="vm-empty">Verðmat íbúðarhúsnæðis er aðeins reiknað á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi. Sölusaga eignarinnar er hér fyrir neðan.</p>`
       + (u.fasteignamat ? `<dl class="k-vfacts"><div><dt>Fasteignamat 2026</dt><dd>${fmtMkr(u.fasteignamat)}</dd></div>${u.fasteignamat_2027 ? `<div><dt>Fasteignamat 2027</dt><dd>${fmtMkr(u.fasteignamat_2027)}</dd></div>` : ''}</dl>` : '');
     document.getElementById('vm-comps-box').hidden = true;
   }
@@ -1572,15 +1573,23 @@ async function vmCompute(e) {
   const lo = e.mat * d.p25, mid = e.mat * d.p50, hi = e.mat * d.p75;
   const mark = 12 + (d.p50 - d.p25) / ((d.p75 - d.p25) || 1) * 76;
   const teg = VM_TEG[e.tegund][1];
+  const man = d.manudir || 12;
   const hvar = d.svaedi === 'postnr' ? `í ${e.postnr}`
              : d.svaedi === 'sveitarfelag' ? `í sama sveitarfélagi (of fáar sölur í ${e.postnr} einu)`
+             : d.svaedi === 'landid' ? `á landinu öllu (of fáar sölur í ${e.postnr} og sveitarfélaginu)`
              : `${{ akureyri: 'á Akureyri', reykjanesbaer: 'í Reykjanesbæ', selfoss: 'á Selfossi', akranes: 'á Akranesi' }[d.svaedi] || 'á höfuðborgarsvæðinu'} (of fáar sölur í ${e.postnr} einu)`;
   const breyt27 = e.mat27 ? (e.mat27 / e.mat - 1) * 100 : null;
+  // Sumarhús víkja mun meira frá fasteignamati en íbúðir (bakprófun: miðgildisskekkja 14–18 % á móti 5–8 %),
+  // svo bilið er aðaltalan og miðjan aðeins merki á kvarðanum
+  const sumar = e.tegund === 'Sumarhús';
+  const mkr = v => String(Math.round(v / 1000));
 
   document.getElementById('vm-res-sub').textContent = e.title;
-  body.innerHTML = `
+  body.innerHTML = (sumar ? `
+    <div class="k-vbig">${mkr(lo)}–${mkr(hi)} m.kr</div>
+    <p class="k-vrange">Líklegt bil. Miðjan er um <strong>${fmtMkr(mid)}</strong></p>` : `
     <div class="k-vbig">${fmtMkr(mid)}</div>
-    <p class="k-vrange">Líklegt bil: <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></p>
+    <p class="k-vrange">Líklegt bil: <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></p>`) + `
     <div class="k-vbar" role="img" aria-label="Áætlað verð ${fmtMkr(mid)}, líklegt bil ${fmtMkr(lo)} til ${fmtMkr(hi)}.">
       <i class="k-vbar-axis"></i><i class="k-vbar-band"></i><i class="k-vbar-mark" style="left:${mark.toFixed(1)}%"></i>
     </div>
@@ -1590,13 +1599,15 @@ async function vmCompute(e) {
       <div><dt>Sölur ${d.svaedi === 'postnr' ? 'í ' + e.postnr : 'á svæðinu'}, % af mati</dt><dd>${vmPct(d.p50)}</dd></div>
       ${e.mat27 ? `<div><dt>Fasteignamat 2027</dt><dd>${fmtMkr(e.mat27)} <small>${breyt27 >= 0 ? '+' : '−'}${Math.abs(breyt27).toFixed(1).replace('.', ',')}%</small></dd></div>` : ''}
     </dl>
-    <p class="k-figp" style="margin-top:18px">${teg.replace(/^./, c => c.toUpperCase())} ${hvar} seldust að jafnaði á ${vmPct(d.p50)} af fasteignamati síðustu 12 mánuði (${fmtInt(d.n)} sölur). Helmingur seldist á ${vmPct(d.p25)}–${vmPct(d.p75)} af mati, og það er bilið. Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.</p>`;
+    <p class="k-figp" style="margin-top:18px">${teg.replace(/^./, c => c.toUpperCase())} ${hvar} seldust að jafnaði á ${vmPct(d.p50)} af fasteignamati síðustu ${man} mánuði (${fmtInt(d.n)} sölur). Helmingur seldist á ${vmPct(d.p25)}–${vmPct(d.p75)} af mati, og það er bilið. ${sumar
+      ? 'Sumarhús víkja mun meira frá fasteignamati en íbúðir: staðsetning við vatn, útsýni, lóð og ástand skipta miklu, og fyrri sölur lentu að jafnaði um 15% frá miðjunni. Sambærilegar sölur hér fyrir neðan segja oft meira en talan.'
+      : 'Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.'}</p>`;
 
   // Sambærilegar sölur
   const cBox = document.getElementById('vm-comps-box');
   cBox.hidden = false;
   document.getElementById('vm-comps-sub').textContent =
-    `${teg.replace(/^./, c => c.toUpperCase())} í ${e.postnr}${e.einflm ? `, ${Math.round(e.einflm * 0.8)}–${Math.round(e.einflm * 1.2)} m²` : ''}, nýjustu sölur síðustu 12 mánuði.`;
+    `${teg.replace(/^./, c => c.toUpperCase())} í ${e.postnr}${e.einflm ? `, ${Math.round(e.einflm * 0.8)}–${Math.round(e.einflm * 1.2)} m²` : ''}, nýjustu sölur síðustu ${man} mánuði.`;
   document.getElementById('vm-comps').innerHTML = d.samb.length ? `
     <table class="k-tbl k-tbl-vm">
       <thead><tr><th scope="col">Gata</th><th scope="col">Þinglýst</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Byggt</th><th scope="col" class="r">Söluverð</th><th scope="col" class="r">% af mati</th></tr></thead>
@@ -1605,7 +1616,7 @@ async function vmCompute(e) {
         <td class="c-staerd r">${vmM2(s.einflm)}</td><td class="c-b r">${s.byggar || '–'}</td>
         <td class="c-selt r" style="font-weight:700">${fmtMkr(s.kaupverd)}</td><td class="c-r r ${s.r >= 1 ? 'k-up' : 'k-down'}" style="font-weight:600">${vmPct(s.r)}</td></tr>`).join('')}
       </tbody></table>`
-    : '<p class="k-sub">Engar sambærilegar sölur í þessu póstnúmeri síðustu 12 mánuði.</p>';
+    : `<p class="k-sub">Engar sambærilegar sölur í þessu póstnúmeri síðustu ${man} mánuði.</p>`;
 
 }
 
