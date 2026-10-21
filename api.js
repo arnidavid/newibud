@@ -13,10 +13,25 @@ const API = (() => {
   // einu eftir hlé og gögnin eru ekki í minni. Seinna kallið er þá yfirleitt hratt, svo bráðabirgðavillur
   // eru reyndar aftur einu sinni eftir stutta, slembna bið (svo köllin komi ekki öll aftur samtímis).
   const BRADABIRGDA = new Set([502, 503, 504]);
+
+  // ---- Hámark samtímis kalla ----
+  // Forsíðan bað um ~20 hluti í einu; litli gagnagrunnsþjónninn skipti sér þá á milli þeirra allra,
+  // köllin biðu 7–20 sek. eftir tengingu og mörg runnu út á tíma. Í röð með fáum í einu klárast
+  // hvert kall á broti úr sekúndu og heildin verður mun fljótari.
+  const SAMTIMIS = 4;
+  let iGangi = 0;
+  const bidrod = [];
+  async function iRod(fn) {
+    if (iGangi >= SAMTIMIS) await new Promise(r => bidrod.push(r));
+    iGangi++;
+    try { return await fn(); }
+    finally { iGangi--; bidrod.shift()?.(); }
+  }
+
   async function send(url, init, label, tilraun = 1) {
     let retry = false, error;
     try {
-      const response = await fetch(url.toString(), init);
+      const response = await iRod(() => fetch(url.toString(), init));
       if (response.ok) return { data: await response.json(), error: null };
       const errorText = await response.text();
       error = `${label} ${response.status}: ${errorText}`;
