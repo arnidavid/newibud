@@ -1032,41 +1032,29 @@ async function initYfirlit() {
   if (yfirlitReady) return;
   yfirlitReady = true;
   const fail = id => { const e = document.getElementById(id); if (e) e.innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; };
-  // Tafla og sölur teiknast aftur þegar meira berst; fjallið bíður eftir fyllta svæðinu
-  const teikna = () => { if (KY.by[K_FAM[KY.fam].svs[0]]) kTeikna(); };
-
-  const ibudSales = (sv, limit) => API.query('kaupskra', {
-    select: 'heimilisfang,postnr,tegund,kaupverd,einflm,thinglystdags,fastnum,heinum',
-    kaupverd: 'gt.5000', einflm: 'gt.20', onothaefur_samningur: 'neq.1', or: IBUD_OR,
-    postnr: `in.(${SVAEDI[sv].allt})`, order: 'thinglystdags.desc', limit
-  }, { paginate: false }).then(r => r.data || []);
-
-  const verk = [];
-  // Þéttbýlissvæðin: mánaðarsamantekt, fjöldi á sölu, nýjustu sölur
-  for (const sv of K_FAM.ibudir.svs) {
-    verk.push(API.getManadarsolur(SVAEDI[sv].allt, null).then(r => { if (r.data) { KY.by[sv] = hofudByYear(r.data); teikna(); } }).catch(() => {}));
-    fetchSvaediAuglysingar(sv, 0, 'all', 1).then(ls => { KY.ls[sv] = ls.total ?? ls.length; teikna(); });
-    verk.push(ibudSales(sv, sv === 'hofud' ? 5 : 3).then(rows => {
-      KY.solur[sv] = rows;
-      if (sv === 'hofud' && rows[0]) KY.lastDate = rows[0].thinglystdags;
-      teikna();
-      return matchSalesToListings(rows).then(m => { KY.solur[sv] = m; teikna(); });
-    }).catch(() => {}));
+  // Allt í einu kalli (RPC forsida_yfirlit): ársmeðaltöl, fjöldi á sölu og nýjustu sölur hvers svæðis.
+  // Áður ~35 köll samtímis, sem litli gagnagrunnsþjónninn réð illa við (köll runnu út á tíma).
+  const { data: d } = await API.rpc('forsida_yfirlit', {
+    p_ibud: Object.fromEntries(K_FAM.ibudir.svs.map(sv => [sv, SVAEDI[sv].allt])),
+    p_sumar: Object.fromEntries(K_FAM.sumarhus.svs.map(sv => [sv, SUMAR[sv].postnr]))
+  });
+  if (!d) { yfirlitReady = false; return fail('k-fjall'); }
+  for (const [sv, x] of Object.entries(d)) {
+    const by = {};
+    for (const a of x.ar) by[a.ar] = { nAll: +a.n_allt, nFm: +a.n_fm, sumFm: Number(a.sum_fm || 0) };
+    KY.by[sv] = by;
+    KY.ls[sv] = +x.ls;
+    KY.solur[sv] = x.solur;
   }
-  // Sumarhúsasvæðin: einstakar sölur (sömu og sumarhúsaflipinn notar, svo tölurnar stemmi)
-  for (const sv of K_FAM.sumarhus.svs) {
-    verk.push(loadSumarData(sv).then(([k, ls]) => {
-      if (k.error) return;   // strikin (—) standa frekar en röng tala
-      const rows = k.data || [];
-      KY.by[sv] = yearStatsFromRows(rows, 10, 2000);
-      KY.ls[sv] = ls.total ?? ls.length;
-      KY.solur[sv] = rows.filter(r => r.einflm > 10).slice(-3).reverse().map(r => ({ ...r, postnr: SUMAR[sv].postnr, tegund: 'Sumarhús' }));
-      teikna();
-      return matchSalesToListings(KY.solur[sv]).then(m => { KY.solur[sv] = m; teikna(); });
-    }).catch(() => {}));
-  }
-  await Promise.all(verk);
-  if (!KY.by[K_FAM[KY.fam].svs[0]]) fail('k-fjall');
+  KY.lastDate = d.hofud?.solur?.[0]?.thinglystdags || null;
+  kTeikna();
+  // Ásett verð við nýjustu sölur: allar sölur allra svæða í einu kalli
+  const allar = Object.entries(KY.solur).flatMap(([sv, rows]) => rows.map(r => [sv, r]));
+  const m = await matchSalesToListings(allar.map(([, r]) => r)).catch(() => null);
+  if (!m) return;
+  for (const sv of Object.keys(KY.solur)) KY.solur[sv] = [];
+  allar.forEach(([sv], i) => KY.solur[sv].push(m[i]));
+  kTeikna();
 }
 
 // ============================================================
