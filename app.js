@@ -1337,6 +1337,32 @@ const VM_TEG = { 'Fjölbýli': ['Íbúð', 'íbúðir í fjölbýli'], 'Sérbýl
 const VM_TEG_THGF = { 'Fjölbýli': 'íbúðum í fjölbýli', 'Sérbýli': 'sérbýlum', 'Einbýli': 'einbýlishúsum', 'Sumarhús': 'sumarhúsum' };
 const vmKannVerdmat = (tegund, postnr) => tegund === 'Sumarhús' || (!!VM_TEG[tegund] && VM_POSTNR.some(a => a[0] === postnr));
 const VM = { mode: 'addr', addr: null, units: [], unit: null, qseq: 0, cseq: 0, ready: false };
+// Nefnifall eintölu fyrir haus eignasíðu, og kyn (íbúð er byggð, hús er byggt)
+const VM_TEG_NF = { 'Fjölbýli': ['Íbúð í fjölbýli', 'byggð'], 'Sérbýli': ['Sérbýli', 'byggt'], 'Einbýli': ['Einbýlishús', 'byggt'], 'Sumarhús': ['Sumarhús', 'byggt'] };
+
+// Eignasíða: þegar eign er valin verður heimilisfangið fyrirsögnin og leitin víkur fyrir hnappi.
+// „Leita að annarri eign“ skilar leitinni (með fyrri niðurstöðum) og slóðinni /verdmat.
+function vmEignHaus(u) {
+  const view = document.getElementById('view-verdmat');
+  if (!u) { delete view.dataset.eign; document.getElementById('vm-eign-hd').hidden = true; return; }
+  const [nf, byggd] = VM_TEG_NF[u.tegund] || ['Eign', 'byggð'];
+  const gata = kGataAfHeimilisfangi(VM.addr.h);
+  document.getElementById('vm-eign-h1').textContent = VM.addr.h;
+  document.getElementById('vm-eign-sub').innerHTML =
+    `${nf}, ${vmM2(u.einflm)}${u.byggar ? `, ${byggd} ${u.byggar}` : ''}. ${vmEsc(vmPostTxt(VM.addr.p))}.`
+    + ` <a href="${kGataSlod(VM.addr.p, gata)}">Allar sölur í ${vmEsc(gata)}</a>`;
+  document.getElementById('vm-eign-hd').hidden = false;
+  view.dataset.eign = u.fastnum;
+}
+document.getElementById('vm-ny').addEventListener('click', () => {
+  vmEignHaus(null);
+  history.pushState(null, '', '/verdmat');
+  document.title = 'Verðmat – Fasteignavaktin';
+  kSetCanonical('/verdmat'); kSetLysing(null);
+  window.scrollTo({ top: 0 });
+  const q = document.getElementById('vm-q');
+  q.focus(); q.select();
+});
 
 const vmEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const vmPct = r => (r * 100).toFixed(1).replace('.', ',') + '%';
@@ -1420,6 +1446,9 @@ function vmPickUnit(i, saga = null) {
   VM.unit = i;
   vmRenderUnits();
   const u = VM.units[i];
+  const varEign = !!document.getElementById('view-verdmat').dataset.eign;
+  vmEignHaus(u);
+  if (!varEign) window.scrollTo({ top: 0 });
   const title = `${VM.addr.h}, ${(VM_TEG[u.tegund]?.[0] || 'eign').toLowerCase()} ${vmM2(u.einflm)}`;
   if (vmKannVerdmat(u.tegund, VM.addr.p)) {
     vmCompute({ mat: u.fasteignamat, mat27: u.fasteignamat_2027, postnr: VM.addr.p, tegund: u.tegund,
@@ -1482,7 +1511,9 @@ function kSoguGraf(graf, legend, pts, hverfi, o) {
     + grid.map(g => `<span class="k-yl" style="top:${pct(yv(g), H)}%">${fmtInt(g)}</span>`).join('')
     + ticks.map((y, i) => `<span class="k-xl${i && i < ticks.length - 1 ? ' mid' : i ? ' k-xl-end' : ' k-xl-start'}" style="left:${kXpos(pct(x(i === ticks.length - 1 ? t1 : Date.UTC(y, 0, 1)), W))}">${y}</span>`).join('')
     // Punktar sem HTML (SVG-ið er teygt og hringir yrðu sporöskjur)
-    + pts.map(p => `<span class="k-dot k-dot-eign" style="left:${kXpos(pct(x(p.t), W))};top:${pct(yv(p.v), H)}%${p.r ? `;width:${p.r * 2}px;height:${p.r * 2}px` : ''}" title="${vmEsc(p.title)}"></span>`).join('');
+    + pts.map(p => `<span class="k-dot k-dot-eign" style="left:${kXpos(pct(x(p.t), W))};top:${pct(yv(p.v), H)}%${p.r ? `;width:${p.r * 2}px;height:${p.r * 2}px` : ''}" title="${vmEsc(p.title)}"></span>`).join('')
+    // Fáar sölur: verðið skrifað við punktinn, svo grafið skiljist án þess að halda músinni yfir
+    + (pts.length <= 4 ? pts.filter(p => p.lbl).map(p => `<span class="k-dot-lbl" style="left:${kXpos(pct(x(p.t), W))};top:${pct(yv(p.v), H)}%" aria-hidden="true">${p.lbl}</span>`).join('') : '');
   return true;
 }
 
@@ -1502,8 +1533,7 @@ async function vmSaga(fastnum, data = null) {
   const teg = VM_TEG_THGF[e.tegund] || 'eignum';
   const hvBy = Object.fromEntries(Hv.map(h => [h.ar, Number(h.fm)]));
   const ar = d => new Date(d).getFullYear();
-  document.getElementById('vm-saga-sub').textContent =
-    `${e.heimilisfang}, ${e.postnr}. ${e.byggar ? `Byggt ${e.byggar}, f` : 'F'}astanúmer F${e.fastnum}`;
+  document.getElementById('vm-saga-sub').textContent = `Fastanúmer F${e.fastnum}`;   // heimilisfang og byggingarár eru í hausnum
 
   // Samantekt
   let txt;
@@ -1521,7 +1551,10 @@ async function vmSaga(fastnum, data = null) {
       const rh = hvBy[yb] / hvBy[ya], munur = r / rh - 1;
       const hvar = `meðalfermetraverð á ${teg} í ${e.postnr}`;
       txt += rh >= 1.95 ? `. Á sama tíma ${vmFold(rh)} ${hvar}` : `. Á sama tíma ${rh >= 1 ? 'hækkaði' : 'lækkaði'} ${hvar} um ${Math.round(Math.abs(rh - 1) * 100)}%`;
-      txt += Math.abs(munur) < 0.05 ? ', svo eignin fylgdi hverfinu' : munur > 0 ? ', svo eignin hækkaði meira en hverfið' : ', svo eignin hækkaði minna en hverfið';
+      // Orðalag eftir stefnu beggja (eignin getur lækkað meira, eða hækkað á meðan hverfið lækkaði)
+      txt += Math.abs(munur) < 0.05 ? ', svo eignin fylgdi hverfinu'
+        : munur > 0 ? (r < 1 ? ', svo eignin lækkaði minna en hverfið' : rh < 1 ? ', svo eignin hækkaði á meðan hverfið lækkaði' : ', svo eignin hækkaði meira en hverfið')
+        : (r >= 1 ? ', svo eignin hækkaði minna en hverfið' : rh >= 1 ? ', svo eignin lækkaði á meðan hverfið hækkaði' : ', svo eignin lækkaði meira en hverfið');
     }
     txt += '.';
   }
@@ -1529,7 +1562,7 @@ async function vmSaga(fastnum, data = null) {
 
   // Graf: meðalverð hverfisins (lína) og sölur eignarinnar (punktar)
   const pts = S.filter(x => x.fm).map(x => ({ t: new Date(x.dags).getTime(), v: Number(x.fm),
-    title: `${fmtDagAr(x.dags)}: ${fmtMkr(x.kaupverd)}, ${fmtInt(x.fm)} þ.kr/m²` }));
+    title: `${fmtDagAr(x.dags)}: ${fmtMkr(x.kaupverd)}, ${fmtInt(x.fm)} þ.kr/m²`, lbl: fmtMkr(x.kaupverd) }));
   document.getElementById('vm-saga-fig').hidden = !kSoguGraf(document.getElementById('vm-saga-graf'), document.getElementById('vm-saga-legend'),
     pts, Hv, { lina: true, hvTxt: `Meðalverð á ${teg} í ${e.postnr}`, ptsTxt: 'Þessi eign',
       aria: `Fermetraverð eignarinnar við hverja sölu borið saman við meðalverð á ${teg} í ${e.postnr}: ${pts.map(p => `${ar(p.t)} ${fmtInt(p.v)}`).join(', ')} þúsund krónur á fermetra.` });
@@ -1549,8 +1582,7 @@ async function vmSaga(fastnum, data = null) {
       return `<li>${l.virk ? '<b>Á sölu núna</b>' : `Auglýst ${fmtDagAr(l.fra)}–${fmtDagAr(l.til)}`} á ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${l.linkur ? ` · <a href="${l.linkur}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
     }).join('')}</ul>` : '';
 
-  const gata = kGataAfHeimilisfangi(e.heimilisfang);
-  document.getElementById('vm-saga-slod').innerHTML = `<a href="${kGataSlod(e.postnr, gata)}">Allar sölur í götunni: ${vmEsc(gata)}, ${e.postnr}</a><br>Slóð á þessa eign: <a href="/eign/${e.fastnum}">sumar.silfran.com/eign/${e.fastnum}</a>`;
+  document.getElementById('vm-saga-slod').innerHTML = '';
   kSetLysing(S.length
     ? `Sölusaga ${e.heimilisfang}, ${e.postnr}: ${S.length === 1 ? 'seld einu sinni' : `${S.length} sölur`} síðan 2006, síðast á ${fmtMkr(S[S.length - 1].kaupverd)} ${fmtDagLangt(S[S.length - 1].dags)}. Fermetraverð borið saman við hverfið.`
     : `${e.heimilisfang}, ${e.postnr}: engin sala á markaðsverði síðan 2006. Fasteignamat og sölur í hverfinu.`);
@@ -1580,6 +1612,52 @@ function vmManual() {
   vmCompute({ mat, postnr, tegund, title: `${VM_TEG[tegund][1].replace(/^./, c => c.toUpperCase())}, ${vmPostTxt(postnr)}` });
 }
 
+// Verðkvarði: líklegt bil (skyggt), miðja (strik) og hver sambærileg sala sem punktur, umreiknuð á
+// þessa eign (fasteignamat × hlutfallið sem salan fór á). Punktur og lína í töflunni lýsast saman.
+function vmKvardi(mat, lo, mid, hi, samb, man) {
+  const vals = samb.map(s => mat * s.r);
+  let a = Math.min(lo, ...vals), b = Math.max(hi, ...vals);
+  const pad = (b - a) * 0.08 || lo * 0.1; a -= pad; b += pad;
+  const spanM = (b - a) / 1000;                                   // m.kr
+  const step = [1, 2, 5, 10, 20, 50, 100, 200, 500].find(st => spanM / st <= 5) || 1000;
+  const ticks = []; for (let t = Math.ceil(a / 1000 / step) * step; t <= b / 1000; t += step) ticks.push(t);
+  const X = v => +((v - a) / (b - a) * 100).toFixed(2);
+  // Punktar sem liggja þétt fara í raðir fyrir ofan og neðan miðlínu
+  const radir = [], rodun = vals.map((v, i) => ({ v, i })).sort((p, q) => p.v - q.v);
+  const pos = new Array(vals.length);
+  for (const p of rodun) {
+    let r = 0; while (radir[r] != null && X(p.v) - radir[r] < 3.2) r++;
+    radir[r] = X(p.v); pos[p.i] = r;
+  }
+  const yRod = r => [0, -15, 15, -30, 30][r] ?? 0;
+  const n = samb.length;
+  return `<figure class="k-vstrip">
+    <div class="k-vstrip-plot" role="img" aria-label="Líklegt bil ${fmtMkr(lo)} til ${fmtMkr(hi)}, miðja ${fmtMkr(mid)}.${n ? ` ${n} sambærilegar sölur umreiknaðar á eignina: ${vals.map(v => fmtMkr(v)).join(', ')}.` : ''}">
+      <i class="k-vstrip-band" style="left:${X(lo)}%;width:${(X(hi) - X(lo)).toFixed(2)}%"></i>
+      <i class="k-vstrip-axis"></i>
+      <i class="k-vstrip-mid" style="left:${X(mid)}%"></i>
+      ${samb.map((s, i) => `<span class="k-vstrip-dot" data-i="${i}" style="left:${X(vals[i])}%;margin-top:${yRod(pos[i])}px" data-t="${vmEsc(`${s.gata}, ${fmtDagAr(s.thinglystdags)}: seldist á ${vmPct(s.r)} af mati, sem gerir ${fmtMkr(vals[i])} fyrir þessa eign.`)}"></span>`).join('')}
+    </div>
+    <div class="k-vstrip-ticks" aria-hidden="true">${ticks.map((t, i) => `<span style="left:${X(t * 1000)}%">${fmtInt(t)}${i === ticks.length - 1 ? ' m.kr' : ''}</span>`).join('')}</div>
+    <p class="k-vstrip-val" aria-live="polite"></p>
+    <figcaption>${n
+      ? `Punktarnir eru ${n} sambærilegar sölur í hverfinu síðustu ${man} mánuði, umreiknaðar á þessa eign: verðið sem hún hefði fengið á sama hlutfalli af fasteignamati. Skyggða svæðið er líklega bilið.`
+      : 'Skyggða svæðið er líklega bilið og strikið miðjan.'}</figcaption>
+  </figure>`;
+}
+// Punktur á kvarða ↔ lína í sambærilegum sölum (mús, eða snerting á punkt í síma); salan skrifuð undir kvarðann
+function vmLysa(el) {
+  document.querySelectorAll('.k-vstrip-dot.on, #vm-comps tr.on').forEach(x => x.classList.remove('on'));
+  const val = document.querySelector('.k-vstrip-val');
+  if (val) val.textContent = '';
+  if (!el) return;
+  document.querySelectorAll(`.k-vstrip-dot[data-i="${el.dataset.i}"], #vm-comps tr[data-i="${el.dataset.i}"]`).forEach(x => x.classList.add('on'));
+  const dot = document.querySelector(`.k-vstrip-dot[data-i="${el.dataset.i}"]`);
+  if (val && dot) val.textContent = dot.dataset.t;
+}
+document.addEventListener('mouseover', e => vmLysa(e.target.closest('#vm-comps tr[data-i], .k-vstrip-dot')));
+document.addEventListener('click', e => { const d = e.target.closest('.k-vstrip-dot'); if (d) vmLysa(d); });
+
 async function vmCompute(e) {
   const body = document.getElementById('vm-res-body');
   document.getElementById('vm-res-sub').textContent = '';
@@ -1605,23 +1683,22 @@ async function vmCompute(e) {
   const mkr = v => String(Math.round(v / 1000));
 
   document.getElementById('vm-res-sub').textContent = e.title;
-  body.innerHTML = (sumar ? `
+  body.innerHTML = `<div class="k-vres"><div class="k-vres-adal">` + (sumar ? `
     <div class="k-vbig">${mkr(lo)}–${mkr(hi)} m.kr</div>
     <p class="k-vrange">Líklegt bil. Miðjan er um <strong>${fmtMkr(mid)}</strong></p>` : `
     <div class="k-vbig">${fmtMkr(mid)}</div>
-    <p class="k-vrange">Líklegt bil: <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></p>`) + `
-    <div class="k-vbar" role="img" aria-label="Áætlað verð ${fmtMkr(mid)}, líklegt bil ${fmtMkr(lo)} til ${fmtMkr(hi)}.">
-      <i class="k-vbar-axis"></i><i class="k-vbar-band"></i><i class="k-vbar-mark" style="left:${mark.toFixed(1)}%"></i>
-    </div>
-    <div class="k-vbar-ends"><span>${fmtMkr(lo)}</span><span>${fmtMkr(hi)}</span></div>
+    <p class="k-vrange">Líklegt bil <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></p>`)
+    + vmKvardi(e.mat, lo, mid, hi, d.samb || [], man) + `</div>
+    <div class="k-vres-hlid">
     <dl class="k-vfacts">
       <div><dt>Fasteignamat 2026</dt><dd>${fmtMkr(e.mat)}</dd></div>
-      <div><dt>Sölur ${d.svaedi === 'postnr' ? 'í ' + e.postnr : 'á svæðinu'}, % af mati</dt><dd>${vmPct(d.p50)}</dd></div>
       ${e.mat27 ? `<div><dt>Fasteignamat 2027</dt><dd>${fmtMkr(e.mat27)} <small>${breyt27 >= 0 ? '+' : '−'}${Math.abs(breyt27).toFixed(1).replace('.', ',')}%</small></dd></div>` : ''}
+      <div><dt>Sölur ${d.svaedi === 'postnr' ? 'í ' + e.postnr : 'á svæðinu'}, % af mati</dt><dd>${vmPct(d.p50)}</dd></div>
     </dl>
-    <p class="k-figp" style="margin-top:18px">${teg.replace(/^./, c => c.toUpperCase())} ${hvar} seldust að jafnaði á ${vmPct(d.p50)} af fasteignamati síðustu ${man} mánuði (${fmtInt(d.n)} sölur). Helmingur seldist á ${vmPct(d.p25)}–${vmPct(d.p75)} af mati, og það er bilið. ${sumar
-      ? 'Sumarhús víkja mun meira frá fasteignamati en íbúðir: staðsetning við vatn, útsýni, lóð og ástand skipta miklu, og fyrri sölur lentu að jafnaði um 15% frá miðjunni. Sambærilegar sölur hér fyrir neðan segja oft meira en talan.'
-      : 'Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.'}</p>`;
+    <p class="k-figp k-vres-skyr">${teg.replace(/^./, c => c.toUpperCase())} ${hvar} seldust að jafnaði á ${vmPct(d.p50)} af fasteignamati síðustu ${man} mánuði (${fmtInt(d.n)} sölur). Helmingur seldist á ${vmPct(d.p25)}–${vmPct(d.p75)} af mati, og það er bilið. ${sumar
+      ? 'Sumarhús víkja mun meira frá fasteignamati en íbúðir: staðsetning við vatn, útsýni, lóð og ástand skipta miklu, og fyrri sölur lentu að jafnaði um 15% frá miðjunni. Sambærilegar sölur segja oft meira en talan.'
+      : 'Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.'}</p>
+    </div></div>`;
 
   // Sambærilegar sölur
   const cBox = document.getElementById('vm-comps-box');
@@ -1630,11 +1707,11 @@ async function vmCompute(e) {
     `${teg.replace(/^./, c => c.toUpperCase())} í ${e.postnr}${e.einflm ? `, ${Math.round(e.einflm * 0.8)}–${Math.round(e.einflm * 1.2)} m²` : ''}, nýjustu sölur síðustu ${man} mánuði.`;
   document.getElementById('vm-comps').innerHTML = d.samb.length ? `
     <table class="k-tbl k-tbl-vm">
-      <thead><tr><th scope="col">Gata</th><th scope="col">Þinglýst</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Byggt</th><th scope="col" class="r">Söluverð</th><th scope="col" class="r">% af mati</th></tr></thead>
-      <tbody>${d.samb.map(s => `<tr>
+      <thead><tr><th scope="col">Gata</th><th scope="col">Þinglýst</th><th scope="col" class="r">Stærð</th><th scope="col" class="r">Byggt</th><th scope="col" class="r">Söluverð</th><th scope="col" class="r">% af mati</th><th scope="col" class="r c-umr">Fyrir þessa eign</th></tr></thead>
+      <tbody>${d.samb.map((s, i) => `<tr data-i="${i}">
         <th scope="row" class="c-eign" style="text-align:left;font-weight:600"><a href="${kGataSlod(e.postnr, s.gata)}">${vmEsc(s.gata)}</a></th><td class="c-d" style="color:var(--k-muted)">${fmtDagAr(s.thinglystdags)}</td>
         <td class="c-staerd r">${vmM2(s.einflm)}</td><td class="c-b r">${s.byggar || '–'}</td>
-        <td class="c-selt r" style="font-weight:700">${fmtMkr(s.kaupverd)}</td><td class="c-r r ${s.r >= 1 ? 'k-up' : 'k-down'}" style="font-weight:600">${vmPct(s.r)}</td></tr>`).join('')}
+        <td class="c-selt r" style="font-weight:700">${fmtMkr(s.kaupverd)}</td><td class="c-r r ${s.r >= 1 ? 'k-up' : 'k-down'}" style="font-weight:600">${vmPct(s.r)}</td><td class="c-umr r">${fmtMkr(e.mat * s.r)}</td></tr>`).join('')}
       </tbody></table>`
     : `<p class="k-sub">Engar sambærilegar sölur í þessu póstnúmeri síðustu ${man} mánuði.</p>`;
 
@@ -1763,6 +1840,8 @@ function showView(view, { push = true } = {}) {
     initVerdmat();
     const m = location.pathname.match(/^\/eign\/F?(\d{7})\/?$/);
     if (m && m[1] !== VM.units[VM.unit]?.fastnum) vmOpenFastnum(m[1]);
+    else if (m) vmEignHaus(VM.units[VM.unit]);
+    else vmEignHaus(null);
   }
   else if (dom === 'sumar') initSumar(view);
   else if (dom === 'hofud') { khSetSvaedi(view); khInitFromForm(); }

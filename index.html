@@ -23,7 +23,7 @@
 <script defer data-domain="sumar.silfran.com" src="/js/script.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css?v=44">
+<link rel="stylesheet" href="/style.css?v=45">
 </head>
 <body>
 <header class="site-hd">
@@ -399,7 +399,12 @@
 
   <!-- ===================== VERÐMAT ===================== -->
   <div id="view-verdmat" class="view">
-    <div class="k-titlerow">
+    <header class="vm-eign-hd" id="vm-eign-hd" hidden>
+      <button type="button" class="vm-ny" id="vm-ny">Leita að annarri eign</button>
+      <h1 class="k-h1 vm-eign-h1" id="vm-eign-h1"></h1>
+      <p class="vm-eign-sub" id="vm-eign-sub"></p>
+    </header>
+    <div class="k-titlerow vm-intro">
       <div>
       <h1 class="k-h1" style="margin-bottom:10px">Hvað er eignin mín virði?</h1>
       <p class="k-lead">Gróf áætlun út frá fasteignamati og því hvað sambærilegar eignir í hverfinu hafa selst á nýlega, fyrir íbúðir, sérbýli og einbýli á höfuðborgarsvæðinu, Akureyri, Reykjanesbæ, Selfossi og Akranesi, og sumarhús um allt land (breiðara bil). Sölusaga allra eigna sem hafa selst síðan 2006.</p>
@@ -523,6 +528,6 @@
 </main>
 
 <script src="/api.js?v=9"></script>
-<script src="/app.js?v=97"></script>
+<script src="/app.js?v=98"></script>
 </body>
 </html>

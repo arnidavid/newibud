@@ -499,12 +499,6 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 #view-verdmat .vm-label { font-weight: 600; }
 .k-vbig { font-size: 76px; font-weight: 900; letter-spacing: -2px; line-height: .95; }
 .k-vrange { margin: 10px 0 0; font-size: 18px; }
-.k-vbar { position: relative; height: 40px; margin: 22px 0 6px; }
-.k-vbar-axis { position: absolute; left: 0; right: 0; top: 16px; height: 1px; background: var(--k-ink); }
-.k-vbar-band { position: absolute; left: 12%; right: 12%; top: 10px; height: 13px; border: 1px solid var(--k-hofud);
-  background: repeating-linear-gradient(90deg, var(--k-hofud) 0 1px, var(--k-hofud-fill) 1px 9px); }
-.k-vbar-mark { position: absolute; top: 0; width: 3px; height: 34px; margin-left: -1.5px; background: var(--k-ink); }
-.k-vbar-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--k-muted); padding: 0 8%; }
 .k-vfacts { margin: 22px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; border-top: 1px solid var(--k-rule); padding-top: 16px; }
 .k-vfacts dt { font-size: 13px; color: var(--k-muted); }
 .k-vfacts dd { margin: 4px 0 0; font-size: 20px; font-weight: 700; }
@@ -515,6 +509,55 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-vmsec .vm-saga li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--k-hair); font-size: 15px; }
 .k-aside { margin-top: 40px; border-left: 3px solid var(--k-ink); padding: 4px 0 4px 16px; font-size: 15px; line-height: 1.55; max-width: 760px; }
 #view-verdmat .vm-empty { color: var(--k-muted); font-size: 16px; line-height: 1.55; }
+
+/* Eignasíða (/eign/…): heimilisfangið er fyrirsögnin, leitin víkur fyrir hnappi */
+.vm-eign-hd[hidden] { display: none; }
+.vm-eign-hd { margin: 0 0 30px; }
+.vm-ny { font: inherit; font-size: 15px; font-weight: 600; min-height: 44px; padding: 0 14px 0 12px; margin-bottom: 22px;
+  display: inline-flex; align-items: center; gap: 8px; color: var(--k-ink); background: transparent; border: 1px solid #857F74; cursor: pointer; }
+.vm-ny::before { content: ""; width: 16px; height: 16px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat; }
+.vm-ny:hover { border-color: var(--k-ink); background: #fff; }
+.vm-ny:focus-visible { outline: 3px solid #2f5f8a; outline-offset: 2px; }
+.vm-eign-h1 { margin: 0 0 10px; }
+.vm-eign-sub { margin: 0; font-size: 18px; line-height: 1.5; color: var(--k-muted); max-width: 64ch; }
+.vm-eign-sub a { color: var(--k-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+#view-verdmat[data-eign] .vm-intro,
+#view-verdmat[data-eign] .k-vmgrid > .k-step:first-child,
+#view-verdmat[data-eign] #vm-res-sub { display: none; }
+#view-verdmat[data-eign] .k-vmgrid { grid-template-columns: 1fr; }
+#view-verdmat[data-eign] .k-vmgrid > .k-step + .k-step { padding: 26px 0 30px; border-left: 0; }
+#view-verdmat[data-eign] #vm-res-title { margin-bottom: 14px; }
+#view-verdmat[data-eign] .k-vres { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 56px; align-items: start; }
+#view-verdmat[data-eign] .k-vfacts { grid-template-columns: 1fr; gap: 0; margin: 0; padding: 0; border-top: 0; }
+#view-verdmat[data-eign] .k-vfacts > div { padding: 12px 0; border-bottom: 1px solid var(--k-rule); }
+#view-verdmat[data-eign] .k-vfacts > div:first-child { border-top: 1px solid var(--k-rule); }
+#view-verdmat[data-eign] .k-vres-skyr { margin-top: 16px; }
+.k-vres-skyr { margin-top: 18px; }
+
+/* Verðkvarði: bil, miðja og sambærilegar sölur sem punktar */
+.k-vstrip { margin: 26px 0 0; }
+.k-vstrip-plot { position: relative; height: 84px; }
+.k-vstrip-axis { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--k-ink); }
+.k-vstrip-band { position: absolute; top: calc(50% - 24px); height: 48px; background: rgba(184, 101, 42, .14);
+  border-left: 1px solid var(--k-hofud); border-right: 1px solid var(--k-hofud); }
+.k-vstrip-mid { position: absolute; top: calc(50% - 32px); height: 64px; width: 3px; margin-left: -1.5px; background: var(--k-ink); }
+.k-vstrip-dot { position: absolute; top: 50%; width: 13px; height: 13px; margin-left: -6.5px; box-sizing: border-box;
+  border-radius: 50%; background: var(--k-paper); border: 2px solid var(--k-ink); transform: translateY(-50%); transition: transform .12s ease-out; cursor: pointer; }
+.k-vstrip-dot::after { content: ""; position: absolute; inset: -9px; }   /* stærra snertisvæði */
+.k-vstrip-dot.on { background: var(--k-hofud); border-color: var(--k-hofud-tx); transform: translateY(-50%) scale(1.4); z-index: 1; }
+.k-vstrip-ticks { position: relative; height: 20px; margin-top: 6px; font-size: 13px; color: var(--k-muted); }
+.k-vstrip-ticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.k-vstrip-val { margin: 10px 0 0; min-height: 1.5em; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.k-vstrip figcaption { margin-top: 4px; font-size: 14px; line-height: 1.5; color: var(--k-muted); max-width: 62ch; }
+#vm-comps tr.on > * { background: rgba(184, 101, 42, .09); }
+.k-tbl-vm th a { text-decoration: underline; text-decoration-color: var(--k-rule); text-underline-offset: 3px; }
+.k-tbl-vm th a:hover { text-decoration-color: currentColor; }
+.k-tbl-vm .c-umr { color: var(--k-muted); }
+.k-dot-lbl { position: absolute; transform: translate(-50%, -100%); margin-top: -9px; font-size: 13px; font-weight: 700;
+  white-space: nowrap; background: var(--k-paper); padding: 0 3px; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .k-vstrip-dot { transition: none; } }
 @media (max-width: 640px) {
   .k-vmgrid { grid-template-columns: 1fr; }
   .k-step { padding: 22px 0 24px; }
@@ -522,7 +565,12 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   #view-verdmat .vm-seg { display: flex; width: 100%; }
   .k-vbig { font-size: 56px; letter-spacing: -1.4px; }
   .k-vfacts { grid-template-columns: 1fr 1fr; }
-  .k-tbl-vm .c-d, .k-tbl-vm .c-b { display: none; }
+  #view-verdmat[data-eign] .k-vres { grid-template-columns: 1fr; gap: 24px; }
+  #view-verdmat[data-eign] .k-vfacts { grid-template-columns: 1fr 1fr; column-gap: 16px; }
+  #view-verdmat[data-eign] .k-vfacts > div:nth-child(2) { border-top: 1px solid var(--k-rule); }
+  .vm-eign-sub { font-size: 16px; }
+  .vm-ny { margin-bottom: 16px; }
+  .k-tbl-vm .c-d, .k-tbl-vm .c-b, .k-tbl-vm .c-umr { display: none; }
   .k-tbl-vm .c-r { grid-column: 2; grid-row: 2; text-align: right; font-size: 13px; }
   .k-tbl-vm .c-r::after { content: " af mati"; color: var(--k-muted); font-weight: 400; }
 }
