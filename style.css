@@ -270,6 +270,7 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 .k-sub { display: block; font-size: 13px; font-weight: 400; color: var(--k-muted); }
 .k-sw { width: 4px; height: 14px; display: inline-block; margin-right: 10px; vertical-align: -1px; }
 .k-up { color: #a3312a; } .k-down { color: #2f5f8a; }
+.k-uppruni { margin: 40px 0 16px; font-size: 11px; color: var(--k-muted); opacity: .6; }
 .k-foot { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--k-rule); font-size: 13px; color: var(--k-muted); }
 
 /* ---- Forsíða ---- */
