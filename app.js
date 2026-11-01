@@ -4,9 +4,13 @@
 
 // ---- Shared constants ----
 
-// VNV ársmeðaltöl (grunnur maí 1988=100), uppfært jan 2026 frá Hagstofu
-const VNV = {2006:281.4,2007:295.8,2008:332.4,2009:372.2,2010:392.7,2011:408.3,2012:429.5,2013:446.0,2014:457.2,2015:464.8,2016:474.5,2017:482.8,2018:496.0,2019:511.8,2020:525.5,2021:547.7,2022:592.0,2023:647.2,2024:690.3,2025:720.0,2026:740.0};
+// VNV ársmeðaltöl (grunnur maí 1988=100). Þessar tölur eru varaleið; vnv_ar í gagnagrunninum tekur við þeim
+const VNV = {2006:259.9,2007:273.1,2008:307.7,2009:344.6,2010:363.2,2011:377.7,2012:397.3,2013:412.7,2014:421.1,2015:428.0,2016:435.3,2017:443.0,2018:454.8,2019:468.6,2020:481.9,2021:503.3,2022:545.1,2023:592.8,2024:627.5,2025:653.1,2026:686.5};
 const VNV_BASE = 2024;
+// n8n-flæðið „Vísitala neysluverðs – mánaðarleg uppfærsla“ heldur vnv_ar réttri
+const kVnvTilbuin = API.query('vnv_ar', { select: 'ar,vnv', limit: 200 }).then(({ data }) => {
+  (data || []).forEach(r => { VNV[r.ar] = Number(r.vnv); });
+});
 
 // ---- Shared helpers ----
 // Íslenskt tölu- og dagsetningasnið (ekki toLocaleString – sumir vafrar kunna ekki is-IS)
@@ -1513,6 +1517,7 @@ const vmFold = r => r >= 1.95 ? `${String(Math.round(r * 10) / 10).replace('.', 
 async function vmSaga(fastnum, data = null) {
   const box = document.getElementById('vm-saga-box');
   const seq = VM.sseq = (VM.sseq || 0) + 1;
+  await kVnvTilbuin;                                            // raunhækkunin í textanum notar VNV
   if (!data) ({ data } = await API.rpc('saga_eignar', { p_fastnum: fastnum }));
   if (seq !== VM.sseq) return;                                  // önnur eign valin á meðan
   if (!data?.eign) { box.hidden = true; return; }
