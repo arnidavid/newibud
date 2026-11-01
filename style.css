@@ -499,6 +499,10 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
 #view-verdmat .vm-label { font-weight: 600; }
 .k-vbig { font-size: 76px; font-weight: 900; letter-spacing: -2px; line-height: .95; }
 .k-vrange { margin: 10px 0 0; font-size: 18px; }
+.k-veiginl { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--k-rule); font-size: 15px; line-height: 1.5; }
+.k-veiginl-hd, .k-veiginl-nt { font-size: 13px; color: var(--k-muted); }
+.k-veiginl ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; padding: 0; }
+.k-veiginl li { font-size: 14px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--k-rule); border-radius: 999px; }
 .k-vfacts { margin: 22px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; border-top: 1px solid var(--k-rule); padding-top: 16px; }
 .k-vfacts dt { font-size: 13px; color: var(--k-muted); }
 .k-vfacts dd { margin: 4px 0 0; font-size: 20px; font-weight: 700; }

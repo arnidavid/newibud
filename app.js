@@ -1646,6 +1646,29 @@ function vmLysa(el) {
 document.addEventListener('mouseover', e => vmLysa(e.target.closest('#vm-comps tr[data-i], .k-vstrip-dot')));
 document.addEventListener('click', e => { const d = e.target.closest('.k-vstrip-dot'); if (d) vmLysa(d); });
 
+// Eignarlóð, hitaveita og lóð við vatn undir verðmati sumarhúss, þar sem þau eru skráð.
+// Textinn fylgir bakprófun 1. nóv. 2026 (633 sölur, 2024–2026), hlutfall undir / yfir bilinu:
+//   við vatn 4 / 77 % (n=26), hitaveita + eignarlóð 16 / 45 %, aðeins hitaveita 20 / 33 %,
+//   aðeins eignarlóð 32 / 30 %, ekkert af þessu 31 / 39 %
+function vmEiginleikaTexti(a) {
+  if (a.vid_vatn) return 'Sumarhús við vatn hafa oftast selst yfir efri mörkum bilsins (77%), en þær sölur eru fáar (26).';
+  if (a.hitaveita && a.eignarlod) return 'Sumarhús með bæði heitt vatn og eignarlóð hafa sjaldnar selst undir neðri mörkum bilsins (16% á móti 31% sumarhúsa án þessara atriða) og oftar yfir efri mörkum (45% á móti 39%).';
+  if (a.hitaveita) return 'Sumarhús með heitt vatn hafa sjaldnar selst undir neðri mörkum bilsins (20% á móti 31% sumarhúsa án þessara atriða), en ekki oftar yfir efri mörkum (33% á móti 39%).';
+  return 'Eignarlóð ein og sér hefur ekki fært sumarhús ofar í bilið: 30% seldust yfir efri mörkum, á móti 39% sumarhúsa án þessara atriða.';
+}
+
+async function vmEiginleikar(fastnum, seq) {
+  const { data } = await API.query('sumarhus_eiginleikar', { fastnum: `eq.${fastnum}`, select: 'eignarlod,hitaveita,vid_vatn,sala_ar', limit: 1 });
+  const a = data?.[0], box = document.getElementById('vm-eiginl');
+  if (!a || !box || seq !== VM.cseq) return;
+  const atr = [a.eignarlod && 'Eignarlóð', a.hitaveita && 'Aðgengi að heitu vatni', a.vid_vatn && 'Lóð við vatn'].filter(Boolean);
+  if (!atr.length) return;
+  box.className = 'k-veiginl';
+  box.innerHTML = `<p class="k-veiginl-hd">Skráð við sölu ${a.sala_ar}</p>
+    <ul>${atr.map(t => `<li>${t}</li>`).join('')}</ul>
+    <p>${vmEiginleikaTexti(a)} <span class="k-veiginl-nt">Samanburður á 633 sölum 2024–2026.</span></p>`;
+}
+
 async function vmCompute(e) {
   const body = document.getElementById('vm-res-body');
   document.getElementById('vm-res-sub').textContent = '';
@@ -1676,7 +1699,7 @@ async function vmCompute(e) {
     <p class="k-vrange">Líklegt bil. Miðjan er um <strong>${fmtMkr(mid)}</strong></p>` : `
     <div class="k-vbig">${fmtMkr(mid)}</div>
     <p class="k-vrange">Líklegt bil <strong>${fmtMkr(lo)} – ${fmtMkr(hi)}</strong></p>`)
-    + vmKvardi(e.mat, lo, mid, hi, d.samb || [], man) + `</div>
+    + vmKvardi(e.mat, lo, mid, hi, d.samb || [], man) + `<div id="vm-eiginl"></div></div>
     <div class="k-vres-hlid">
     <dl class="k-vfacts">
       <div><dt>Fasteignamat 2026</dt><dd>${fmtMkr(e.mat)}</dd></div>
@@ -1687,6 +1710,8 @@ async function vmCompute(e) {
       ? 'Sumarhús víkja mun meira frá fasteignamati en íbúðir: staðsetning við vatn, útsýni, lóð og ástand skipta miklu, og fyrri sölur lentu að jafnaði um 15% frá miðjunni. Sambærilegar sölur segja oft meira en talan.'
       : 'Ástand, útsýni og innréttingar ráða hvar í bilinu eignin lendir.'}</p>
     </div></div>`;
+
+  if (sumar && e.fastnum) vmEiginleikar(e.fastnum, seq);
 
   // Sambærilegar sölur
   const cBox = document.getElementById('vm-comps-box');
