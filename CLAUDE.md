@@ -28,7 +28,9 @@ Icelandic real estate dashboard for the Skorradalssvæðið area (postal code 31
 ## Data Sources
 
 - **Supabase** (kaupskrá) — registered property sales, materialized views for price trends
-- **fastinn.is** (Algolia) — current market listings
+- **fasteignir.visir.is** — auglýsingar á sölu síðan 3. nóv. 2026: n8n `visir_listings_scraper` (daglega 01:30) les leitarsíður og vistar í `fastinn_listings` með `id = 'visir:<nr>'` (RPC `vista_visir`, `merkja_fjarlaegdar_visir`; sjá `migrations/2026-11-03_visir_safnari.sql`). Ný visir-lína erfir fastnum/journey_id/fyrst_birt frá samsvarandi fastinn-línu.
+- **fastinn.is** (Algolia) — HÆTT 3. nóv. 2026: fastinn fór yfir í Findlane-leit sem krefst áskriftar. `fastinn_listings_scraper` óvirkt; ~154 þús. eldri fastinn-línur eru geymdar í töflunni. `fastinn_fastanumer` les enn stakar fastinn-síður (sleppir visir-línum).
+- mbl.is: robots.txt bannar `/fasteignir/api/*` og `/fasteignir/leit/*` – ekki notað.
 
 ## Supabase breytingar
 
