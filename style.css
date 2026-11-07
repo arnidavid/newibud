@@ -330,6 +330,33 @@ a.k-col:hover .k-col-t { text-decoration: underline; text-underline-offset: 4px;
   .k-svt td { font-size: 14px; }
 }
 
+/* Svæðin borin saman (sumarhúsaflipinn): tafla á tölvu, spjöld í síma */
+.ks-sam { border-top: 2px solid var(--k-ink); }
+.ks-sam thead th { white-space: nowrap; }
+.ks-sam td, .ks-sam th { vertical-align: top; }
+.ks-sam tbody tr[data-ssv] { cursor: pointer; }
+.ks-sam tbody tr[data-ssv]:hover .c-sv a { text-decoration: underline; text-underline-offset: 3px; }
+.ks-sam .c-sv { text-align: left; font-size: 17px; font-weight: 700; white-space: nowrap; }
+.ks-sam .c-sv i { display: inline-block; width: 22px; height: 4px; margin-right: 12px; vertical-align: middle; background: var(--k-muted); }
+.ks-sam .c-sv .k-sub { margin-left: 34px; }
+.ks-sam .c-v { font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+.ks-sam tr.k-valid { background: var(--k-skorr-fill); }
+.ks-sam tr.k-valid .c-sv { padding-left: 10px; }
+.ks-sam tr.k-valid td:last-child { padding-right: 10px; }
+.ks-sam tr.ks-sam-land { border-top: 1px solid var(--k-ink); color: var(--k-muted); }
+.ks-sam tr.ks-sam-land .c-sv { font-weight: 600; }
+@media (max-width: 640px) {
+  .k-tbl.ks-sam tbody tr { grid-template-columns: repeat(3, 1fr); gap: 10px 12px; padding: 14px 0; }
+  .k-tbl.ks-sam tr.k-valid { padding: 14px 10px; }
+  .k-tbl.ks-sam tr.k-valid .c-sv { padding-left: 0 !important; }
+  .k-tbl.ks-sam .c-sv { grid-column: 1 / 3; align-self: center; }
+  .k-tbl.ks-sam .c-sv .k-sub { display: inline; margin-left: 8px; }
+  .k-tbl.ks-sam .c-v { grid-column: 3; grid-row: 1; text-align: right; font-size: 20px; }
+  .k-tbl.ks-sam .c-v::after { content: " þ.kr/m²"; font-size: 12px; font-weight: 400; color: var(--k-muted); letter-spacing: 0; }
+  .k-tbl.ks-sam td:not(.c-v) { font-size: 15px; }
+  .k-tbl.ks-sam td:not(.c-v)::before { content: attr(data-l); display: block; font-size: 12px; color: var(--k-muted); }
+}
+
 /* ---- Höfuðborgarsvæðið (og síðar Skorradalur) ---- */
 /* Svæðaval efst í Svæði-flipanum (sama útlit og svæðaval Markaðshita) */
 .kh-seg { margin-top: 32px; flex-wrap: wrap; }

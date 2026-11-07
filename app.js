@@ -793,10 +793,55 @@ function ksSetSvaedi(sv) {
   document.querySelector('.tab-btn[data-view="sumar"]').style.setProperty('--k-sumar', S.col.c);
 }
 
+// ---- Svæðin borin saman (sumarhúsaflipinn): ein lína á svæði + öll sumarhús á landinu ----
+// Sótt einu sinni (RPC sumarhus_samanburdur, ~30 ms); valið svæði auðkennt, smellur skiptir um svæði
+let ksSamP = null;
+const kBrPct = v => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v) + '%';
+const kBr = (a, b) => a && b ? Math.round((a - b) / b * 100) : null;
+function ksSamanburdur() {
+  const el = document.getElementById('ks-sam');
+  ksSamP ||= API.rpc('sumarhus_samanburdur', { p_sumar: Object.fromEntries(Object.entries(SUMAR).map(([k, s]) => [k, s.postnr])) })
+    .then(({ data, error }) => { if (error || !data?.length) throw error || new Error('tómt svar'); return data; });
+  ksSamP.then(d => {
+    const svs = d.filter(r => SUMAR[r.sv]).sort((a, b) => (b.fm_12 || 0) - (a.fm_12 || 0));
+    const land = d.find(r => r.sv === 'landid');
+    const til = d[0].til;
+    document.getElementById('ks-sam-intro').textContent =
+      `Síðustu 12 mánuðir, til ${fmtDagLangt(til)}. Fermetraverð er meðaltal eins og í grafinu að ofan; 5 ár ber saman við sömu 12 mánuði fyrir fimm árum. `
+      + 'Verð / mat er miðgildi eldri húsa. Á sölu sýnir fjölda og miðgildi daga frá fyrstu auglýsingu. '
+      + 'Fáar sölur eru á hverju svæði, svo breyting á einu ári getur sveiflast mikið.';
+    const lina = (r, S) => {
+      const c = S?.col, nafn = S ? S.nafn : 'Öll sumarhús', undir = S ? String(S.postnr) : 'á landinu';
+      return `<tr${S ? ` data-ssv="${r.sv}" class="${r.sv === KS.sv ? 'k-valid' : ''}"` : ' class="ks-sam-land"'}>
+        <th scope="row" class="c-sv">${S ? `<i style="background:${c.c}"></i><a href="/${VIEW_HASH[r.sv]}">${nafn}</a>` : `<i></i>${nafn}`}<span class="k-sub">${undir}</span></th>
+        <td class="c-v r" data-l="Þ.kr/m²"${c ? ` style="color:${c.tx}"` : ''}>${r.fm_12 ? fmtInt(r.fm_12) : '—'}</td>
+        <td class="r" data-l="1 ár">${kBrPct(kBr(r.fm_12, r.fm_fyrra))}</td>
+        <td class="r" data-l="5 ár">${kBrPct(kBr(r.fm_12, r.fm_5ar))}</td>
+        <td class="r" data-l="Sölur">${fmtInt(r.n_12)}<span class="k-sub">${r.n_fyrra ? `${fmtInt(r.n_fyrra)} árið á undan` : ''}</span></td>
+        <td class="r" data-l="Miðgildi">${r.midg_verd ? fmtMkr(r.midg_verd) : '—'}</td>
+        <td class="r" data-l="Verð / mat">${r.mat_pct && r.n_mat >= 10 ? r.mat_pct + '%' : '—'}<span class="k-sub">${r.yfir_pct != null && r.n_mat >= 10 ? `${r.yfir_pct}% yfir mati` : ''}</span></td>
+        <td class="r" data-l="Á sölu">${r.a_solu != null ? fmtInt(r.a_solu) : '—'}<span class="k-sub">${r.dagar != null ? `${fmtInt(r.dagar)} ${r.dagar % 10 === 1 && r.dagar % 100 !== 11 ? 'dagur' : 'dagar'}` : ''}</span></td>
+      </tr>`;
+    };
+    el.innerHTML = svs.map(r => lina(r, SUMAR[r.sv])).join('') + (land ? lina(land, null) : '');
+  }).catch(e => {
+    console.error('ksSamanburdur:', e);
+    ksSamP = null;
+    el.innerHTML = '<tr><td colspan="8"><span class="k-sub">Ekki tókst að sækja samanburðinn. Reyndu aftur síðar.</span></td></tr>';
+  });
+}
+document.getElementById('ks-sam').addEventListener('click', e => {
+  const r = e.target.closest('tr[data-ssv]'); if (!r) return;
+  e.preventDefault();
+  if (r.dataset.ssv !== KS.sv) showView(r.dataset.ssv);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
 async function initSumar(sv = KS.sv) {
   if (sumarReady === sv) return;
   sumarReady = sv;
   ksSetSvaedi(sv);
+  ksSamanburdur();
   const fail = () => { if (KS.sv === sv) document.getElementById('ks-fjall').innerHTML = '<p class="k-sub">Ekki tókst að sækja gögn. Reyndu aftur síðar.</p>'; };
   const loading = '<div class="ldw"><div class="ldr"></div>Sæki gögn…</div>';
   ['ks-fjall', 'ks-ls'].forEach(id => { document.getElementById(id).innerHTML = loading; });
