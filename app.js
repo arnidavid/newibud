@@ -91,14 +91,25 @@ function ksFjall() {
   document.getElementById('ks-bars-t').textContent = `flestar ${n[nmax]} árið ${years[nmax]}, ${n[n.length - 1]} það sem af er ${last}`;
   kBars(document.getElementById('ks-bars'), years, n, col, `Fjöldi sölna á ári ${years[0]} til ${last}, flestar ${n[nmax]} árið ${years[nmax]}.`);
 
-  const mat = years.map(y => {
-    const r = KS.rows.filter(x => new Date(x.thinglystdags).getFullYear() === y && x.fasteignamat > 0 && x.kaupverd > 1000);
-    return r.length ? Math.round(r.reduce((a, x) => a + x.kaupverd / x.fasteignamat * 100, 0) / r.length) : null;
-  });
+  // Söluverð / fasteignamat: miðgildi eldri húsa. Nýbyggingar (byggð söluárið eða árið áður) eru oft
+  // metnar fokheldar og seljast á margföldu mati; meðaltal með þeim fór í 385 % (Grímsnes 2023).
+  const matRadir = KS.rows.filter(x => x.fasteignamat > 0 && x.kaupverd > 1000).map(x => {
+    const d = new Date(x.thinglystdags);
+    return { ar: d.getFullYear(), d, r: x.kaupverd / x.fasteignamat, ny: x.byggar >= d.getFullYear() - 1 };
+  }).filter(x => !x.ny);
+  const midg = a => { const s = a.map(x => x.r).sort((p, q) => p - q), m = s.length >> 1; return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : null; };
+  const mat = years.map(y => { const v = midg(matRadir.filter(x => x.ar === y)); return v ? Math.round(v * 100) : null; });
   const mLast = mat[mat.length - 1];
-  document.getElementById('ks-mat-t').textContent = mLast ? `${mLast}% árið ${last}; brotna línan er 100%` : '';
+  // Hlutfall sölna yfir mati í ár, borið saman við sama dag í fyrra (síðasta ár er aldrei heilt)
+  const nu = new Date(), dIfyrra = new Date(nu.getFullYear() - 1, nu.getMonth(), nu.getDate());
+  const yfir = a => a.length ? Math.round(a.filter(x => x.r > 1).length / a.length * 100) : null;
+  const iAr = matRadir.filter(x => x.ar === last), iFyrra = matRadir.filter(x => x.ar === last - 1 && (last !== nu.getFullYear() || x.d <= dIfyrra));
+  const pAr = yfir(iAr), pFyrra = yfir(iFyrra);
+  document.getElementById('ks-mat-t').textContent = mLast
+    ? `${mLast}% árið ${last}${pAr != null ? `; ${pAr}% seldust yfir mati${pFyrra != null ? ` (${pFyrra}% ${last === nu.getFullYear() ? 'á sama tíma í fyrra' : `árið ${last - 1}`})` : ''}` : ''}. Miðgildi eldri húsa, brotna línan er 100%`
+    : '';
   kLine(document.getElementById('ks-mat'), years, mat, col, { ref: 100, fmt: v => v + '%',
-    ariaLabel: `Söluverð sem hlutfall af fasteignamati ${years[0]} til ${last}.` });
+    ariaLabel: `Söluverð sem hlutfall af fasteignamati, miðgildi eldri húsa, ${years[0]} til ${last}: ${mat.map((v, i) => v ? `${years[i]} ${v}%` : null).filter(Boolean).join(', ')}.` });
 }
 
 // Hverfin: lítil gröf í sama lit; punktur stærri með fleiri sölum, holur ef færri en 3
