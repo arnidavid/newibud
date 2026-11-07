@@ -87,9 +87,10 @@ function ksFjall() {
     { ariaLabel: `Fermetraverð sumarhúsa ${ksS().stadur} ${years[0]} til ${last}${KS.real ? ' á verðlagi 2024' : ''}: úr ${fmtInt(vals[0])} í ${fmtInt(v1)} þúsund krónur, hæst ${fmtInt(vals[hi])} árið ${years[hi]}.` });
 
   const n = years.map(y => by[y]?.nAll || 0);
-  let nmax = 0; n.forEach((v, i) => { if (v > n[nmax]) nmax = i; });
-  document.getElementById('ks-bars-t').textContent = `flestar ${n[nmax]} árið ${years[nmax]}, ${n[n.length - 1]} það sem af er ${last}`;
-  kBars(document.getElementById('ks-bars'), years, n, col, `Fjöldi sölna á ári ${years[0]} til ${last}, flestar ${n[nmax]} árið ${years[nmax]}.`);
+  const dagar = KS.rows.map(r => { const d = new Date(r.thinglystdags); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); });
+  kSolurAri(document.getElementById('ks-bars'), document.getElementById('ks-bars-t'), years, n, col,
+    (y, m, d) => { const a = y * 10000, b = a + m * 100 + d; return dagar.filter(x => x > a && x <= b).length; },
+    y => by[y]?.nAll || 0);
 
   // Söluverð / fasteignamat: miðgildi eldri húsa. Nýbyggingar (byggð söluárið eða árið áður) eru oft
   // metnar fokheldar og seljast á margföldu mati; meðaltal með þeim fór í 385 % (Grímsnes 2023).
@@ -330,11 +331,48 @@ function kProfile(el, years, vals, col, { tall = true, ariaLabel = '' } = {}) {
 }
 
 // Lítið súlurit (fjöldi á ári) og lítið línurit (hlutfall) í sama ramma og sniðið
-function kBars(el, years, vals, col, ariaLabel) {
-  const W = 1000, B = 80, n = years.length, max = Math.max(...vals.filter(Boolean), 1);
+// Gagnastaða: síðasti þinglýsingardagur í kaupskrá (sameiginlegur öllum svæðum; lítið svæði
+// getur átt síðustu sölu fyrir vikum en gögnin ná samt lengra)
+const kGognTil = API.query('kaupskra', { select: 'thinglystdags', order: 'thinglystdags.desc', limit: 1 }, { paginate: false })
+  .then(({ data }) => data?.[0]?.thinglystdags ? new Date(data[0].thinglystdags + 'T12:00') : null).catch(() => null);
+
+// Árið í ár á móti sama degi í fyrra + áætlun ársins út frá árstíðasveiflu síðustu 5 ára.
+// uppAd(y, m, d) = sölur ársins y til og með m/d; heild(y) = allt árið y (í ár: það sem komið er)
+function kArSamanburdur(til, uppAd, heild) {
+  const y = til.getFullYear(), m = til.getMonth() + 1, d = til.getDate();
+  let s = 0, t = 0;
+  for (let a = y - 5; a < y; a++) { s += uppAd(a, m, d); t += heild(a); }
+  const hlutur = t ? s / t : 0, nu = heild(y);
+  // Í janúar–febrúar er of lítið komið til að áætla árið
+  return { nu, ifyrra: Math.round(uppAd(y - 1, m, d)), aaetlun: hlutur >= 0.15 && nu ? Math.round(nu / hlutur) : null };
+}
+
+// Súlurit „Sölur á ári“ með samanburði við sama tíma í fyrra og strikaðri áætlun ársins
+let kSolurTeljari = 0;
+function kSolurAri(elBars, elT, years, n, col, uppAd, heild) {
+  let nmax = 0; n.forEach((v, i) => { if (v > n[nmax]) nmax = i; });
+  const last = years[years.length - 1], token = String(++kSolurTeljari);
+  elBars.dataset.k = token;
+  const teikna = til => {
+    if (elBars.dataset.k !== token) return;   // svæði skipt á meðan beðið var
+    const s = til && til.getFullYear() === last ? kArSamanburdur(til, uppAd, heild) : null;
+    const br = s?.ifyrra ? Math.round((s.nu / s.ifyrra - 1) * 100) : null;
+    elT.textContent = `flestar ${fmtInt(n[nmax])} árið ${years[nmax]}; ${fmtInt(n[n.length - 1])} það sem af er ${last}`
+      + (br != null ? ` á móti ${fmtInt(s.ifyrra)} á sama tíma í fyrra (${br > 0 ? '+' : br < 0 ? '−' : ''}${Math.abs(br)}%)` : '')
+      + (s?.aaetlun ? `. Strikað: áætlað um ${fmtInt(s.aaetlun)} á árinu` : '');
+    kBars(elBars, years, n, col, `Fjöldi sölna á ári ${years[0]} til ${last}, flestar ${fmtInt(n[nmax])} árið ${years[nmax]}${s?.aaetlun ? `; áætlað um ${fmtInt(s.aaetlun)} árið ${last}` : ''}.`, s?.aaetlun);
+  };
+  teikna(null);
+  kGognTil.then(teikna);
+}
+
+function kBars(el, years, vals, col, ariaLabel, aaetlun = null) {
+  const W = 1000, B = 80, n = years.length, max = Math.max(...vals.filter(Boolean), aaetlun || 0, 1);
   const bw = Math.min(30, W / n * .6), x = i => i * W / (n - 1);
   const pct = (v, of) => +(v / of * 100).toFixed(1);
+  const ab = Math.min(Math.max(x(n - 1) - bw / 2, 0), W - bw), ah = (aaetlun || 0) / max * (B - 4);
   el.innerHTML = `<svg viewBox="0 0 ${W} ${B}" preserveAspectRatio="none" role="img" aria-label="${ariaLabel}" style="height:90px">
+      ${aaetlun > vals[n - 1] ? `<rect x="${ab.toFixed(1)}" y="${(B - ah).toFixed(1)}" width="${bw.toFixed(1)}" height="${ah.toFixed(1)}" fill="none" stroke="${col.c}" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"><title>${years[n - 1]}: áætlað um ${fmtInt(aaetlun)}</title></rect>` : ''}
       ${vals.map((v, i) => { if (!v) return ''; const h = v / max * (B - 4); const bx = Math.min(Math.max(x(i) - bw / 2, 0), W - bw);
         return `<rect x="${bx.toFixed(1)}" y="${(B - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" fill="${i === n - 1 ? col.fill2 : col.c}"><title>${years[i]}: ${fmtInt(v)}</title></rect>`; }).join('')}
       <line x1="0" x2="${W}" y1="${B}" y2="${B}" stroke="#1C2B33" vector-effect="non-scaling-stroke"/>
@@ -410,9 +448,11 @@ function khFjall() {
     { ariaLabel: `Fermetraverð ${years[0]} til ${last}${KH.real ? ' á verðlagi 2024' : ''}: úr ${fmtInt(vals[0])} í ${fmtInt(v1)} þúsund krónur, lægst ${fmtInt(vals[lo])} árið ${years[lo]}.` });
 
   const n = years.map(y => by[y]?.nAll || 0);
-  let nmax = 0; n.forEach((v, i) => { if (v > n[nmax]) nmax = i; });
-  document.getElementById('kh-bars-t').textContent = `flestar ${fmtInt(n[nmax])} árið ${years[nmax]}, ${fmtInt(n[n.length - 1])} það sem af er ${last}`;
-  kBars(document.getElementById('kh-bars'), years, n, khCol(), `Fjöldi sölna á ári ${years[0]} til ${last}, flestar ${fmtInt(n[nmax])} árið ${years[nmax]}.`);
+  // Aðeins mánaðartölur hér: hluti mánaðar m er áætlaður í réttu hlutfalli við dagafjölda
+  kSolurAri(document.getElementById('kh-bars'), document.getElementById('kh-bars-t'), years, n, khCol(),
+    (y, m, d) => KH.agg.reduce((s, a) => s + (a.ar !== y || a.man > m ? 0
+      : a.man < m ? a.n_allt : a.n_allt * Math.min(1, d / new Date(y, m, 0).getDate())), 0),
+    y => by[y]?.nAll || 0);
 
   const mat = years.map(y => by[y]?.nMat ? Math.round(by[y].sumMat / by[y].nMat) : null);
   const mLast = mat[mat.length - 1];
