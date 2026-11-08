@@ -1459,7 +1459,7 @@ document.getElementById('vm-ny').addEventListener('click', () => {
   vmEignHaus(null);
   history.pushState(null, '', '/verdmat');
   document.title = 'Verðmat – Fasteignavaktin';
-  kSetCanonical('/verdmat'); kSetLysing(null);
+  kSetCanonical('/verdmat'); kSetLysing(VIEW_LYSING.verdmat);
   window.scrollTo({ top: 0 });
   const q = document.getElementById('vm-q');
   q.focus(); q.select();
@@ -1880,7 +1880,7 @@ async function kgOpen(postnr, gata) {
     set('mun', (m > 0 ? '+' : m < 0 ? '−' : '±') + Math.abs(m) + '%', m > 0 ? `dýrari á fermetra en ${postnr}` : m < 0 ? `ódýrari á fermetra en ${postnr}` : `sama og ${postnr}`);
   } else set('mun', '—', 'of fáar nýlegar sölur til samanburðar');
   set('ls', fmtInt((d.a_solu || []).length), 'eignir í götunni');
-  kSetLysing(`Fasteignaverð í ${d.gata}, ${pnTxt}: ${fmtInt(d.n)} ${eintala(d.n) ? 'sala' : 'sölur'} síðan 2006`
+  kSetLysing(`Fasteignaverð í ${d.gata}, ${pnTxt.replace(/^Póstnúmer/, 'póstnúmer')}: ${fmtInt(d.n)} ${eintala(d.n) ? 'sala' : 'sölur'} síðan 2006`
     + (ny.fm_gata ? `, fermetraverð ${fmtInt(ny.fm_gata)} þ.kr/m² síðustu 2 ár` + (ny.fm_pn ? ` (${fmtInt(ny.fm_pn)} í póstnúmerinu)` : '') : '')
     + `. Allar sölur${(d.a_solu || []).length ? ' og eignir á sölu' : ''} í götunni.`);
 
@@ -1921,8 +1921,22 @@ document.addEventListener('click', e => {
 
 // ---- Tab switching ----
 const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', grimsnes: 'grimsnes', blaskogar: 'blaskogabyggd', hiti: 'markadshiti', verdmat: 'verdmat', gata: 'gata' };
-// Titill vafraflipa (og sögu) eftir flipa; forsíðan heldur aðaltitlinum
-const VIEW_TITLE = { hofud: 'Höfuðborgarsvæðið', akureyri: 'Akureyri', reykjanesbaer: 'Reykjanesbær', selfoss: 'Selfoss', akranes: 'Akranes', sumar: 'Skorradalur', grimsnes: 'Grímsnes', blaskogar: 'Bláskógabyggð', hiti: 'Markaðshiti', verdmat: 'Verðmat', gata: 'Verð í götunni' };
+// Titill vafraflipa og leitarvéla eftir flipa (+ „ – Fasteignavaktin“, alls undir ~60 stöfum); forsíðan heldur aðaltitlinum.
+// Orðað eins og fólk leitar („fasteignaverð á Akureyri“, „sumarhús í Grímsnesi“). Götu- og eignasíður setja eigin titil.
+const VIEW_TITLE = { hofud: 'Fasteignaverð á höfuðborgarsvæðinu', akureyri: 'Fasteignaverð á Akureyri', reykjanesbaer: 'Fasteignaverð í Reykjanesbæ',
+  selfoss: 'Fasteignaverð á Selfossi', akranes: 'Fasteignaverð á Akranesi', sumar: 'Sumarhús í Skorradal: verð og sölur',
+  grimsnes: 'Sumarhús í Grímsnesi: verð og sölur', blaskogar: 'Sumarhús í Bláskógabyggð: verð og sölur',
+  hiti: 'Markaðshiti: hversu hratt seljast eignir', verdmat: 'Verðmat fasteignar', gata: 'Verð í götunni' };
+// Lýsing hvers flipa fyrir leitarvélar og deilingu (annars almenna lýsingin í index.html). Engar heimildir nefndar.
+const kIbudLys = stadur => `Fermetraverð íbúða ${stadur} eftir árum, nýjustu þinglýstu sölur, verð eftir stærð og aldri, nýbyggingar og íbúðir á sölu núna.`;
+const kSumarLys = stadur => `Verð á sumarhúsum ${stadur}: fermetraverð eftir árum, þinglýstar sölur, ásett verð á móti söluverði, samanburður við önnur svæði og sumarhús á sölu núna.`;
+const VIEW_LYSING = {
+  hofud: 'Fermetraverð íbúða á höfuðborgarsvæðinu eftir árum og póstnúmerum, nýjustu þinglýstu sölur, verð eftir stærð og aldri, nýbyggingar og íbúðir á sölu núna.',
+  akureyri: kIbudLys('á Akureyri'), reykjanesbaer: kIbudLys('í Reykjanesbæ'), selfoss: kIbudLys('á Selfossi'), akranes: kIbudLys('á Akranesi'),
+  sumar: kSumarLys('í Skorradal'), grimsnes: kSumarLys('í Grímsnesi'), blaskogar: kSumarLys('í Bláskógabyggð'),
+  hiti: 'Hversu hratt seljast íbúðir og sumarhús? Söluhraði, söluverð á móti ásettu verði og fjöldi eigna á sölu eftir svæðum og mánuðum.',
+  verdmat: 'Hvað er eignin mín virði? Áætlað söluverð út frá fasteignamati og nýlegum sölum í hverfinu, saga eignarinnar og sambærilegar sölur.'
+};
 // Önnur þéttbýlissvæði nota sama skjáhluta og höfuðborgarsvæðið (view-hofud), sumarhúsasvæðin skjáhluta Skorradals (view-sumar)
 const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', akranes: 'hofud', grimsnes: 'sumar', blaskogar: 'sumar' };
 
@@ -1954,7 +1968,7 @@ function showView(view, { push = true } = {}) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + dom));
 
   document.title = VIEW_TITLE[view] ? `${VIEW_TITLE[view]} – Fasteignavaktin` : 'Fasteignavaktin – fasteignaverð í tölum';
-  kSetLysing(null);
+  kSetLysing(VIEW_LYSING[view] || null);
   if (view !== 'gata' && !(view === 'verdmat' && /^\/eign\//.test(location.pathname))) kSetCanonical(viewSlod(view));
 
   const subEl = document.getElementById('header-sub');
@@ -2007,10 +2021,15 @@ function kSetLysing(txt) {
   document.querySelector('meta[property="og:description"]').content = txt || K_LYSING;
   document.querySelector('meta[property="og:title"]').content = document.title;
 }
+// index.html hefur viljandi ENGA canonical/og:url: sama HTML er sent fyrir allar slóðir, og canonical á
+// forsíðuna þar sagði leitarvélum að allar svæðis- og götusíður væru afrit af forsíðunni (8. nóv. 2026).
 function kSetCanonical(slod) {
-  const url = 'https://sumar.silfran.com' + slod;
-  document.querySelector('link[rel="canonical"]').href = url;
-  document.querySelector('meta[property="og:url"]').content = url;
+  const url = 'https://sumar.silfran.com' + slod, h = document.head;
+  let c = h.querySelector('link[rel="canonical"]'), o = h.querySelector('meta[property="og:url"]');
+  if (!c) { c = document.createElement('link'); c.rel = 'canonical'; h.appendChild(c); }
+  if (!o) { o = document.createElement('meta'); o.setAttribute('property', 'og:url'); h.appendChild(o); }
+  c.href = url;
+  o.content = url;
 }
 
 // Innri tenglar (/eign/…, /gata/…, flipar) opnast án þess að endurhlaða síðuna
