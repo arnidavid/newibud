@@ -802,13 +802,25 @@ function ksSamanburdur() {
   const el = document.getElementById('ks-sam');
   ksSamP ||= API.rpc('sumarhus_samanburdur', { p_sumar: Object.fromEntries(Object.entries(SUMAR).map(([k, s]) => [k, s.postnr])) })
     .then(({ data, error }) => { if (error || !data?.length) throw error || new Error('tómt svar'); return data; });
-  ksSamP.then(d => {
+  ksSamP.then(async d => {
+    await kVnvTilbuin.catch(() => {});   // nýjasta vísitala (annars tölurnar í kóðanum)
     const svs = d.filter(r => SUMAR[r.sv]).sort((a, b) => (b.fm_12 || 0) - (a.fm_12 || 0));
     const land = d.find(r => r.sv === 'landid');
-    const til = d[0].til;
+    const til = d[0].til, tilD = new Date(til), y = tilD.getFullYear();
+    // Raunbreyting á 5 árum: fermetraverð leiðrétt fyrir verðlagi (ársmeðaltal vísitölu neysluverðs)
+    const vnvR = VNV[y] && VNV[y - 5] ? VNV[y] / VNV[y - 5] : null;
+    const raun = r => r.fm_12 && r.fm_5ar && vnvR ? Math.round((r.fm_12 / (r.fm_5ar * vnvR) - 1) * 100) : null;
+    // Fyrirhugað mat er birt í júní fyrir næsta ár; fyrir júní er það mat yfirstandandi árs (fyrir endurhleðslu í jan.)
+    const matAr = tilD.getMonth() >= 5 ? y + 1 : y, synaMat = d.some(r => r.mat_naesta_pct != null);
+    const matH = document.getElementById('ks-sam-mat-h');
+    matH.hidden = !synaMat; matH.textContent = `Mat ${matAr}`;
+    const pct1 = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(1).replace('.', ',') + '%';
     document.getElementById('ks-sam-intro').textContent =
-      `Síðustu 12 mánuðir, til ${fmtDagLangt(til)}. Fermetraverð er meðaltal eins og í grafinu að ofan; 5 ár ber saman við sömu 12 mánuði fyrir fimm árum. `
-      + 'Verð / mat er miðgildi eldri húsa. Á sölu sýnir fjölda og miðgildi daga frá fyrstu auglýsingu. '
+      `Síðustu 12 mánuðir, til ${fmtDagLangt(til)}. Fermetraverð er meðaltal eins og í grafinu að ofan; 5 ár ber saman við sömu 12 mánuði fyrir fimm árum, `
+      + `og „raun“ er breytingin umfram almennt verðlag (verðlag hækkaði um ${vnvR ? Math.round((vnvR - 1) * 100) : '—'}% á sama tíma). `
+      + 'Verð / mat er miðgildi eldri húsa. '
+      + (synaMat ? `Mat ${matAr} er miðgildi breytingar fasteignamats sumarhúsa á svæðinu um áramótin. ` : '')
+      + 'Á sölu sýnir fjölda og miðgildi daga frá fyrstu auglýsingu. '
       + 'Fáar sölur eru á hverju svæði, svo breyting á einu ári getur sveiflast mikið.';
     const lina = (r, S) => {
       const c = S?.col, nafn = S ? S.nafn : 'Öll sumarhús', undir = S ? String(S.postnr) : 'á landinu';
@@ -816,10 +828,11 @@ function ksSamanburdur() {
         <th scope="row" class="c-sv">${S ? `<i style="background:${c.c}"></i><a href="/${VIEW_HASH[r.sv]}">${nafn}</a>` : `<i></i>${nafn}`}<span class="k-sub">${undir}</span></th>
         <td class="c-v r" data-l="Þ.kr/m²"${c ? ` style="color:${c.tx}"` : ''}>${r.fm_12 ? fmtInt(r.fm_12) : '—'}</td>
         <td class="r" data-l="1 ár">${kBrPct(kBr(r.fm_12, r.fm_fyrra))}</td>
-        <td class="r" data-l="5 ár">${kBrPct(kBr(r.fm_12, r.fm_5ar))}</td>
+        <td class="r" data-l="5 ár">${kBrPct(kBr(r.fm_12, r.fm_5ar))}<span class="k-sub">${raun(r) != null ? `raun ${kBrPct(raun(r))}` : ''}</span></td>
         <td class="r" data-l="Sölur">${fmtInt(r.n_12)}<span class="k-sub">${r.n_fyrra ? `${fmtInt(r.n_fyrra)} árið á undan` : ''}</span></td>
         <td class="r" data-l="Miðgildi">${r.midg_verd ? fmtMkr(r.midg_verd) : '—'}</td>
         <td class="r" data-l="Verð / mat">${r.mat_pct && r.n_mat >= 10 ? r.mat_pct + '%' : '—'}<span class="k-sub">${r.yfir_pct != null && r.n_mat >= 10 ? `${r.yfir_pct}% yfir mati` : ''}</span></td>
+        ${synaMat ? `<td class="r" data-l="Mat ${matAr}">${r.mat_naesta_pct != null ? pct1(Number(r.mat_naesta_pct)) : '—'}</td>` : ''}
         <td class="r" data-l="Á sölu">${r.a_solu != null ? fmtInt(r.a_solu) : '—'}<span class="k-sub">${r.dagar != null ? `${fmtInt(r.dagar)} ${r.dagar % 10 === 1 && r.dagar % 100 !== 11 ? 'dagur' : 'dagar'}` : ''}</span></td>
       </tr>`;
     };
@@ -827,7 +840,7 @@ function ksSamanburdur() {
   }).catch(e => {
     console.error('ksSamanburdur:', e);
     ksSamP = null;
-    el.innerHTML = '<tr><td colspan="8"><span class="k-sub">Ekki tókst að sækja samanburðinn. Reyndu aftur síðar.</span></td></tr>';
+    el.innerHTML = '<tr><td colspan="9"><span class="k-sub">Ekki tókst að sækja samanburðinn. Reyndu aftur síðar.</span></td></tr>';
   });
 }
 document.getElementById('ks-sam').addEventListener('click', e => {
