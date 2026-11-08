@@ -83,4 +83,4 @@ Eftir breytingar á JS/CSS: bæta `?v=N` við script/link tags í `index.html` t
 - `API.query(endpoint, params, options)` — single paginated GET
 - `API.fetchAll(endpoint, params, options)` — auto-fetches all pages (max 50 pages safety limit)
 - `API.rpc(functionName, body)` — POST to Supabase RPC functions
-- Convenience methods: `getManadarsolur` (RPC, mánaðarsamantekt), `getSolurGotur` (RPC, sölur á götum), `getKaupskra`, `getListingsDb`
+- Convenience methods: `getManadarsolur` (RPC, mánaðarsamantekt), `getSolurGotur` (RPC, sölur á götum), `getKaupskra`. Auglýsingar með `API.rpc` (`auglysingar_a_solu`, `auglysing_fyrir_solu`) – aldrei sækja allar auglýsingar póstnúmers

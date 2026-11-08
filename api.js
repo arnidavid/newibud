@@ -150,13 +150,8 @@ const API = (() => {
     return { data, error: null };
   }
 
-  /** Sækir fastinn_listings úr Supabase (n8n scraper) */
-  function getListingsDb(postnr, tegund) {
-    const params = { postnr: `eq.${postnr}` };
-    if (tegund) params.tegund = `eq.${tegund}`;
-    // Fetcha bæði active og removed=true (til að geta matchað við kaupskra)
-    return fetchAll('fastinn_listings', params, { order: 'last_seen.desc' });
-  }
+  // Auglýsingar: auglysingar_a_solu (á sölu) og auglysing_fyrir_solu (ein auglýsing á sölu) – kallað með rpc().
+  // getListingsDb (allar auglýsingar póstnúmers) var fjarlægt 8. nóv. 2026: sótti þúsundir lína til að para 20 sölur.
 
   // ---- Public API ----
   return {
@@ -167,8 +162,6 @@ const API = (() => {
     // Samantektir og sölur
     getManadarsolur,
     getSolurGotur,
-    getKaupskra,
-    // Auglýsingar
-    getListingsDb
+    getKaupskra
   };
 })();

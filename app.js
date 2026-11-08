@@ -149,15 +149,15 @@ function ksHverfi() {
 async function ksAvs() {
   const sv = KS.sv, postnr = ksS().postnr;
   const tb = document.getElementById('ks-avs'), sum = document.getElementById('ks-avs-sum');
-  const { data: listings, error } = await API.getListingsDb(postnr, 'sumarhus');
-  if (KS.sv !== sv) return;   // annað svæði valið á meðan
-  if (error || !listings) { tb.innerHTML = '<tr><td colspan="5">Ekki tókst að sækja auglýsingar. Reyndu aftur síðar.</td></tr>'; return; }
-  const byKey = {};
-  for (const l of listings) for (const k of [l.fastnum && 'f:' + l.fastnum, 'a:' + normAddr(l.heimilisfang)]) if (k) (byKey[k] = byKey[k] || []).push(l);
   const sales = KS.rows.filter(r => r.einflm > 0 && r.kaupverd / r.einflm >= 10 && r.kaupverd / r.einflm <= 2000)
     .slice().sort((a, b) => new Date(b.thinglystdags) - new Date(a.thinglystdags)).slice(0, 20);
-  const pairs = sales.map(sale => {
-    const l = pickListingForSale({ ...sale, postnr }, [...(sale.fastnum ? byKey['f:' + sale.fastnum] || [] : []), ...(byKey['a:' + normAddr(sale.heimilisfang)] || [])]);
+  // Ein auglýsing á sölu úr Supabase (auglysing_fyrir_solu, sama regla og pickListingForSale).
+  // Áður voru ALLAR auglýsingar svæðisins sóttar (Grímsnes: 2.137 línur í 5 umferðum) til að para 20 sölur.
+  // Ef kallið mistekst birtast sölurnar án ásetts verðs.
+  const matched = await matchSalesToListings(sales.map(s => ({ ...s, postnr })));
+  if (KS.sv !== sv) return;   // annað svæði valið á meðan
+  const pairs = matched.map(sale => {
+    const l = sale.listing || null;
     const ask = l?.verd ? l.verd / 1000 : 0;
     return { sale, l, ask, d: ask ? Math.round((sale.kaupverd / ask - 1) * 100) : null };
   });
