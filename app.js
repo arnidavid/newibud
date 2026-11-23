@@ -563,7 +563,8 @@ async function renderStaerdAldur(sv, postnr, tegund, kaupTegund) {
 // ---- Nýbyggingar: fjöldi á ári (kaupskrá, mv_nybyggingar) og söluhraði (auglýsingar, reiknað í n8n) ----
 // Nýbygging = fyrsta sala eignar sem var byggð sama ár eða árið áður.
 // Markaðshitataflan er sótt einu sinni og samnýtt af þessum kafla og Markaðshita-flipanum.
-const mhLoad = () => (mhLoad.p ||= API.query('markadshiti', { select: '*', order: 'timabil.asc' }, { paginate: false })
+// fetchAll: taflan stækkar daglega (nuna-raðir) og eitt kall skilar mest 1.000 röðum – annars dyttu nýjustu tölurnar út
+const mhLoad = () => (mhLoad.p ||= API.fetchAll('markadshiti', { select: '*', order: 'timabil.asc,svaedi.asc,gerd.asc' })
   .then(r => r.data?.length ? r.data : null));
 const NY_MIN_N = 5;   // færri nýbyggingar en þetta → ekkert fermetraverð sýnt
 
@@ -1425,8 +1426,9 @@ const VM_POSTNR = [
   [101, 'Reykjavík'], [102, 'Reykjavík'], [103, 'Reykjavík'], [104, 'Reykjavík'], [105, 'Reykjavík'],
   [107, 'Reykjavík'], [108, 'Reykjavík'], [109, 'Reykjavík'], [110, 'Reykjavík'], [111, 'Reykjavík'],
   [112, 'Reykjavík'], [113, 'Reykjavík'], [116, 'Reykjavík'], [170, 'Seltjarnarnes'],
-  [200, 'Kópavogur'], [201, 'Kópavogur'], [203, 'Kópavogur'], [210, 'Garðabær'], [225, 'Garðabær'],
-  [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær'],
+  [200, 'Kópavogur'], [201, 'Kópavogur'], [202, 'Kópavogur'], [203, 'Kópavogur'], [206, 'Kópavogur'],
+  [210, 'Garðabær'], [212, 'Garðabær'], [225, 'Garðabær'],
+  [220, 'Hafnarfjörður'], [221, 'Hafnarfjörður'], [222, 'Hafnarfjörður'], [270, 'Mosfellsbær'], [271, 'Mosfellsbær'], [276, 'Mosfellsbær'],
   [230, 'Reykjanesbær'], [233, 'Reykjanesbær'], [260, 'Reykjanesbær'], [262, 'Reykjanesbær'],
   [800, 'Selfoss'], [801, 'Selfoss'], [300, 'Akranes'],
   [600, 'Akureyri'], [603, 'Akureyri']
@@ -1690,13 +1692,16 @@ async function vmSaga(fastnum, data = null) {
     : `${e.heimilisfang}, ${e.postnr}: engin sala á markaðsverði síðan 2006. Fasteignamat og sölur í hverfinu.`);
 }
 
-// Tekur „68.000.000“, „68000000“, „68000“ (þ.kr) eða „68“ (m.kr) → þ.kr
+// Tekur „68.000.000“, „68000000“, „68000“ (þ.kr), „68“ eða „68,5“ (m.kr) → þ.kr
+// Komma er aukastafur; punktur er þúsundaskil ef þrír tölustafir fylgja (68.000), annars aukastafur (68.5)
 function vmParseMat(s) {
-  const n = parseInt(String(s).replace(/\D/g, ''), 10);
-  if (!n) return null;
+  let t = String(s).replace(/[^\d.,]/g, '');
+  t = t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : /^\d{1,3}(\.\d{3})+$/.test(t) ? t.replace(/\./g, '') : t;
+  const n = parseFloat(t);
+  if (!(n > 0)) return null;
   if (n >= 1e6) return Math.round(n / 1000);
-  if (n >= 1000) return n;
-  return n * 1000;
+  if (n >= 1000) return Math.round(n);
+  return Math.round(n * 1000);
 }
 
 function vmManual() {
@@ -1709,6 +1714,8 @@ function vmManual() {
   }
   err.textContent = '';
   document.getElementById('vm-mat').removeAttribute('aria-invalid');
+  VM.sseq = (VM.sseq || 0) + 1;                                 // sölusaga fyrri eignar á ekki við handvirkt mat
+  document.getElementById('vm-saga-box').hidden = true;
   const postnr = parseInt(document.getElementById('vm-postnr').value, 10);
   const tegund = document.getElementById('vm-tegund').value;
   vmCompute({ mat, postnr, tegund, title: `${VM_TEG[tegund][1].replace(/^./, c => c.toUpperCase())}, ${vmPostTxt(postnr)}` });
