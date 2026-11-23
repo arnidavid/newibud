@@ -162,11 +162,11 @@ async function ksAvs() {
     return { sale, l, ask, d: ask ? Math.round((sale.kaupverd / ask - 1) * 100) : null };
   });
   tb.innerHTML = pairs.map(({ sale, l, ask, d }) => {
-    const url = sale.fastnum && sale.heinum ? `https://fastinn.is/fasteignir/${sale.heinum}/${sale.fastnum}` : l?.linkur;
+    const url = sale.fastnum && sale.heinum ? `https://fastinn.is/fasteignir/${sale.heinum}/${sale.fastnum}` : kHref(l?.linkur);
     const a = vmEsc(sale.heimilisfang);
     return `<tr data-addr="${a.toLowerCase()}">
       <th scope="row" class="c-eign" style="text-align:left;font-weight:600">${url ? `<a href="${url}" target="_blank" rel="noopener">${a}</a>` : a}<span class="k-sub">${fmtM2(sale.einflm)}, þinglýst ${fmtDagAr(sale.thinglystdags)}</span></th>
-      <td class="c-ask r" style="color:var(--k-muted)">${!ask ? '' : l.linkur ? `<a href="${l.linkur}" target="_blank" rel="noopener" title="Opna auglýsingu">${fmtMkr(ask)}</a>` : fmtMkr(ask)}</td>
+      <td class="c-ask r" style="color:var(--k-muted)">${!ask ? '' : kHref(l.linkur) ? `<a href="${kHref(l.linkur)}" target="_blank" rel="noopener" title="Opna auglýsingu">${fmtMkr(ask)}</a>` : fmtMkr(ask)}</td>
       <td class="c-selt r" style="font-weight:700">${fmtMkr(sale.kaupverd)}</td>
       <td class="c-mun r ${d > 0 ? 'k-up' : d < 0 ? 'k-down' : ''}" style="font-weight:700">${d == null ? '' : (d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d) + '%'}</td>
       <td class="c-fm r">${fmtInt(sale.kaupverd / sale.einflm)}</td>
@@ -513,7 +513,7 @@ function khListings(ls, rows, pre = 'kh', col = 'var(--k-hofud-tx)') {
       <div><div class="k-lab">Stærð</div><div>${l.staerd ? fmtM2(l.staerd) : '–'}</div></div>
       <div><div class="k-lab">Þ.kr/m²</div><div>${l.fm_thkr > 0 ? fmtInt(l.fm_thkr) : '–'}</div></div>
       <div><div class="k-lab">${diff < 0 ? 'Undir' : 'Yfir'} fasteignamati</div><div class="${diff > 0 ? 'k-up' : diff < 0 ? 'k-down' : ''}">${diff === null ? '–' : Math.abs(diff) + '%'}</div></div>
-      <a href="${l.linkur}" target="_blank" rel="noopener" style="color:${col}">Opna auglýsingu</a>
+      ${kHref(l.linkur) ? `<a href="${kHref(l.linkur)}" target="_blank" rel="noopener" style="color:${col}">Opna auglýsingu</a>` : ''}
     </article>`;
   }).join('');
   kMore(document.getElementById(pre + '-ls-more'), [...w.querySelectorAll('.k-lst')], 10, 'eignir');
@@ -984,7 +984,11 @@ const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjane
 // Önnur þéttbýlissvæði á forsíðu (á eftir höfuðborgarsvæðinu)
 const K_AUKA = [{ sv: 'akureyri' }, { sv: 'reykjanesbaer' }, { sv: 'selfoss' }, { sv: 'akranes' }];
 const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
-const kLastYear = by => Math.max(...Object.keys(by).filter(y => by[y].nFm > 0).map(Number));
+// Ekkert ár með sölu (fámenn samsetning) → líðandi ár, svo lykkjur „for (y = …; y <= last; y++)“ endi (annars -Infinity)
+const kLastYear = by => {
+  const ar = Object.keys(by || {}).filter(y => by[y].nFm > 0).map(Number);
+  return ar.length ? Math.max(...ar) : new Date().getFullYear();
+};
 
 // Forsíðan sýnir eina tegund í einu (íbúðir eða sumarhús): fjall, svæðatafla og nýjustu sölur.
 // Fyrsta svæðið í hverri tegund er fyllta „fjallið“ með hæðarlínum; hin eru línur ofan á.
@@ -1090,11 +1094,11 @@ kSvt.addEventListener('click', e => {
 
 function kSaleRow(r, reg, { postnrOnly = false } = {}) {
   const l = r.listing, c = K_COL[reg];
-  const propUrl = r.fastnum && r.heinum ? `https://fastinn.is/fasteignir/${r.heinum}/${r.fastnum}` : l?.linkur;
+  const propUrl = r.fastnum && r.heinum ? `https://fastinn.is/fasteignir/${r.heinum}/${r.fastnum}` : kHref(l?.linkur);
   const askThkr = l?.verd ? l.verd / 1000 : 0;
   const diff = askThkr ? Math.round((r.kaupverd - askThkr) / askThkr * 100) : null;
   // Ásett verð vísar á auglýsinguna sjálfa (heimilisfangið á eignasíðuna)
-  const askTxt = askThkr && l.linkur ? `<a href="${l.linkur}" target="_blank" rel="noopener" title="Opna auglýsingu">${fmtMkr(askThkr)}</a>` : fmtMkr(askThkr);
+  const askTxt = askThkr && kHref(l.linkur) ? `<a href="${kHref(l.linkur)}" target="_blank" rel="noopener" title="Opna auglýsingu">${fmtMkr(askThkr)}</a>` : fmtMkr(askThkr);
   const ask = askThkr ? `${askTxt} <span class="${diff < 0 ? 'k-down' : diff > 0 ? 'k-up' : ''}" style="font-weight:600">${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%</span>` : '';
   const svaedi = SUMAR[reg] ? SUMAR[reg].i_txt : postnrOnly ? r.postnr : reg === 'akureyri' ? r.postnr + ' Akureyri' : vmPostTxt(r.postnr);
   const addr = vmEsc(r.heimilisfang);
@@ -1468,6 +1472,8 @@ document.getElementById('vm-ny').addEventListener('click', () => {
 });
 
 const vmEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Auglýsingatengill úr söfnurum: aðeins http(s), og hreinsaður fyrir href="…" (annars null)
+const kHref = u => /^https?:\/\//i.test(String(u ?? '').trim()) ? vmEsc(String(u).trim()) : null;
 const vmPct = r => (r * 100).toFixed(1).replace('.', ',') + '%';
 const vmM2 = m => String(Math.round(m * 10) / 10).replace('.', ',') + ' m²';
 const vmPostTxt = p => { const x = VM_POSTNR.find(a => a[0] === p); return p + (x ? ' ' + x[1] : ''); };
@@ -1683,7 +1689,7 @@ async function vmSaga(fastnum, data = null) {
   const A = data.augl || [];
   document.getElementById('vm-saga-augl').innerHTML = A.length ? `<ul class="k-vsaga-augl">${A.map(l => {
       const lk = l.haest && l.haest > l.verd ? ` (lækkað úr ${fmtMkr(l.haest / 1000)})` : '';
-      return `<li>${l.virk ? '<b>Á sölu núna</b>' : `Auglýst ${fmtDagAr(l.fra)}–${fmtDagAr(l.til)}`} á ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${l.linkur ? ` · <a href="${l.linkur}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
+      return `<li>${l.virk ? '<b>Á sölu núna</b>' : `Auglýst ${fmtDagAr(l.fra)}–${fmtDagAr(l.til)}`} á ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${kHref(l.linkur) ? ` · <a href="${kHref(l.linkur)}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
     }).join('')}</ul>` : '';
 
   document.getElementById('vm-saga-slod').innerHTML = '';
@@ -1895,7 +1901,7 @@ async function kgOpen(postnr, gata) {
   const pts = (d.ar_gata || []).map(a => ({ t: Date.UTC(a.ar, 6, 1), v: Number(a.fm), r: Math.min(9, 3.5 + Math.sqrt(a.n) * 1.3),
     title: `${a.ar}: ${fmtInt(a.fm)} þ.kr/m², ${a.n} ${a.n === 1 ? 'sala' : 'sölur'}` }));
   $('kg-fig').hidden = !kSoguGraf($('kg-graf'), $('kg-legend'), pts, d.ar_pn || [],
-    { lina: false, hvTxt: `Meðalverð á ${teg} í ${postnr}`, ptsTxt: `${d.gata}, meðaltal ársins (stærri punktur = fleiri sölur)`,
+    { lina: false, hvTxt: `Meðalverð á ${teg} í ${postnr}`, ptsTxt: `${vmEsc(d.gata)}, meðaltal ársins (stærri punktur = fleiri sölur)`,
       aria: `Meðalfermetraverð í ${d.gata} eftir árum borið saman við ${postnr}: ${pts.map(p => p.title).join('; ')}.` });
 
   // Á sölu núna
@@ -1903,7 +1909,7 @@ async function kgOpen(postnr, gata) {
   $('kg-asolu-box').hidden = !A.length;
   $('kg-asolu').innerHTML = A.map(l => {
     const lk = l.haest && l.haest > l.verd ? ` <span class="kg-muted">(lækkað úr ${fmtMkr(l.haest / 1000)})</span>` : '';
-    return `<li><b>${vmEsc(String(l.heimilisfang).replace(/\s*\(\d{3}\)$/, ''))}</b>${l.staerd ? `, ${vmM2(l.staerd)}` : ''}: ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${l.linkur ? ` · <a href="${l.linkur}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
+    return `<li><b>${vmEsc(String(l.heimilisfang).replace(/\s*\(\d{3}\)$/, ''))}</b>${l.staerd ? `, ${vmM2(l.staerd)}` : ''}: ${l.verd > 0 ? fmtMkr(l.verd / 1000) : 'tilboð'}${lk}${kHref(l.linkur) ? ` · <a href="${kHref(l.linkur)}" target="_blank" rel="noopener">Opna auglýsingu</a>` : ''}</li>`;
   }).join('');
 
   // Allar sölur (nýjast fyrst); heimilisfang → eignasíða
