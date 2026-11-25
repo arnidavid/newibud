@@ -211,6 +211,8 @@ main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; paddin
 /* Sumarhúsasvæðin nota skjáhluta Skorradals → --k-skorr-breyturnar fá lit valins svæðis */
 #view-sumar[data-svaedi="grimsnes"] { --k-skorr: var(--k-grim); --k-skorr-tx: var(--k-grim-tx); --k-skorr-fill: var(--k-grim-fill); }
 #view-sumar[data-svaedi="blaskogar"] { --k-skorr: var(--k-blask); --k-skorr-tx: var(--k-blask-tx); --k-skorr-fill: var(--k-blask-fill); }
+#view-sumar[data-svaedi="kjos"] { --k-skorr: #B4532F; --k-skorr-tx: #87391D; --k-skorr-fill: #F6E9E3; }
+#view-sumar[data-svaedi="hvalfj"] { --k-skorr: #3572A8; --k-skorr-tx: #22507A; --k-skorr-fill: #E5EEF6; }
 
 /* ---- Haus ---- */
 .site-hd { border-bottom: 1px solid var(--k-rule); background: var(--k-paper); color: var(--k-ink); }

@@ -22,7 +22,7 @@ api = (ROT / 'api.js').read_text(encoding='utf-8')
 BASE = re.search(r"BASE_URL = '([^']+)'", api).group(1)
 KEY = re.search(r"ANON_KEY = '([^']+)'", api).group(1)
 FLIPAR = ['hofud', 'akureyri', 'reykjanesbaer', 'selfoss', 'akranes', 'skorradalur', 'grimsnes',
-          'blaskogabyggd', 'markadshiti', 'verdmat']
+          'blaskogabyggd', 'kjos', 'hvalfjardarsveit', 'markadshiti', 'verdmat']
 TEGUNDIR = ['Fjölbýli', 'Sérbýli', 'Einbýli', 'Sumarhús']   # tegund=in.(…) virkar ekki → ein í einu
 MIN_SOLUR = 3
 

@@ -68,6 +68,16 @@ const SUMAR = {
     nafn: 'Bláskógabyggð', postnr: 806, stadur: 'í Bláskógabyggð', i_txt: '806 Bláskógabyggð',
     lead: 'Sumarhús í Bláskógabyggð, póstnúmeri 806.',
     col: { c: '#55687D', tx: '#3B4A5B', fill: '#E8ECF0', fill2: '#AEB9C5' }
+  },
+  kjos: {
+    nafn: 'Kjós', postnr: 276, stadur: 'í Kjós', i_txt: '276 Kjós',
+    lead: 'Sumarhús í Kjósarhreppi, póstnúmeri 276, meðal annars við Meðalfellsvatn.',
+    col: { c: '#B4532F', tx: '#87391D', fill: '#F6E9E3', fill2: '#DFA996' }
+  },
+  hvalfj: {
+    nafn: 'Hvalfjarðarsveit', postnr: 301, stadur: 'í Hvalfjarðarsveit', i_txt: '301 Hvalfjarðarsveit',
+    lead: 'Sumarhús í Hvalfjarðarsveit, póstnúmeri 301, meðal annars í Svínadal og Eyrarskógi.',
+    col: { c: '#3572A8', tx: '#22507A', fill: '#E5EEF6', fill2: '#9DBDDA' }
   }
 };
 // ---- Sumarhúsaflipinn (kortastefna); KS.sv = valið svæði ----
@@ -980,7 +990,8 @@ async function matchSalesToListings(sales) {
 
 // ---- Forsíða (kortastefna) ----
 const K_COL = { hofud: SVAEDI.hofud.col, akureyri: SVAEDI.akureyri.col, reykjanesbaer: SVAEDI.reykjanesbaer.col, selfoss: SVAEDI.selfoss.col, akranes: SVAEDI.akranes.col,
-  sumar: SUMAR.sumar.col, grimsnes: SUMAR.grimsnes.col, blaskogar: SUMAR.blaskogar.col };
+  sumar: SUMAR.sumar.col, grimsnes: SUMAR.grimsnes.col, blaskogar: SUMAR.blaskogar.col,
+  kjos: SUMAR.kjos.col, hvalfj: SUMAR.hvalfj.col };
 // Önnur þéttbýlissvæði á forsíðu (á eftir höfuðborgarsvæðinu)
 const K_AUKA = [{ sv: 'akureyri' }, { sv: 'reykjanesbaer' }, { sv: 'selfoss' }, { sv: 'akranes' }];
 const kAvg = (by, y) => by?.[y]?.nFm ? by[y].sumFm / by[y].nFm : null;
@@ -994,7 +1005,7 @@ const kLastYear = by => {
 // Fyrsta svæðið í hverri tegund er fyllta „fjallið“ með hæðarlínum; hin eru línur ofan á.
 const K_FAM = {
   ibudir:   { svs: ['hofud', ...K_AUKA.map(a => a.sv)], teg: 'íbúðir' },
-  sumarhus: { svs: ['grimsnes', 'sumar', 'blaskogar'], teg: 'sumarhús' }
+  sumarhus: { svs: ['grimsnes', 'sumar', 'blaskogar'], teg: 'sumarhús' }   // minni svæðin (Kjós, Hvalfjarðarsveit) aðeins í sumarhúsaflipanum – of sveiflukennd fyrir fjallið
 };
 const kNafn = sv => SVAEDI[sv]?.nafn || SUMAR[sv].nafn;
 const kUndir = sv => SUMAR[sv] ? `Sumarhús, ${SUMAR[sv].postnr}` : sv === 'hofud' ? 'Íbúðarhúsnæði, allt svæðið' : `Íbúðarhúsnæði, ${SVAEDI[sv].allt.join(', ')}`;
@@ -1933,12 +1944,13 @@ document.addEventListener('click', e => {
 });
 
 // ---- Tab switching ----
-const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', grimsnes: 'grimsnes', blaskogar: 'blaskogabyggd', hiti: 'markadshiti', verdmat: 'verdmat', gata: 'gata' };
+const VIEW_HASH = { yfirlit: 'yfirlit', hofud: 'hofud', akureyri: 'akureyri', reykjanesbaer: 'reykjanesbaer', selfoss: 'selfoss', akranes: 'akranes', sumar: 'skorradalur', grimsnes: 'grimsnes', blaskogar: 'blaskogabyggd', kjos: 'kjos', hvalfj: 'hvalfjardarsveit', hiti: 'markadshiti', verdmat: 'verdmat', gata: 'gata' };
 // Titill vafraflipa og leitarvéla eftir flipa (+ „ – Fasteignavaktin“, alls undir ~60 stöfum); forsíðan heldur aðaltitlinum.
 // Orðað eins og fólk leitar („fasteignaverð á Akureyri“, „sumarhús í Grímsnesi“). Götu- og eignasíður setja eigin titil.
 const VIEW_TITLE = { hofud: 'Fasteignaverð á höfuðborgarsvæðinu', akureyri: 'Fasteignaverð á Akureyri', reykjanesbaer: 'Fasteignaverð í Reykjanesbæ',
   selfoss: 'Fasteignaverð á Selfossi', akranes: 'Fasteignaverð á Akranesi', sumar: 'Sumarhús í Skorradal: verð og sölur',
   grimsnes: 'Sumarhús í Grímsnesi: verð og sölur', blaskogar: 'Sumarhús í Bláskógabyggð: verð og sölur',
+  kjos: 'Sumarhús í Kjós: verð og sölur', hvalfj: 'Sumarhús í Hvalfjarðarsveit: verð og sölur',
   hiti: 'Markaðshiti: hversu hratt seljast eignir', verdmat: 'Verðmat fasteignar', gata: 'Verð í götunni' };
 // Lýsing hvers flipa fyrir leitarvélar og deilingu (annars almenna lýsingin í index.html). Engar heimildir nefndar.
 const kIbudLys = stadur => `Fermetraverð íbúða ${stadur} eftir árum, nýjustu þinglýstu sölur, verð eftir stærð og aldri, nýbyggingar og íbúðir á sölu núna.`;
@@ -1947,11 +1959,12 @@ const VIEW_LYSING = {
   hofud: 'Fermetraverð íbúða á höfuðborgarsvæðinu eftir árum og póstnúmerum, nýjustu þinglýstu sölur, verð eftir stærð og aldri, nýbyggingar og íbúðir á sölu núna.',
   akureyri: kIbudLys('á Akureyri'), reykjanesbaer: kIbudLys('í Reykjanesbæ'), selfoss: kIbudLys('á Selfossi'), akranes: kIbudLys('á Akranesi'),
   sumar: kSumarLys('í Skorradal'), grimsnes: kSumarLys('í Grímsnesi'), blaskogar: kSumarLys('í Bláskógabyggð'),
+  kjos: kSumarLys('í Kjós'), hvalfj: kSumarLys('í Hvalfjarðarsveit'),
   hiti: 'Hversu hratt seljast íbúðir og sumarhús? Söluhraði, söluverð á móti ásettu verði og fjöldi eigna á sölu eftir svæðum og mánuðum.',
   verdmat: 'Hvað er eignin mín virði? Áætlað söluverð út frá fasteignamati og nýlegum sölum í hverfinu, saga eignarinnar og sambærilegar sölur.'
 };
 // Önnur þéttbýlissvæði nota sama skjáhluta og höfuðborgarsvæðið (view-hofud), sumarhúsasvæðin skjáhluta Skorradals (view-sumar)
-const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', akranes: 'hofud', grimsnes: 'sumar', blaskogar: 'sumar' };
+const VIEW_DOM = { akureyri: 'hofud', reykjanesbaer: 'hofud', selfoss: 'hofud', akranes: 'hofud', grimsnes: 'sumar', blaskogar: 'sumar', kjos: 'sumar', hvalfj: 'sumar' };
 
 // Fellilisti svæðis: valkostir höfuðborgarsvæðis teknir úr index.html, annarra svæða úr SVAEDI
 SVAEDI.hofud.valkostir = document.getElementById('hofud-postnr').innerHTML;

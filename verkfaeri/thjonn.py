@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROT = Path(__file__).resolve().parent.parent
 SIDUR = re.compile(r'^/(?:(?:eign|gata)/.+|(?:yfirlit|hofud|akureyri|reykjanesbaer|selfoss|akranes|'
-                   r'skorradalur|grimsnes|blaskogabyggd|markadshiti|verdmat)/?)$')
+                   r'skorradalur|grimsnes|blaskogabyggd|kjos|hvalfjardarsveit|markadshiti|verdmat)/?)$')
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
